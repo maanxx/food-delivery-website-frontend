@@ -7,36 +7,36 @@ import useAuth from "@hooks/useAuth";
 import { authLogin } from "@services/authService";
 
 function DefaultLayout() {
-    const { login, logout } = useAuth();
-    const { setLoading } = useLoading();
+  const { login, logout } = useAuth();
+  const { setLoading } = useLoading();
 
-    useEffect(() => {
-        const authenticate = async () => {
-            setLoading(true);
-            try {
-                if (await authLogin()) {
-                    login();
-                } else {
-                    logout();
-                }
-            } catch (error) {
-                console.log(error);
-                logout();
-            } finally {
-                setLoading(false);
-            }
-        };
+  useEffect(() => {
+    const authenticate = async () => {
+      setLoading(true);
+      try {
+        if (await authLogin()) {
+          login();
+        } else {
+          logout();
+        }
+      } catch (error) {
+        console.log(error);
+        logout();
+      } finally {
+        setLoading(false);
+      }
+    };
 
-        authenticate();
-    }, []);
+    authenticate();
+  }, [login, logout, setLoading]);
 
-    return (
-        <>
-            <Header />
-            <Outlet /> {/* chilren */}
-            <Footer />
-        </>
-    );
+  return (
+    <>
+      <Header />
+      <Outlet /> {/* chilren */}
+      <Footer />
+    </>
+  );
 }
 
 export default DefaultLayout;

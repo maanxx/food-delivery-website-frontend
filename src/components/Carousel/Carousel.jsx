@@ -1,4 +1,10 @@
-import React, { useState, useLayoutEffect, useCallback, useRef, forwardRef } from "react";
+import React, {
+  useState,
+  useLayoutEffect,
+  useCallback,
+  useRef,
+  forwardRef,
+} from "react";
 import { TransitionGroup, CSSTransition } from "react-transition-group";
 import classNames from "classnames/bind";
 
@@ -7,84 +13,101 @@ import { ChevronLeft, ChevronRight } from "@mui/icons-material";
 
 const cx = classNames.bind(styles);
 
-const Carousel = ({ items, active: initialActive, autoCycle = true, cycleInterval = 3000000 }) => {
-    const [active, setActive] = useState(initialActive);
-    const [direction, setDirection] = useState("");
-    const [isTransitioning, setIsTransitioning] = useState(false);
+const Carousel = ({
+  items,
+  active: initialActive,
+  autoCycle = true,
+  cycleInterval = 3000000,
+}) => {
+  const [active, setActive] = useState(initialActive);
+  const [direction, setDirection] = useState("");
+  const [isTransitioning, setIsTransitioning] = useState(false);
 
-    const itemRefs = useRef(items.map(() => React.createRef()));
+  const itemRefs = useRef(items.map(() => React.createRef()));
 
-    useLayoutEffect(() => {
-        let cycle;
-        if (autoCycle) {
-            cycle = setInterval(() => {
-                if (!isTransitioning) handleMove("right");
-            }, cycleInterval);
-        }
-        return () => clearInterval(cycle);
-    }, [autoCycle, cycleInterval, isTransitioning]);
+  const handleMove = (dir) => {
+    if (isTransitioning) return;
 
-    const handleMove = (dir) => {
-        if (isTransitioning) return;
+    setIsTransitioning(true);
+    setDirection(dir);
+    setActive((prev) => {
+      if (dir === "left") return (prev - 1 + items.length) % items.length;
+      return (prev + 1) % items.length;
+    });
 
-        setIsTransitioning(true);
-        setDirection(dir);
-        setActive((prev) => {
-            if (dir === "left") return (prev - 1 + items.length) % items.length;
-            return (prev + 1) % items.length;
-        });
+    setTimeout(() => setIsTransitioning(false), 500);
+  };
 
-        setTimeout(() => setIsTransitioning(false), 500);
-    };
+  const handleMoveMemo = useCallback(handleMove, [isTransitioning]);
 
-    const generateItems = useCallback(() => {
-        const elements = [];
+  useLayoutEffect(() => {
+    let cycle;
+    if (autoCycle) {
+      cycle = setInterval(() => {
+        if (!isTransitioning) handleMoveMemo("right");
+      }, cycleInterval);
+    }
+    return () => clearInterval(cycle);
+  }, [autoCycle, cycleInterval, isTransitioning, handleMoveMemo]);
 
-        for (let i = active - 2; i < active + 3; i++) {
-            let index = (i + items.length) % items.length;
-            let level = active - i;
+  const generateItems = useCallback(() => {
+    const elements = [];
 
-            elements.push(
-                <CSSTransition
-                    key={index}
-                    classNames={{
-                        enter: cx(`${direction}-enter`),
-                        enterActive: cx(`${direction}-enter-active`),
-                        exit: cx(`${direction}-exit`),
-                        exitActive: cx(`${direction}-exit-active`),
-                    }}
-                    timeout={1000}
-                    nodeRef={itemRefs.current[index]}
-                >
-                    <Item ref={itemRefs.current[index]} path={items[index]} level={level} />
-                </CSSTransition>,
-            );
-        }
+    for (let i = active - 2; i < active + 3; i++) {
+      let index = (i + items.length) % items.length;
+      let level = active - i;
 
-        return elements;
-    }, [active, direction, items]);
+      elements.push(
+        <CSSTransition
+          key={index}
+          classNames={{
+            enter: cx(`${direction}-enter`),
+            enterActive: cx(`${direction}-enter-active`),
+            exit: cx(`${direction}-exit`),
+            exitActive: cx(`${direction}-exit-active`),
+          }}
+          timeout={1000}
+          nodeRef={itemRefs.current[index]}
+        >
+          <Item
+            ref={itemRefs.current[index]}
+            path={items[index]}
+            level={level}
+          />
+        </CSSTransition>,
+      );
+    }
 
-    return (
-        <div id={cx("carousel")} className={cx("noselect")}>
-            <div className={cx("arrow", "arrow-left")} onClick={() => handleMove("left")}>
-                <ChevronLeft />
-            </div>
-            <div className={cx("carousel-items")}>
-                <TransitionGroup>{generateItems()}</TransitionGroup>
-            </div>
-            <div className={cx("arrow", "arrow-right")} onClick={() => handleMove("right")}>
-                <ChevronRight />
-            </div>
-        </div>
-    );
+    return elements;
+  }, [active, direction, items]);
+
+  return (
+    <div id={cx("carousel")} className={cx("noselect")}>
+      <div
+        className={cx("arrow", "arrow-left")}
+        onClick={() => handleMove("left")}
+      >
+        <ChevronLeft />
+      </div>
+      <div className={cx("carousel-items")}>
+        <TransitionGroup>{generateItems()}</TransitionGroup>
+      </div>
+      <div
+        className={cx("arrow", "arrow-right")}
+        onClick={() => handleMove("right")}
+      >
+        <ChevronRight />
+      </div>
+    </div>
+  );
 };
 
 const Item = forwardRef(({ path, level }, ref) => {
-    return (
-        <div ref={ref} className={cx("item", `level${level}`)}>
-            <img src={path} alt="Best seller image" />
-        </div>
-    );
+  return (
+    <div ref={ref} className={cx("item", `level${level}`)}>
+      <img src={path} alt="Carousel item" />
+    </div>
+  );
 });
 
 export default Carousel;
