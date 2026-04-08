@@ -36,7 +36,7 @@ function Menu() {
   useEffect(() => {
     try {
       const fetchCategories = async () => {
-        const response = await axiosInstance.get("/api/category");
+        const response = await axiosInstance.get("/category");
         setCategories([
           { category_id: "all", name: "Tất cả" },
           ...response.data,
@@ -45,7 +45,7 @@ function Menu() {
       fetchCategories();
 
       const fetchDishes = async () => {
-        const response = await axiosInstance.get("/api/dish");
+        const response = await axiosInstance.get("/dish");
         setDishes(response.data);
       };
       fetchDishes();
