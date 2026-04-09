@@ -17,7 +17,9 @@ import {
     Contact,
     Offers,
     ForgotPassword,
+    DishDetail, 
 } from "@pages/index";
+
 import {
     Authentication,
     FormForgotPasswordOTP,
@@ -27,6 +29,7 @@ import {
     FormUserName,
     LoginStatus,
 } from "@components/index";
+
 import DefaultLayout from "@layouts/DefaultLayout";
 import FormForgetPasswordInfo from "@components/FormForgotPassword/FormForgotPasswordInfo/FormForgotPasswordInfo";
 import FormLoginOTP from "@components/FormLogin/FormLoginOTP/FormLoginOTP";
@@ -38,38 +41,42 @@ const publicRoutes = [
         errorElement: <Error />,
         children: [
             {
-                path: "/",
+                index: true,
                 element: <Home />,
             },
             {
-                path: "/about",
+                path: "about",
                 element: <About />,
             },
-
             {
-                path: "/search",
+                path: "search",
                 element: <Search />,
             },
             {
-                path: "/menu",
+                path: "menu",
                 element: <Menu />,
             },
             {
-                path: "/contact",
+                path: "contact",
                 element: <Contact />,
             },
             {
-                path: "/offers",
+                path: "offers",
                 element: <Offers />,
+            },
+            {
+                path: "dish/:id",
+                element: <DishDetail />,
             },
         ],
     },
+
     {
         path: "/login",
         element: <Login />,
         children: [
             {
-                path: "",
+                index: true,
                 element: <FormPhoneNumber />,
             },
             {
@@ -90,12 +97,13 @@ const publicRoutes = [
             },
         ],
     },
+
     {
         path: "/forgot-password",
         element: <ForgotPassword />,
         children: [
             {
-                path: "",
+                index: true,
                 element: <FormForgetPasswordInfo />,
             },
             {
@@ -110,9 +118,9 @@ const publicRoutes = [
     },
 ];
 
+// ✅ PRIVATE ROUTES
 const privateRoutes = [
     {
-        path: "/",
         element: (
             <Authentication>
                 <DefaultLayout />
@@ -147,6 +155,9 @@ const privateRoutes = [
     },
 ];
 
-const router = createBrowserRouter([...publicRoutes, ...privateRoutes]);
+const router = createBrowserRouter([
+    ...publicRoutes,
+    ...privateRoutes,
+]);
 
 export default router;
