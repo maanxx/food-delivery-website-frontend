@@ -1,0 +1,92 @@
+.detailPage {
+  padding: 40px 0;
+}
+
+/* IMAGE */
+.imageWrapper {
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.12);
+}
+
+.image {
+  width: 100%;
+  height: 420px;
+  object-fit: cover;
+  transition: transform 0.4s ease;
+}
+
+.imageWrapper:hover .image {
+  transform: scale(1.05);
+}
+
+/* INFO CARD */
+.infoCard {
+  background: #fff;
+  border-radius: 18px;
+  padding: 28px;
+  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.06);
+
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* TEXT */
+.name {
+  font-size: 28px;
+  font-weight: 700;
+}
+
+.price {
+  color: #ff6b35;
+  font-size: 26px;
+  font-weight: 700;
+}
+
+.desc {
+  color: #666;
+  line-height: 1.6;
+}
+
+/* ADD SECTION */
+.addSection {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 12px;
+}
+
+/* BUTTON */
+.addBtn {
+  flex: 1;
+  height: 52px;
+  border-radius: 14px;
+  font-weight: 600;
+  color: white;
+  text-transform: none;
+
+  background: linear-gradient(135deg, #ff6b35, #ff8c42);
+  box-shadow: 0 4px 12px rgba(255, 107, 53, 0.35);
+  transition: all 0.25s ease;
+}
+
+.addBtn:hover {
+  background: linear-gradient(135deg, #ff7a45, #ffa94d);
+  transform: translateY(-1px);
+}
+
+.addBtn:active {
+  transform: scale(0.97);
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .image {
+    height: 300px;
+  }
+
+  .addSection {
+    flex-direction: column;
+  }
+}

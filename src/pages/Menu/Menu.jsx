@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import classNames from "classnames/bind";
+import { Link } from "react-router-dom";
 import {
   Container,
   Grid,
@@ -232,84 +233,86 @@ function Menu() {
             <Grid container spacing={3}>
               {currentDishes.map((dish) => (
                 <Grid item xs={12} sm={6} md={3} key={dish.dish_id}>
-                  <Card className={cx("dish-card")}>
-                    <div className={cx("dish-image-container")}>
-                      <CardMedia
-                        component="img"
-                        height="200"
-                        image={dish.thumbnail_path}
-                        alt={dish.name}
-                        className={cx("dish-image")}
-                      />
-                      {cart[dish.dish_id] && (
-                        <div className={cx("quantity-badge")}>
-                          {cart[dish.dish_id]}
-                        </div>
-                      )}
-                    </div>
+                  <Link to={`/dish/${dish.dish_id}`}>
+                    <Card className={cx("dish-card")}>
+                      <div className={cx("dish-image-container")}>
+                        <CardMedia
+                          component="img"
+                          height="200"
+                          image={dish.thumbnail_path}
+                          alt={dish.name}
+                          className={cx("dish-image")}
+                        />
+                        {cart[dish.dish_id] && (
+                          <div className={cx("quantity-badge")}>
+                            {cart[dish.dish_id]}
+                          </div>
+                        )}
+                      </div>
 
-                    <CardContent className={cx("dish-content")}>
-                      <Typography
-                        variant="h6"
-                        component="h3"
-                        className={cx("dish-name")}
-                      >
-                        {dish.name}
-                      </Typography>
-
-                      <Typography
-                        variant="body2"
-                        color="text.secondary"
-                        className={cx("dish-description")}
-                      >
-                        {dish.description}
-                      </Typography>
-
-                      <div className={cx("dish-footer")}>
+                      <CardContent className={cx("dish-content")}>
                         <Typography
                           variant="h6"
-                          component="span"
-                          className={cx("dish-price")}
+                          component="h3"
+                          className={cx("dish-name")}
                         >
-                          {formatPrice(dish.price)}
+                          {dish.name}
                         </Typography>
 
-                        <div className={cx("dish-actions")}>
-                          {cart[dish.dish_id] ? (
-                            <div className={cx("quantity-controls")}>
-                              <IconButton
-                                size="small"
-                                onClick={() => removeFromCart(dish.dish_id)}
-                                className={cx("quantity-btn")}
-                              >
-                                <RemoveIcon />
-                              </IconButton>
-                              <span className={cx("quantity")}>
-                                {cart[dish.dish_id]}
-                              </span>
-                              <IconButton
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          className={cx("dish-description")}
+                        >
+                          {dish.description}
+                        </Typography>
+
+                        <div className={cx("dish-footer")}>
+                          <Typography
+                            variant="h6"
+                            component="span"
+                            className={cx("dish-price")}
+                          >
+                            {formatPrice(dish.price)}
+                          </Typography>
+
+                          <div className={cx("dish-actions")}>
+                            {cart[dish.dish_id] ? (
+                              <div className={cx("quantity-controls")}>
+                                <IconButton
+                                  size="small"
+                                  onClick={() => removeFromCart(dish.dish_id)}
+                                  className={cx("quantity-btn")}
+                                >
+                                  <RemoveIcon />
+                                </IconButton>
+                                <span className={cx("quantity")}>
+                                  {cart[dish.dish_id]}
+                                </span>
+                                <IconButton
+                                  size="small"
+                                  onClick={() => addToCart(dish.dish_id)}
+                                  className={cx("quantity-btn")}
+                                >
+                                  <AddIcon />
+                                </IconButton>
+                              </div>
+                            ) : (
+                              <Button
+                                variant="contained"
                                 size="small"
                                 onClick={() => addToCart(dish.dish_id)}
-                                className={cx("quantity-btn")}
+                                className={cx("add-btn")}
+                                startIcon={<AddIcon />}
                               >
-                                <AddIcon />
-                              </IconButton>
-                            </div>
-                          ) : (
-                            <Button
-                              variant="contained"
-                              size="small"
-                              onClick={() => addToCart(dish.dish_id)}
-                              className={cx("add-btn")}
-                              startIcon={<AddIcon />}
-                            >
-                              Thêm
-                            </Button>
-                          )}
+                                Thêm
+                              </Button>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+                      </CardContent>
+                    </Card>
+                  </Link>
                 </Grid>
               ))}
             </Grid>
