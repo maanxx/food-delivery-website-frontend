@@ -1,0 +1,194 @@
+.wrapper {
+  width: 100%;
+  margin: 100px 0;
+}
+
+.wrapper button {
+  border: 2px solid orangered;
+  border-radius: 50%;
+  color: orangered;
+  font-weight: bold;
+  padding: 10px;
+  width: 50px;
+  height: 50px;
+  position: absolute;
+  z-index: var(--zIndexOnTop);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.wrapper button:hover {
+  background-color: orangered;
+  color: white;
+}
+
+.wrapper button svg {
+  font-size: var(--iconFontSize);
+}
+
+.button-left {
+  top: 40%;
+  left: -5%;
+}
+
+.button-right {
+  top: 40%;
+  right: -5%;
+}
+.box {
+  position: relative;
+}
+
+.carousel {
+  border: 2px solid black;
+  display: grid;
+  grid-auto-flow: column;
+  grid-gap: 30px;
+  overflow-x: auto;
+  margin: 20px 0;
+  -webkit-overflow-scrolling: touch;
+  cursor: grab;
+}
+
+.carousel::-webkit-scrollbar {
+  display: none;
+}
+
+.carousel .card {
+  width: 260px;
+  border-radius: 10px;
+  border: 1px solid #f1f1f1;
+  box-shadow: 0 0 10px rgba(0.1, 0.1, 0.1, 0.1);
+  transition: all 0.2s linear;
+  user-select: none;
+}
+
+.content-item {
+  width: 85%;
+  height: 90%;
+  margin: 20px auto;
+}
+
+.image {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  overflow: hidden;
+  margin: 0 auto;
+}
+
+.image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.carousel .card h2,
+.carousel .card h3 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin: 10px 0;
+  text-align: center;
+  margin-top: 20px;
+}
+
+.carousel .card h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 20px 0;
+}
+
+.order-button {
+  display: block;
+  width: 100%;
+  border: 1px solid green;
+  text-decoration: dotted;
+  border-radius: 10px;
+  padding: 14px 40px;
+  text-align: center;
+  color: green;
+  font-weight: bold;
+  transition: background-color 0s ease, color 0.2s ease;
+}
+
+.title {
+  text-align: center;
+  margin: 20px 0 80px 0;
+}
+
+.title h1 {
+  text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+  color: rgb(255, 145, 76);
+}
+
+.red-text {
+  color: red;
+  font-weight: bold;
+}
+
+.order-button:hover {
+  background-color: red;
+  color: white;
+}
+
+.carousel .card:hover {
+  /* transform: scale(1.05);
+  transition: transform 0.5s; */
+  border: 2px solid black;
+}
+
+.carousel .card:hover .image {
+  transform: scale(1.2);
+  transition: transform 0.35s;
+}
+
+.table {
+  width: 50%;
+  float: left;
+}
+.today-img {
+  width: 50%;
+  float: left;
+  border-radius: 20px;
+}
+.today-img img {
+  width: 85%;
+  height: 85%;
+  object-fit: cover;
+  margin: 20px;
+  border-radius: 10px;
+}
+
+.column-l {
+  width: 90%;
+  float: left;
+}
+.title {
+  margin-top: 100px;
+}
+
+.table tr {
+  width: 100%;
+  height: 130px;
+  display: flex;
+  align-items: first baseline;
+  text-align: left;
+  border-bottom: 1px dashed #000;
+}
+
+.table tr h3 {
+  text-align: left;
+  line-height: 20px;
+}
+.table tr h6 {
+  line-height: 25px;
+  font-size: smaller;
+}
+
+.offer-today {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: 100px;
+}
