@@ -17,9 +17,14 @@ import {
     Contact,
     Offers,
     ForgotPassword,
-    DishDetail, 
+    DishDetail,
+    Admin,
 } from "@pages/index";
-
+import Orders from "@pages/Admin/Orders";
+import Employees from "@pages/Admin/Employees";
+import Products from "@pages/Admin/Products";
+import Reports from "@pages/Admin/Reports";
+import Settings from "@pages/Admin/Settings";
 import {
     Authentication,
     FormForgotPasswordOTP,
@@ -29,8 +34,8 @@ import {
     FormUserName,
     LoginStatus,
 } from "@components/index";
-
 import DefaultLayout from "@layouts/DefaultLayout";
+import AdminLayout from "@layouts/AdminLayout";
 import FormForgetPasswordInfo from "@components/FormForgotPassword/FormForgotPasswordInfo/FormForgotPasswordInfo";
 import FormLoginOTP from "@components/FormLogin/FormLoginOTP/FormLoginOTP";
 
@@ -155,9 +160,43 @@ const privateRoutes = [
     },
 ];
 
-const router = createBrowserRouter([
-    ...publicRoutes,
-    ...privateRoutes,
-]);
+const adminRoutes = [
+    {
+        path: "/admin",
+        element: (
+            <Authentication>
+                <AdminLayout />
+            </Authentication>
+        ),
+        children: [
+            {
+                path: "/admin",
+                element: <Admin />,
+            },
+            {
+                path: "/admin/orders",
+                element: <Orders />,
+            },
+            {
+                path: "/admin/employees",
+                element: <Employees />,
+            },
+            {
+                path: "/admin/products",
+                element: <Products />,
+            },
+            {
+                path: "/admin/reports",
+                element: <Reports />,
+            },
+            {
+                path: "/admin/settings",
+                element: <Settings />,
+            },
+        ],
+    },
+];
+
+const router = createBrowserRouter([...publicRoutes, ...privateRoutes, ...adminRoutes]);
 
 export default router;
