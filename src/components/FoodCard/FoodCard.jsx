@@ -29,7 +29,7 @@ const FoodCard = ({ dish }) => {
           <div className={styles.originalPrice}>${originalPrice}</div>
         )}
         <div className={styles.priceWrapper}>
-          <span className={styles.price}>${dish.price.toFixed(2)}</span>
+          <span className={styles.price}>${Number(dish.price).toFixed(0)}</span>
         </div>
         <button className={styles.addButton} onClick={handleAddToCart}>
           Add to Cart

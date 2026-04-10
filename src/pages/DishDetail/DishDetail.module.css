@@ -1,12 +1,27 @@
 .detailPage {
-  padding: 40px 0;
+  padding-top: 120px;
+  max-width: 1200px;
 }
 
-/* IMAGE */
+.backBtn {
+  text-transform: none;
+  font-weight: 600;
+  border-radius: 12px;
+  padding: 8px 16px;
+  color: #333;
+
+  background: #f5f5f5;
+  transition: all 0.25s ease;
+}
+
+.backBtn:hover {
+  background: #e0e0e0;
+  transform: translateX(-3px);
+}
 .imageWrapper {
-  border-radius: 18px;
+  border-radius: 20px;
   overflow: hidden;
-  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
 }
 
 .image {
@@ -20,16 +35,15 @@
   transform: scale(1.05);
 }
 
-/* INFO CARD */
 .infoCard {
   background: #fff;
-  border-radius: 18px;
-  padding: 28px;
-  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.06);
+  border-radius: 20px;
+  padding: 30px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
 
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 18px;
 }
 
 /* TEXT */
@@ -79,7 +93,40 @@
 .addBtn:active {
   transform: scale(0.97);
 }
+.rowBetween {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
 
+.sectionTitle {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+.scrollWrapper {
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+  padding-bottom: 10px;
+
+  scroll-behavior: smooth;
+}
+.scrollWrapper::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollItem {
+  min-width: 240px;
+  flex-shrink: 0;
+  transition: transform 0.25s ease;
+}
+
+.scrollItem:hover {
+  transform: translateY(-6px);
+}
 /* RESPONSIVE */
 @media (max-width: 768px) {
   .image {
@@ -88,5 +135,12 @@
 
   .addSection {
     flex-direction: column;
+  }
+}
+
+@media (min-width: 768px) {
+  .infoCard {
+    position: sticky;
+    top: 140px;
   }
 }
