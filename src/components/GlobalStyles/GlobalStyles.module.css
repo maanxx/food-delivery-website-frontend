@@ -1,0 +1,151 @@
+/** font family **/
+@import url("https://fonts.googleapis.com/css2?family=Arsenal+SC:ital,wght@0,400;0,700;1,400;1,700&family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap");
+
+/** variables **/
+:root {
+    /* Colors */
+    --primaryColor: #ff914d;
+    --backgroundColor: #fcf1b7;
+    --whiteColor: #fff;
+    --blackColor: #000;
+    --borderColor: #b3b3b3;
+    --alertColor: #e02323;
+    --disabledColor: #dad9d9;
+    --linkTextColor: rgb(38, 123, 220);
+
+    /* Spacing */
+    --spacingSmall: 8px;
+    --spacingMedium: 16px;
+    --spacingLarge: 32px;
+
+    /* Typography */
+    --fontFamily: "Montserrat", sans-serif;
+    --fontWeightNormal: 500;
+    --fontWeightBold: 700;
+    --fontSizeTiny: 0.75rem;
+    --fontSizeSmall: 0.875rem;
+    --fontSizeBase: 1rem;
+    --fontSizeLarge: 1.2rem;
+    --iconFontSize: 1.8rem;
+
+    /* Dimensions */
+    --maxWidth: 1200px;
+    --minWidth: 320px;
+
+    /* Shadows */
+    --shadowLight: 0px 2px 4px rgba(0, 0, 0, 0.1); /* Light shadow */
+    --shadowMedium: 0px 4px 8px rgba(0, 0, 0, 0.15); /* Medium shadow */
+    --shadowHeavy: 0px 8px 16px rgba(0, 0, 0, 0.2); /* Heavy shadow */
+
+    /* Borders */
+    --borderWidthThin: 1px;
+    --borderWidthMedium: 2px;
+    --borderWidthThick: 4px;
+    --borderStyle: solid;
+
+    /* Transitions & Animations */
+    --transitionFast: 0.2s;
+    --transitionNormal: 0.3s;
+    --transitionSlow: 0.5s;
+    --transitionTimingFunction: ease-in-out;
+
+    /* Z-index */
+    --zIndexDefault: 1;
+    --zIndexOverlay: -999;
+    --zIndexDropdown: 111;
+    --zIndexModal: 222;
+    --zIndexTooltip: 333;
+    --zIndexOnTop: 999;
+
+    /* Breakpoints (Responsive Design) */
+    --breakpointXs: 480px; /* Extra small devices */
+    --breakpointSm: 768px; /* Small devices */
+    --breakpointMd: 992px; /* Medium devices */
+    --breakpointLg: 1200px; /* Large devices */
+    --breakpointXl: 1440px; /* Extra large devices */
+
+    /* Opacity */
+    --opacityLow: 0.3;
+    --opacityMedium: 0.6;
+    --opacityHigh: 0.9;
+
+    /* Line Height */
+    --lineHeightTight: 1.2;
+    --lineHeightNormal: 1.5;
+    --lineHeightLoose: 1.8;
+
+    /* Border Radius */
+    --borderRadiusSmall: 4px;
+    --borderRadiusMedium: 8px;
+    --borderRadiusLarge: 16px;
+    --borderRadiusRounded: 50%;
+
+    /* Miscellaneous */
+    --headerHeight: 130px;
+    --footerHeight: 80px;
+}
+
+*,
+*:before,
+*:after {
+    box-sizing: border-box;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+a,
+ul,
+li {
+    text-decoration: none;
+    list-style-type: none;
+}
+
+img,
+picture,
+svg,
+video {
+    display: block;
+    max-width: 100%;
+}
+
+input,
+select,
+textarea {
+    background-color: transparent;
+    outline: none;
+}
+
+input:-webkit-autofill {
+    -webkit-box-shadow: 0 0 0px 1000px white inset !important;
+    box-shadow: 0 0 0px 1000px white inset !important;
+}
+
+input[type="checkbox"] {
+    cursor: pointer;
+}
+
+button {
+    cursor: pointer;
+    background-color: transparent;
+    outline: none;
+    border: 0;
+}
+
+body {
+    min-height: 100vh;
+    font-weight: 400;
+    font-size: 16px;
+    line-height: 1;
+    font-family: var(--fontFamily);
+}
+
+button:disabled {
+    cursor: no-drop;
+}

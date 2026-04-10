@@ -1,0 +1,9 @@
+.adminPage {
+    width: 100%;
+    min-height: 100vh;
+    background-color: #f5f5f5;
+}
+
+:where(.css-dev-only-do-not-override-nqoqt9).ant-table-wrapper .ant-table-thead th.ant-table-column-has-sorters:hover {
+    opacity: 0.95 !important;
+}

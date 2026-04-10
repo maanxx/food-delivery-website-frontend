@@ -1,0 +1,239 @@
+.reportsPage {
+    width: 100%;
+    padding: 0;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.headerTitle {
+    font-size: 28px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin: 0;
+}
+
+.statsGrid {
+    display: flex;
+    margin-bottom: 24px;
+}
+
+.statCard {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    border: 1px solid #f0f0f0;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.statCard:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
+}
+
+.statCard :global(.ant-statistic) {
+    text-align: center;
+}
+
+.statCard :global(.ant-statistic-title) {
+    font-size: 12px;
+    color: #999;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 12px;
+}
+
+.statCard :global(.ant-statistic-content) {
+    font-size: 36px;
+    font-weight: 700;
+}
+
+.statCard :global(.ant-statistic-content-value) {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.tableCard {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    border: 1px solid #f0f0f0;
+    overflow: hidden;
+}
+
+.tableCard :global(.ant-card-head) {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border: none;
+}
+
+.tableCard :global(.ant-card-head-title) {
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.table {
+    background: white;
+}
+
+.table :global(.ant-table) {
+    border-radius: 12px;
+    overflow: hidden;
+    background: white;
+}
+
+.table :global(.ant-table-thead > tr > th) {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-weight: 600;
+    border: none;
+    padding: 10px 12px !important;
+    font-size: 12px !important;
+}
+
+.table :global(.ant-table-thead > tr > th .ant-table-sorter) {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.table :global(.ant-table-tbody > tr) {
+    transition: all 0.3s ease;
+}
+
+.table :global(.ant-table-tbody > tr:hover) {
+    opacity: 0.95 !important;
+}
+
+.table :global(.ant-table-tbody > tr > td) {
+    padding: 14px 12px;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 14px;
+}
+
+.table :global(.ant-table-row:last-child > td) {
+    border-bottom: none;
+}
+
+.reportTitle {
+    font-weight: 600;
+    color: #333;
+}
+
+.reportType {
+    display: inline-block;
+    padding: 2px 8px;
+    background: #e6f7ff;
+    color: #1890ff;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.statusBadge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-weight: 500;
+    font-size: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.statusCompleted {
+    background: #f6ffed;
+    color: #52c41a;
+    border: 1px solid #52c41a;
+}
+
+.statusInProgress {
+    background: #fffbe6;
+    color: #faad14;
+    border: 1px solid #faad14;
+}
+
+.actionButtons {
+    display: flex;
+    gap: 8px;
+}
+
+.actionButtons :global(.ant-btn) {
+    padding: 6px 8px;
+    height: 32px;
+    border: 1px solid #e8e8e8;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+}
+
+.actionButtons :global(.ant-btn:hover) {
+    color: #667eea;
+    border-color: #667eea;
+    background: #f0f1ff;
+}
+
+.toolbar {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+.searchInput {
+    width: 250px;
+}
+
+:where(.css-dev-only-do-not-override-nqoqt9).ant-table-wrapper .ant-table-thead th.ant-table-column-has-sorters:hover {
+    opacity: 0.95 !important;
+}
+
+@media (max-width: 768px) {
+    .header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .headerTitle {
+        font-size: 24px;
+    }
+
+    .statsGrid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .searchInput {
+        width: 100%;
+    }
+
+    .toolbar {
+        width: 100%;
+        flex-direction: column;
+    }
+
+    .toolbar :global(.ant-btn) {
+        width: 100%;
+    }
+
+    .table :global(.ant-table-wrapper) {
+        font-size: 12px;
+    }
+
+    .table :global(.ant-table-thead > tr > th) {
+        padding: 12px 8px !important;
+    }
+
+    .table :global(.ant-table-tbody > tr > td) {
+        padding: 10px 8px;
+    }
+}

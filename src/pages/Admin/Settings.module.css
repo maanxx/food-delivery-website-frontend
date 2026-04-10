@@ -1,0 +1,24 @@
+.settingsPage {
+    width: 100%;
+}
+
+.settingsPage :global(.ant-card) {
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.dangerZone {
+    border-color: #ff7875 !important;
+    background-color: #fff7f6 !important;
+}
+
+.dangerZone :global(.ant-card-head) {
+    background-color: #ffebe9 !important;
+    border-color: #ff7875 !important;
+}
+
+@media (max-width: 768px) {
+    .settingsPage {
+        padding: 0;
+    }
+}

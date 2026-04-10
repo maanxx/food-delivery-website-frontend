@@ -1,0 +1,63 @@
+.page {
+  padding: 30px 0;
+}
+
+/* BANNER */
+.banner {
+  margin-bottom: 30px;
+}
+
+.bannerItem {
+  height: 200px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #ff6b35, #ff8c42);
+  color: white;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 24px;
+}
+
+/* SECTION */
+.section {
+  margin-top: 40px;
+}
+
+.title {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+/* VOUCHER */
+.voucherList {
+  display: flex;
+  gap: 16px;
+  overflow-x: auto;
+}
+
+.voucher {
+  min-width: 200px;
+  padding: 16px;
+  border-radius: 12px;
+  background: #fff3e0;
+
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* FILTER */
+.filter {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  .bannerItem {
+    height: 150px;
+  }
+}
