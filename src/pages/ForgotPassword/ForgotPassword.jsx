@@ -24,13 +24,13 @@ function ForgotPassword() {
             try {
                 if (getCookie("token")) {
                     const res = await axiosInstance({
-                        url: "/auth",
+                        url: "/api/auth",
                         method: "get",
                     });
                     if (res.data.success && isAuthenticated) {
                         navigate("/");
                     } else {
-                        navigate("/login");
+                        navigate("/api/login");
                     }
                 }
             } catch (error) {

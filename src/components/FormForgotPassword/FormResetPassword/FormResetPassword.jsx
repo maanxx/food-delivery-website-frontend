@@ -36,7 +36,7 @@ function FormResetPassword() {
         setLoading(true);
         try {
             const res = await axiosInstance({
-                url: `/auth/forgot-password/reset-password`,
+                url: `/api/auth/forgot-password/reset-password`,
                 method: "post",
                 data: {
                     newPassword,

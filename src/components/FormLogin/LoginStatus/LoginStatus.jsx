@@ -11,7 +11,7 @@ function LoginStatus() {
       const loginChannel = new BroadcastChannel("login_channel");
       try {
         const res = await axiosInstance({
-          url: "/auth/login-status",
+          url: "/api/auth/login-status",
           params: {},
           method: "get",
         });

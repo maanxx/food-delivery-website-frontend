@@ -3,7 +3,7 @@ import axiosInstance from "@config/axiosInstance";
 const authLogin = async () => {
     try {
         const res = await axiosInstance({
-            url: "/auth",
+            url: "/api/auth",
             method: "get",
         });
 
@@ -18,4 +18,17 @@ const authLogin = async () => {
     }
 };
 
-export { authLogin };
+const authLogout = async () => {
+    try {
+        const res = await axiosInstance({
+            url: "/api/auth/logout-user",
+            method: "post",
+        });
+        return res.data.success;
+    } catch (error) {
+        console.log(error);
+        return false;
+    }
+};
+
+export { authLogin, authLogout };
