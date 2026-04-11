@@ -16,6 +16,7 @@ import useAuth from "@hooks/useAuth";
 import { getFirstLetterOfEachWord } from "@helpers/stringHelper";
 import { getUserInfo } from "@helpers/cookieHelper";
 import { clearCookie } from "@features/auth/authSlice";
+import { authLogout } from "@services/authService";
 
 const cx = classNames.bind(styles);
 
@@ -183,7 +184,8 @@ function Header() {
                         <Link to={"/profile"}>Thông tin tài khoản</Link>
                       </li>
                       <li
-                        onClick={() => {
+                        onClick={async () => {
+                          await authLogout();
                           logout();
                           clearCookie();
                           window.location.reload();

@@ -36,7 +36,7 @@ const getCountryId = async () =>
         method: "get",
         baseURL: baseURL,
         params: {
-            fields: "idd",
+            fields: "id",
         },
     })
         .then((response) => {

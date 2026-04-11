@@ -7,7 +7,6 @@ import classNames from "classnames/bind";
 import useLoading from "@hooks/useLoading";
 import { regexNumbers } from "@constants/constants";
 import styles from "@pages/Login/Login.module.css";
-import { FormPassword, FormUserName } from "@components/index";
 import axiosInstance from "@config/axiosInstance";
 import { useNavigate, useOutletContext } from "react-router-dom";
 
@@ -22,7 +21,7 @@ function OTP({ separator, length, value, onChange, formData, setFormData, setIsE
         setLoading(true);
         try {
             const res = await axiosInstance({
-                url: "/auth/verify-otp",
+                url: "/api/auth/verify-otp",
                 method: "post",
                 data: data,
             });
@@ -257,7 +256,7 @@ function FormLoginOTP() {
         setLoading(true);
         try {
             const res = await axiosInstance({
-                url: "/auth/send-otp",
+                url: "/api/auth/send-otp",
                 method: "post",
                 data: {
                     ...formData,

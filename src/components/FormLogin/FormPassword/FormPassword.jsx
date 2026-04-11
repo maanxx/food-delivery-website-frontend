@@ -36,7 +36,7 @@ function FormPassword() {
         setLoading(true);
         try {
             const res = await axiosInstance({
-                url: `/auth/${isExistUser ? "login-user" : "register-user"}`,
+                url: `/api/auth/${isExistUser ? "login-user" : "register-user"}`,
                 method: "post",
                 data: {
                     ...formData,
