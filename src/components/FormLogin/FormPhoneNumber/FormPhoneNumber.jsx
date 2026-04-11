@@ -154,7 +154,7 @@ function FormPhoneNumber() {
 
         // Open facebook login popup
         const popup = window.open(
-            `${serverBaseUrl}/auth/facebook`,
+            `${serverBaseUrl}/api/auth/facebook`,
             "_blank",
             `width=${width},height=${height},top=${top},left=${left}`,
         );
