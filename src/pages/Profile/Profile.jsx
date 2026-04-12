@@ -10,6 +10,7 @@ import {
   Avatar,
   Row,
   Col,
+  Select,
 } from "antd";
 import useAuth from "@hooks/useAuth";
 import {
@@ -28,11 +29,10 @@ import useLoading from "@hooks/useLoading";
 import styles from "./Profile.module.css";
 
 const { TabPane } = Tabs;
-const { TextArea } = Input;
 const { useForm } = Form;
 
 const Profile = () => {
-  const { user, isAuthenticated } = useAuth();
+  const { isAuthenticated } = useAuth();
   const { loading, setLoading } = useLoading();
   const [profile, setProfile] = useState(null);
   const [addresses, setAddresses] = useState([]);
@@ -47,6 +47,7 @@ const Profile = () => {
       fetchProfile();
       fetchAddresses();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated]);
 
   const fetchProfile = async () => {
@@ -78,6 +79,8 @@ const Profile = () => {
     const formData = new FormData();
     formData.append("fullname", values.fullname);
     formData.append("phone_number", values.phone_number);
+    formData.append("gender", values.gender || "");
+    formData.append("date_of_birth", values.date_of_birth || "");
     // Add other fields as needed
 
     setLoading(true);
@@ -222,6 +225,23 @@ const Profile = () => {
           <Col span={12}>
             <Form.Item label="Phone" name="phone_number">
               <Input prefix={<PhoneOutlined />} />
+            </Form.Item>
+          </Col>
+        </Row>
+
+        <Row gutter={24}>
+          <Col span={12}>
+            <Form.Item label="Gender" name="gender">
+              <Select>
+                <Select.Option value="Male">Male</Select.Option>
+                <Select.Option value="Female">Female</Select.Option>
+                <Select.Option value="Other">Other</Select.Option>
+              </Select>
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item label="Date of Birth" name="date_of_birth">
+              <Input type="date" />
             </Form.Item>
           </Col>
         </Row>

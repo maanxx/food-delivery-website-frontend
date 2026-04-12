@@ -38,14 +38,54 @@
 }
 
 .voucher {
-  min-width: 200px;
+  min-width: 250px;
   padding: 16px;
   border-radius: 12px;
-  background: #fff3e0;
-
+  background: #fff;
+  border: 1px dashed var(--primaryColor, #ff914d);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: relative;
+}
+
+.voucher::before, .voucher::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  background-color: #fafafa; /* Assuming page bg is slightly gray/white */
+  border-radius: 50%;
+  transform: translateY(-50%);
+  border: 1px dashed var(--primaryColor, #ff914d);
+}
+
+.voucher::before {
+  left: -8px;
+  border-left-color: transparent;
+  border-top-color: transparent;
+  border-bottom-color: transparent;
+}
+
+.voucher::after {
+  right: -8px;
+  border-right-color: transparent;
+  border-top-color: transparent;
+  border-bottom-color: transparent;
+}
+
+.voucherCode {
+    font-weight: 800;
+    font-size: 1.1rem;
+    color: var(--primaryColor, #ff914d);
+    margin-bottom: 4px;
+}
+
+.voucherDesc {
+    font-size: 0.85rem;
+    color: #666;
 }
 
 /* FILTER */

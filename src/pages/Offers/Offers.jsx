@@ -13,6 +13,14 @@ import styles from "./Offers.module.css";
 import FoodCard from "../../components/FoodCard/FoodCard";
 import { getAllDishes } from "../../services/dishService";
 
+const MOCK_VOUCHERS = [
+  { code: 'EATSYWELCOME', desc: 'Giảm 10% cho hóa đơn' },
+  { code: 'EATSY50', desc: 'Giảm 50K cho đơn từ 500K' },
+  { code: 'WELCOME20', desc: 'Giảm 20% khách mới' },
+  { code: 'BIGSALE100', desc: 'Giảm 100K đơn 1Tr' },
+  { code: 'FREESHIP', desc: 'Miễn phí VC đơn từ 300K' },
+];
+
 const Offers = () => {
   const [dishes, setDishes] = useState([]);
   const [filter, setFilter] = useState("all");
@@ -56,14 +64,14 @@ const Offers = () => {
           🎟️ Mã giảm giá
         </Typography>
 
-        <Box className={styles.voucherList}>
-          {[1, 2, 3].map((item) => (
-            <Box key={item} className={styles.voucher}>
+        <Box className={styles.voucherList} sx={{ pb: 2 }}>
+          {MOCK_VOUCHERS.map((voucher, idx) => (
+            <Box key={idx} className={styles.voucher}>
               <div>
-                <h3>-20%</h3>
-                <p>Đơn tối thiểu 50k</p>
+                <Typography className={styles.voucherCode}>{voucher.code}</Typography>
+                <Typography className={styles.voucherDesc}>{voucher.desc}</Typography>
               </div>
-              <Button size="small">Lưu</Button>
+              <Button size="small" variant="outlined" sx={{ color: "var(--primaryColor)", borderColor: "var(--primaryColor)" }}>Lưu</Button>
             </Box>
           ))}
         </Box>

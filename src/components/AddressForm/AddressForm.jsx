@@ -6,9 +6,9 @@ import * as yup from "yup";
 const schema = yup.object().shape({
   label: yup.string().required("Label is required"),
   street: yup.string().required("Street is required"),
+  ward: yup.string().required("Ward is required"),
+  district: yup.string().required("District is required"),
   city: yup.string().required("City is required"),
-  state: yup.string(),
-  zip_code: yup.string(),
   country: yup.string().required("Country is required"),
 });
 
@@ -55,16 +55,24 @@ const AddressForm = ({
       width={500}
     >
       <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium mb-1">Label</label>
-          <Input
-            {...register("label")}
-            placeholder="Home, Work, etc."
-            className={errors.label ? "border-red-500" : ""}
-          />
-          {errors.label && (
-            <p className="text-red-500 text-xs mt-1">{errors.label.message}</p>
-          )}
+        <div className="grid grid-cols-2 gap-4">
+            <div>
+            <label className="block text-sm font-medium mb-1">Label *</label>
+            <Controller
+                name="label"
+                control={control}
+                render={({ field }) => (
+                <Select {...field} style={{ width: "100%" }}>
+                    <Option value="Home">Home</Option>
+                    <Option value="Work">Work</Option>
+                    <Option value="Other">Other</Option>
+                </Select>
+                )}
+            />
+            {errors.label && (
+                <p className="text-red-500 text-xs mt-1">{errors.label.message}</p>
+            )}
+            </div>
         </div>
 
         <div>
@@ -93,19 +101,26 @@ const AddressForm = ({
             )}
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">State</label>
-            <Input {...register("state")} />
+            <label className="block text-sm font-medium mb-1">District *</label>
+            <Input
+              {...register("district")}
+              className={errors.district ? "border-red-500" : ""}
+            />
+            {errors.district && (
+              <p className="text-red-500 text-xs mt-1">{errors.district.message}</p>
+            )}
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Zip Code</label>
-            <Input {...register("zip_code")} />
-            {errors.zip_code && (
-              <p className="text-red-500 text-xs mt-1">
-                {errors.zip_code.message}
-              </p>
+            <label className="block text-sm font-medium mb-1">Ward *</label>
+            <Input
+              {...register("ward")}
+              className={errors.ward ? "border-red-500" : ""}
+            />
+            {errors.ward && (
+              <p className="text-red-500 text-xs mt-1">{errors.ward.message}</p>
             )}
           </div>
           <div>

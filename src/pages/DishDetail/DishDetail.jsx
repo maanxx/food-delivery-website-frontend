@@ -7,6 +7,12 @@ import {
   Button,
   Box,
   Rating,
+  Radio,
+  RadioGroup,
+  FormControlLabel,
+  Checkbox,
+  FormGroup,
+  Divider,
 } from "@mui/material";
 import styles from "./DishDetail.module.css";
 import QuantityInput from "../../components/QuantityInput/QuantityInput";
@@ -22,8 +28,21 @@ const DishDetail = () => {
   const [dish, setDish] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [isFavorite, setIsFavorite] = useState(false);
-  const [rating, setRating] = useState(0);
+  const [rating] = useState(0);
   const [similarDishes, setSimilarDishes] = useState([]);
+  const [selectedVariant, setSelectedVariant] = useState('v1');
+  const [selectedAddons, setSelectedAddons] = useState([]);
+
+  const mockVariants = [
+    { id: 'v1', name: 'Size M', price: 0 },
+    { id: 'v2', name: 'Size L', price: 20000 },
+  ];
+  
+  const mockAddons = [
+    { id: 'a1', name: 'Thêm phô mai', price: 10000 },
+    { id: 'a2', name: 'Thêm xúc xích', price: 15000 },
+  ];
+
   const navigate = useNavigate();
   // nay la lay mon an
   useEffect(() => {
@@ -46,6 +65,19 @@ const DishDetail = () => {
   }, [id]);
 
   if (!dish) return <Typography>Loading...</Typography>;
+
+  const variantPrice = mockVariants.find(v => v.id === selectedVariant)?.price || 0;
+  const addonsPrice = selectedAddons.reduce((sum, id) => {
+      const addon = mockAddons.find(a => a.id === id);
+      return sum + (addon ? Number(addon.price) : 0);
+  }, 0);
+  const totalPrice = (Number(dish.price) + variantPrice + addonsPrice) * quantity;
+
+  const handleAddonToggle = (addonId) => {
+    setSelectedAddons(prev => 
+      prev.includes(addonId) ? prev.filter(id => id !== addonId) : [...prev, addonId]
+    );
+  };
 
   return (
     <Container maxWidth="lg" className={styles.detailPage}>
@@ -87,12 +119,18 @@ const DishDetail = () => {
             </Box>
 
             <Box className={styles.rowBetween}>
-              <Rating
-                value={rating}
-                onChange={(e, newValue) => setRating(newValue)}
-              />
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Rating
+                  value={Number(dish.rating_avg) || rating}
+                  readOnly
+                  precision={0.5}
+                />
+                <Typography variant="body2" color="text.secondary">
+                  ({dish.rating_avg || 0})
+                </Typography>
+              </Box>
               <Typography variant="body2">
-                {dish.rate_quantity || 0} đánh giá
+                {dish.rating_count || dish.rate_quantity || 0} đánh giá
               </Typography>
             </Box>
 
@@ -104,11 +142,42 @@ const DishDetail = () => {
               {dish.description || "Chưa có mô tả"}
             </Typography>
 
+            <Divider sx={{ my: 1 }} />
+
+            {/* VARIANTS */}
+            <Typography variant="subtitle1" fontWeight="bold">Kích cỡ</Typography>
+            <RadioGroup 
+                value={selectedVariant} 
+                onChange={(e) => setSelectedVariant(e.target.value)}
+                sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}
+            >
+                {mockVariants.map(variant => (
+                    <Box key={variant.id} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <FormControlLabel value={variant.id} control={<Radio color="primary"/>} label={variant.name} />
+                        <Typography variant="body2">{variant.price > 0 ? `+${variant.price.toLocaleString()} ₫` : 'Miễn phí'}</Typography>
+                    </Box>
+                ))}
+            </RadioGroup>
+
+            {/* ADDONS */}
+            <Typography variant="subtitle1" fontWeight="bold" sx={{ mt: 1 }}>Món thêm</Typography>
+            <FormGroup>
+                {mockAddons.map(addon => (
+                    <Box key={addon.id} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <FormControlLabel 
+                            control={<Checkbox color="primary" checked={selectedAddons.includes(addon.id)} onChange={() => handleAddonToggle(addon.id)} />} 
+                            label={addon.name} 
+                        />
+                        <Typography variant="body2">+{addon.price.toLocaleString()} ₫</Typography>
+                    </Box>
+                ))}
+            </FormGroup>
+
             <Box className={styles.addSection}>
               <QuantityInput quantity={quantity} onChange={setQuantity} />
 
               <Button className={styles.addBtn}>
-                Thêm • {(Number(dish.price) * quantity).toLocaleString()} ₫
+                Thêm • {totalPrice.toLocaleString()} ₫
               </Button>
             </Box>
           </div>
