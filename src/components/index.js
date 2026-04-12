@@ -1,5 +1,6 @@
 import Authentication from "./Authentication/Authentication";
 import Body from "./Body/Body";
+import FloatingWidget from "./FloatingWidget/FloatingWidget";
 import Footer from "./Footer/Footer";
 import GlobalStyles from "./GlobalStyles/GlobalStyles";
 import Header from "./Header/Header";
@@ -32,4 +33,5 @@ export {
     Carousel,
     FormResetPassword,
     QuantityInput,
+    FloatingWidget,
 };
