@@ -17,6 +17,7 @@ import {
     Contact,
     Offers,
     ForgotPassword,
+    DishDetail,
     Admin,
 } from "@pages/index";
 import Orders from "@pages/Admin/Orders";
@@ -45,6 +46,7 @@ const publicRoutes = [
         errorElement: <Error />,
         children: [
             {
+<<<<<<< HEAD
                 path: "/",
                 element: <Home />,
             },
@@ -71,12 +73,48 @@ const publicRoutes = [
             },
         ],
     },
+=======
+                index: true,
+                element: <Home />,
+            },
+            {
+                path: "about",
+                element: <About />,
+            },
+            {
+                path: "search",
+                element: <Search />,
+            },
+            {
+                path: "menu",
+                element: <Menu />,
+            },
+            {
+                path: "contact",
+                element: <Contact />,
+            },
+            {
+                path: "offers",
+                element: <Offers />,
+            },
+            {
+                path: "dish/:id",
+                element: <DishDetail />,
+            },
+        ],
+    },
+
+>>>>>>> 9c90712dccc044a47bf73e31d8c58470a2ead867
     {
         path: "/login",
         element: <Login />,
         children: [
             {
+<<<<<<< HEAD
                 path: "",
+=======
+                index: true,
+>>>>>>> 9c90712dccc044a47bf73e31d8c58470a2ead867
                 element: <FormPhoneNumber />,
             },
             {
@@ -97,12 +135,20 @@ const publicRoutes = [
             },
         ],
     },
+<<<<<<< HEAD
+=======
+
+>>>>>>> 9c90712dccc044a47bf73e31d8c58470a2ead867
     {
         path: "/forgot-password",
         element: <ForgotPassword />,
         children: [
             {
+<<<<<<< HEAD
                 path: "",
+=======
+                index: true,
+>>>>>>> 9c90712dccc044a47bf73e31d8c58470a2ead867
                 element: <FormForgetPasswordInfo />,
             },
             {
@@ -117,9 +163,15 @@ const publicRoutes = [
     },
 ];
 
+<<<<<<< HEAD
 const privateRoutes = [
     {
         path: "/",
+=======
+// ✅ PRIVATE ROUTES
+const privateRoutes = [
+    {
+>>>>>>> 9c90712dccc044a47bf73e31d8c58470a2ead867
         element: (
             <Authentication>
                 <DefaultLayout />

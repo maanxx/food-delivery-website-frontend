@@ -13,23 +13,25 @@ import Search from "./Search/Search";
 import Contact from "./Contact/Contact";
 import Offers from "./Offers/Offers";
 import ForgotPassword from "./ForgotPassword/ForgotPassword";
+import DishDetail from "./DishDetail/DishDetail";
 import Admin from "./Admin/Admin";
 
 export {
-    Home,
-    Error,
-    About,
-    Cart,
-    Chat,
-    Checkout,
-    Dashboard,
-    Login,
-    Menu,
-    Order,
-    Profile,
-    Search,
-    Contact,
-    Offers,
-    ForgotPassword,
-    Admin,
+  Home,
+  Error,
+  About,
+  Cart,
+  Chat,
+  Checkout,
+  Dashboard,
+  Login,
+  Menu,
+  Order,
+  Profile,
+  Search,
+  Contact,
+  Offers,
+  DishDetail,
+  ForgotPassword,
+  Admin,
 };
