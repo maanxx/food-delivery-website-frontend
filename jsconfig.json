@@ -13,6 +13,7 @@
             "@layouts/*": ["./src/layouts/*"],
             "@services/*": ["./src/services/*"],
             "@helpers/*": ["src/helpers/*"],
+            "@utils/*": ["./src/utils/*"],
             "@router/*": ["./src/router/*"],
             "@features/*": ["./src/features/*"],
             "@store/*": ["./src/store/*"],

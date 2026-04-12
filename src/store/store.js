@@ -4,6 +4,7 @@ import storage from "redux-persist/lib/storage";
 import { thunk } from "redux-thunk";
 
 import authReducer from "@features/auth/authSlice";
+import chatReducer from "@features/chat/chatSlice";
 
 const persistConfig = {
     key: "root",
@@ -12,6 +13,7 @@ const persistConfig = {
 
 const rootReducer = combineReducers({
     auth: authReducer,
+    chat: chatReducer,
 });
 
 const middlewares = [thunk];

@@ -11,8 +11,11 @@ import {
     SettingOutlined,
     FileTextOutlined,
     BgColorsOutlined,
+    WechatOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
+import { getUserInfo } from "@helpers/cookieHelper";
+import { getFirstLetterOfEachWord } from "@helpers/stringHelper";
 import styles from "./AdminLayout.module.css";
 
 const { Header, Sider, Content } = Layout;
@@ -20,6 +23,7 @@ const { Header, Sider, Content } = Layout;
 const AdminLayout = ({ children }) => {
     const [collapsed, setCollapsed] = useState(false);
     const navigate = useNavigate();
+    const user = getUserInfo();
 
     const menuItems = [
         {
@@ -27,6 +31,12 @@ const AdminLayout = ({ children }) => {
             icon: <BarChartOutlined />,
             label: "Dashboard",
             onClick: () => navigate("/admin"),
+        },
+        {
+            key: "/admin/chat",
+            icon: <WechatOutlined />,
+            label: "Chat",
+            onClick: () => navigate("/admin/chat"),
         },
         {
             key: "/admin/orders",
@@ -89,9 +99,7 @@ const AdminLayout = ({ children }) => {
         <Layout className={styles.adminLayout}>
             {/* Sidebar */}
             <Sider trigger={null} collapsible collapsed={collapsed} className={styles.sidebar} theme="dark" width={250}>
-                <div className={styles.logo}>
-                    {!collapsed && <span className={styles.logoText}>Eatsy Admin</span>}
-                </div>
+                <div className={styles.logo}>{!collapsed && <span className={styles.logoText}>Eatsy Admin</span>}</div>
                 <Menu
                     theme="dark"
                     mode="inline"
@@ -117,8 +125,28 @@ const AdminLayout = ({ children }) => {
                     <div className={styles.headerRight}>
                         <Dropdown menu={{ items: userMenu }} trigger={["click"]}>
                             <div className={styles.userSection}>
-                                <Avatar size={40} icon={<UserOutlined />} className={styles.avatar} />
-                                <span className={styles.userName}>Admin User</span>
+                                <Avatar
+                                    size={40}
+                                    src={user?.avatar_path || null}
+                                    style={{
+                                        backgroundColor: "#1890ff",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "center",
+                                        fontWeight: "bold",
+                                        fontSize: "16px",
+                                    }}
+                                    className={styles.avatar}
+                                >
+                                    {!user?.avatar_path && user?.fullname
+                                        ? getFirstLetterOfEachWord(user.fullname).children
+                                        : !user?.avatar_path && user?.username
+                                          ? getFirstLetterOfEachWord(user.username).children
+                                          : "A"}
+                                </Avatar>
+                                <span className={styles.userName}>
+                                    {user?.fullname || user?.username || "Admin User"}
+                                </span>
                             </div>
                         </Dropdown>
                     </div>

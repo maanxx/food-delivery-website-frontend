@@ -19,7 +19,8 @@
                     "@router": "./src/router",
                     "@features": "./src/features",
                     "@store": "./src/store",
-                    "@assets": "./src/assets"
+                    "@assets": "./src/assets",
+                    "@utils": "./src/utils"
                 },
                 "extensions": [".js", ".jsx", ".ts", ".tsx"]
             }

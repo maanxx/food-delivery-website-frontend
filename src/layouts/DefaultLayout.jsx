@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { Outlet } from "react-router-dom";
 
 import { Footer, Header } from "@components/index";
@@ -9,8 +9,13 @@ import { authLogin } from "@services/authService";
 function DefaultLayout() {
   const { login, logout } = useAuth();
   const { setLoading } = useLoading();
+  const hasCheckedAuth = useRef(false); // Track đã check chưa
 
   useEffect(() => {
+    // Chỉ check session lần đầu tiên component mount
+    if (hasCheckedAuth.current) return;
+    hasCheckedAuth.current = true;
+
     const authenticate = async () => {
       setLoading(true);
       try {
@@ -28,7 +33,7 @@ function DefaultLayout() {
     };
 
     authenticate();
-  }, [login, logout, setLoading]);
+  }, []); // Empty dependency array - chỉ chạy 1 lần
 
   return (
     <>

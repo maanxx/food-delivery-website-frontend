@@ -1,7 +1,8 @@
 import { createSlice } from "@reduxjs/toolkit";
+import { getCookie } from "@helpers/cookieHelper";
 
 const initialState = {
-    isAuthenticated: false,
+    isAuthenticated: !!getCookie("token"), // Check token from cookie
 };
 
 const authSlice = createSlice({
@@ -13,6 +14,9 @@ const authSlice = createSlice({
         },
         logout: (state) => {
             state.isAuthenticated = false;
+            // Clear token cookie when logout
+            const now = new Date().toUTCString();
+            document.cookie = `token=; expires=${now}; path=/;`;
         },
         clearCookie: () => {
             const now = new Date().toUTCString();

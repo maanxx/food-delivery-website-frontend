@@ -123,6 +123,23 @@
     z-index: 10;
 }
 
+.profile-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-right: 10px;
+}
+
+.user-name {
+    font-size: 0.95rem;
+    font-weight: var(--fontWeightBold);
+    color: var(--blackColor);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 120px;
+}
+
 .profile-nav-container {
     position: absolute;
     top: 50px;
