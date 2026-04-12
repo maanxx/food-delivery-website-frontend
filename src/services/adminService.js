@@ -1,7 +1,5 @@
 import axiosInstance from "@config/axiosInstance";
-
 const adminService = {
-    // Thống kê đơn hàng
     getOrderStats: async (period = "today") => {
         try {
             const response = await axiosInstance.get(`/api/admin/orders/stats?period=${period}`);
@@ -11,7 +9,6 @@ const adminService = {
         }
     },
 
-    // Doanh thu
     getRevenue: async (period = "today") => {
         try {
             const response = await axiosInstance.get(`/api/admin/revenue?period=${period}`);
@@ -21,7 +18,6 @@ const adminService = {
         }
     },
 
-    // Số user đang hoạt động
     getActiveUsers: async () => {
         try {
             const response = await axiosInstance.get("/api/admin/active-users");

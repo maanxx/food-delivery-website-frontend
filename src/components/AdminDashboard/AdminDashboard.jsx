@@ -144,7 +144,7 @@ const AdminDashboard = () => {
     return (
         <div className={styles.adminDashboard}>
             <div className={styles.header}>
-                <h1>📊 Admin Dashboard</h1>
+                <h1>Admin Dashboard</h1>
                 <Space>
                     <Button type="primary" icon={<ReloadOutlined />} onClick={handleRefresh} loading={loading}>
                         Làm mới
