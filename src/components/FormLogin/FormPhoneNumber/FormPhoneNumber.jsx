@@ -93,7 +93,7 @@ function FormPhoneNumber() {
 
         try {
             const res = await axiosInstance({
-                url: "/auth/send-otp",
+                url: "/api/auth/send-otp",
                 method: "post",
                 data: data,
             });
@@ -118,7 +118,7 @@ function FormPhoneNumber() {
 
         // Open google login popup
         const popup = window.open(
-            `${serverBaseUrl}/auth/google`,
+            `${serverBaseUrl}/api/auth/google`,
             "_blank",
             `width=${width},height=${height},top=${top},left=${left}`,
         );
@@ -130,7 +130,7 @@ function FormPhoneNumber() {
 
         try {
             await axiosInstance({
-                url: "/auth/google",
+                url: "/api/auth/google",
                 params: {
                     memorizedLogin: formData.memorizedLogin,
                 },
@@ -154,7 +154,7 @@ function FormPhoneNumber() {
 
         // Open facebook login popup
         const popup = window.open(
-            `${serverBaseUrl}/auth/facebook`,
+            `${serverBaseUrl}/api/auth/facebook`,
             "_blank",
             `width=${width},height=${height},top=${top},left=${left}`,
         );
@@ -166,7 +166,7 @@ function FormPhoneNumber() {
 
         try {
             await axiosInstance({
-                url: "/auth/facebook",
+                url: "/api/auth/facebook",
                 params: {
                     memorizedLogin: formData.memorizedLogin,
                 },

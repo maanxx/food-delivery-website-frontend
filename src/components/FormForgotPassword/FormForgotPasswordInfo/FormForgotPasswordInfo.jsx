@@ -51,7 +51,7 @@ function FormForgetPasswordInfo() {
         setLoading(true);
         try {
             const response = await axiosInstance({
-                url: "/auth/forgot-password/send-otp",
+                url: "/api/auth/forgot-password/send-otp",
                 method: "post",
                 data: {
                     countryCode: "+84", // set default country code
@@ -60,7 +60,7 @@ function FormForgetPasswordInfo() {
             });
 
             if (response.data.success) {
-                navigate("/forgot-password/verify-otp");
+                navigate("/api/forgot-password/verify-otp");
             } else {
                 console.log("Failed");
             }

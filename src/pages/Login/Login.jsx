@@ -26,7 +26,7 @@ function Login() {
                 navigate("/");
                 window.close();
             } else {
-                navigate("/login");
+                navigate("/api/login");
                 logout();
             }
             window.location.reload();
@@ -42,7 +42,7 @@ function Login() {
             try {
                 if (getCookie("token")) {
                     const res = await axiosInstance({
-                        url: "/auth",
+                        url: "/api/auth",
                         method: "get",
                     });
                     if (res.data.success && isAuthenticated) {

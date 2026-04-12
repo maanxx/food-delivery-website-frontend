@@ -38,7 +38,7 @@ const DishDetail = () => {
   // lay goi y mon an
   useEffect(() => {
     const fetchSimilar = async () => {
-      const res = await axiosInstance.get(`/dish/similar/${id}`);
+      const res = await axiosInstance.get(`/api/dish/similar/${id}`);
       setSimilarDishes(res.data);
     };
 
@@ -128,6 +128,9 @@ const DishDetail = () => {
         </Box>
       </Box>
     </Container>
+
+    
+
   );
 };
 

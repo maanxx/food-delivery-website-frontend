@@ -21,7 +21,7 @@ function OTP({ separator, length, value, onChange, info }) {
         setLoading(true);
         try {
             const res = await axiosInstance({
-                url: "/auth/forgot-password/verify-otp",
+                url: "/api/auth/forgot-password/verify-otp",
                 method: "post",
                 data: data,
             });
@@ -29,7 +29,7 @@ function OTP({ separator, length, value, onChange, info }) {
             if (res.data.success) {
                 setIsValidOTP(true);
                 setLoading(false);
-                navigate("/forgot-password/reset-password");
+                navigate("/api/forgot-password/reset-password");
             }
         } catch (error) {
             setIsValidOTP(false);
@@ -238,7 +238,7 @@ const FormForgotPasswordOTP = () => {
         setLoading(true);
         try {
             const res = await axiosInstance({
-                url: "/auth/forgot-password/send-otp",
+                url: "/api/auth/forgot-password/send-otp",
                 method: "post",
                 data: {
                     info,
