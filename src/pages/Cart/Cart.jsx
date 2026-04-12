@@ -10,7 +10,6 @@ import TableRow from "@mui/material/TableRow";
 import Paper from "@mui/material/Paper";
 
 import styles from "./Cart.module.css";
-
 import { deleteCartItem, getCartItems } from "@services/cartService";
 import { QuantityInput } from "@components/index";
 import { Modal } from "antd";
