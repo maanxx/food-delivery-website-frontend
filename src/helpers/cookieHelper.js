@@ -15,9 +15,9 @@ const getUserInfo = () => {
 
     if (token) {
         const user = jwtDecode(token);
-        console.log(user)
         return user;
     } else {
+        console.warn("⚠️ No token found in cookie");
         return null;
     }
 };

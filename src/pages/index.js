@@ -2,7 +2,7 @@ import Home from "./Home/Home";
 import Error from "./Error/Error";
 import About from "./About/About";
 import Cart from "./Cart/Cart";
-import Chat from "./Chat/Chat";
+import ChatPage from "./Chat/ChatPage";
 import Checkout from "./Checkout/Checkout";
 import Dashboard from "./Dashboard/Dashboard";
 import Login from "./Login/Login";
@@ -17,21 +17,21 @@ import DishDetail from "./DishDetail/DishDetail";
 import Admin from "./Admin/Admin";
 
 export {
-  Home,
-  Error,
-  About,
-  Cart,
-  Chat,
-  Checkout,
-  Dashboard,
-  Login,
-  Menu,
-  Order,
-  Profile,
-  Search,
-  Contact,
-  Offers,
-  DishDetail,
-  ForgotPassword,
-  Admin,
+    Home,
+    Error,
+    About,
+    Cart,
+    ChatPage,
+    Checkout,
+    Dashboard,
+    Login,
+    Menu,
+    Order,
+    Profile,
+    Search,
+    Contact,
+    Offers,
+    DishDetail,
+    ForgotPassword,
+    Admin,
 };

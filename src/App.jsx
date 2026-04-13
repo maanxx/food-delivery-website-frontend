@@ -8,21 +8,21 @@ import useLoading from "@hooks/useLoading";
 function App() {
   const { loading } = useLoading();
 
-  return (
-    <>
-      {loading && (
-        <CircularProgress
-          sx={{
-            position: "absolute",
-            top: "50%",
-            right: "50%",
-            zIndex: "var(--zIndexOnTop)",
-          }}
-        />
-      )}
-      <RouterProvider router={router} />
-    </>
-  );
+    return (
+        <>
+            {loading && (
+                <CircularProgress
+                    sx={{
+                        position: "absolute",
+                        top: "50%",
+                        right: "50%",
+                        zIndex: "var(--zIndexOnTop)",
+                    }}
+                />
+            )}
+            <RouterProvider router={router} />
+        </>
+    );
 }
 
 export default App;

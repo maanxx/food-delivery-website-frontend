@@ -6,7 +6,7 @@ import {
     Error,
     About,
     Cart,
-    Chat,
+    ChatPage,
     Checkout,
     Dashboard,
     Login,
@@ -148,10 +148,6 @@ const privateRoutes = [
                 element: <Profile />,
             },
             {
-                path: "/chat",
-                element: <Chat />,
-            },
-            {
                 path: "/order",
                 element: <Order />,
             },
@@ -173,8 +169,12 @@ const adminRoutes = [
                 element: <Admin />,
             },
             {
-                path: "/admin/orders",
-                element: <Orders />,
+                path: "/admin/chat",
+                element: <ChatPage />,
+            },
+            {
+                path: "/admin/chat/:conversationId",
+                element: <ChatPage />,
             },
             {
                 path: "/admin/employees",
