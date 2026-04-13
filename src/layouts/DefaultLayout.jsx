@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import { Outlet } from "react-router-dom";
 
-import { Footer, Header } from "@components/index";
+import { Footer, Header, FloatingWidget } from "@components/index";
 import useLoading from "@hooks/useLoading";
 import useAuth from "@hooks/useAuth";
 import { authLogin } from "@services/authService";
@@ -35,6 +35,7 @@ function DefaultLayout() {
       <Header />
       <Outlet /> {/* chilren */}
       <Footer />
+      <FloatingWidget />
     </>
   );
 }

@@ -16,7 +16,7 @@ const getCartItems = async () => {
 const updateCartItemQuantity = async (cartItemId, quantity) => {
     try {
         const res = await axiosInstance({
-            url: "/cart/update-quantity",
+            url: "/api/cart/update-quantity",
             method: "PUT",
             data: {
                 cartItemId,

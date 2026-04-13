@@ -37,7 +37,7 @@ const AddressCard = ({ address, onEdit, onDelete, onSetDefault, isDefault }) => 
       </div>
       <div className={styles.details}>
         <p>{address.street}</p>
-        <p>{address.city}, {address.state ? `${address.state}, ` : ''}{address.zip_code}</p>
+        <p>{address.ward ? `${address.ward}, ` : ''}{address.district ? `${address.district}, ` : ''}{address.city}</p>
         <p>{address.country}</p>
       </div>
     </div>
