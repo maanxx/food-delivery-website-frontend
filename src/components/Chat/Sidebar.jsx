@@ -2,6 +2,18 @@ import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { Avatar } from "antd";
+import {
+    SearchOutlined,
+    PlusOutlined,
+    SettingOutlined,
+    CloseOutlined,
+    DeleteOutlined,
+    SoundOutlined,
+    PhoneOutlined,
+    VideoCameraOutlined,
+    RightOutlined,
+    EllipsisOutlined,
+} from "@ant-design/icons";
 import styles from "./Sidebar.module.css";
 import {
     loadConversations,
@@ -68,7 +80,7 @@ const Sidebar = () => {
                 conversationId,
                 conversationName,
                 isDeleting: false,
-                error: conversationExists ? null : "Cuộc trò chuyện không tồn tại hoặc đã bị xóa",
+                error: conversationExists ? null : "Conversation does not exist or has been deleted",
             });
         };
 
@@ -82,7 +94,7 @@ const Sidebar = () => {
                 setDeleteModalState((prev) => ({
                     ...prev,
                     isDeleting: false,
-                    error: "Cuộc trò chuyện không tồn tại hoặc đã bị xóa",
+                    error: "Conversation does not exist or has been deleted",
                 }));
                 return;
             }
@@ -94,11 +106,11 @@ const Sidebar = () => {
                 setDeleteModalState((prev) => ({ ...prev, showModal: false, isDeleting: false }));
             } catch (error) {
                 console.error("❌ Failed to delete conversation:", error);
-                let errorMsg = "Không thể xóa cuộc trò chuyện";
+                let errorMsg = "Unable to delete conversation";
 
                 // Provide specific error messages
                 if (error?.response?.status === 404) {
-                    errorMsg = "Cuộc trò chuyện không tồn tại hoặc đã bị xóa";
+                    errorMsg = "Conversation does not exist or has been deleted";
                 } else if (error?.message) {
                     errorMsg = error.message;
                 } else if (typeof error === "string") {
@@ -254,10 +266,10 @@ const Sidebar = () => {
                 <h2>Messages</h2>
                 <div className={styles.headerActions}>
                     <button className={styles.headerBtn} title="New chat" onClick={() => setShowAddUserModal(true)}>
-                        ➕
+                        <PlusOutlined />
                     </button>
                     <button className={styles.headerBtn} title="Settings">
-                        ⚙️
+                        <SettingOutlined />
                     </button>
                 </div>
             </div>
@@ -272,7 +284,7 @@ const Sidebar = () => {
                     onFocus={() => setShowSearch(true)}
                     className={styles.searchInput}
                 />
-                <span className={styles.searchIcon}>🔍</span>
+                <SearchOutlined className={styles.searchIcon} />
             </div>
 
             {/* Conversations/Results List */}
@@ -348,7 +360,9 @@ const Sidebar = () => {
                 >
                     <div className={styles.deleteModal} onClick={(e) => e.stopPropagation()}>
                         <div className={styles.deleteModalHeader}>
-                            <h3>🗑️ Xóa cuộc trò chuyện</h3>
+                            <h3>
+                                <DeleteOutlined /> Delete Conversation
+                            </h3>
                         </div>
                         <div className={styles.deleteModalBody}>
                             {deleteModalState.error ? (
@@ -356,10 +370,10 @@ const Sidebar = () => {
                             ) : (
                                 <>
                                     <p>
-                                        Bạn có chắc chắn muốn xóa cuộc trò chuyện với{" "}
+                                        Are you sure you want to delete the conversation with{" "}
                                         <strong>{deleteModalState.conversationName}</strong>?
                                     </p>
-                                    <p className={styles.deleteWarning}>Hành động này không thể hoàn tác.</p>
+                                    <p className={styles.deleteWarning}>This action cannot be undone.</p>
                                 </>
                             )}
                         </div>
@@ -372,7 +386,7 @@ const Sidebar = () => {
                                 }
                                 disabled={deleteModalState.isDeleting}
                             >
-                                {deleteModalState.error ? "Đóng" : "Hủy"}
+                                {deleteModalState.error ? "Close" : "Cancel"}
                             </button>
                             {!deleteModalState.error && (
                                 <button
@@ -386,7 +400,7 @@ const Sidebar = () => {
                                     }}
                                     disabled={deleteModalState.isDeleting}
                                 >
-                                    {deleteModalState.isDeleting ? "⏳ Đang xóa..." : "Xóa"}
+                                    {deleteModalState.isDeleting ? "⏳ Deleting..." : "Delete"}
                                 </button>
                             )}
                         </div>
@@ -406,7 +420,7 @@ const Sidebar = () => {
                                 onClick={() => setShowAddUserModal(false)}
                                 title="Close"
                             >
-                                ✕
+                                <CloseOutlined />
                             </button>
                         </div>
 
@@ -420,7 +434,7 @@ const Sidebar = () => {
                                 className={styles.modalSearchInput}
                                 autoFocus
                             />
-                            <span className={styles.searchIcon}>🔍</span>
+                            <SearchOutlined className={styles.searchIcon} />
                         </div>
 
                         {/* Results */}
@@ -479,7 +493,9 @@ const Sidebar = () => {
                                                 </div>
                                             )}
                                         </div>
-                                        <button className={styles.selectBtn}>➜</button>
+                                        <button className={styles.selectBtn}>
+                                            <RightOutlined />
+                                        </button>
                                     </div>
                                 ))
                             )}
@@ -546,9 +562,17 @@ const ConversationItem = ({ conv, isSelected, onSelect }) => {
 
     // Get last message text from conversation lastMessage object or fallback to messages store
     const convMessages = useSelector(selectMessages(conv.conversationId));
-    const lastMessageObj = convMessages && convMessages.length > 0 ? convMessages[convMessages.length - 1] : null;
-    const lastMessageText = conv.lastMessage?.content || lastMessageObj?.content || "No messages yet";
-    const lastMessageSender = conv.lastMessage?.senderName || lastMessageObj?.senderName || "";
+
+    // Sort messages by createdAt to ensure we get the TRUE last message
+    const sortedMessages =
+        convMessages && Array.isArray(convMessages)
+            ? [...convMessages].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+            : [];
+
+    const lastMessageObj = sortedMessages.length > 0 ? sortedMessages[sortedMessages.length - 1] : null;
+    const lastMessageText = lastMessageObj?.content || conv.lastMessage?.content || "No messages yet";
+    const lastMessageSender = lastMessageObj?.senderName || conv.lastMessage?.senderName || "";
+    const lastMessageTime = lastMessageObj?.createdAt || conv.lastMessageTimestamp;
 
     const handleMenuClick = (e) => {
         e.stopPropagation();
@@ -633,11 +657,11 @@ const ConversationItem = ({ conv, isSelected, onSelect }) => {
                 </div>
             </div>
             <div className={styles.convActions}>
-                {conv.lastMessageTimestamp && (
-                    <div className={styles.convTime}>{formatRelativeTime(conv.lastMessageTimestamp)}</div>
+                {lastMessageTime && (
+                    <div className={styles.convTime}>{formatRelativeTime(new Date(lastMessageTime).getTime())}</div>
                 )}
                 <button className={styles.menuBtn} onClick={handleMenuClick} title="More options">
-                    ⋯
+                    <EllipsisOutlined />
                 </button>
             </div>
 
@@ -649,16 +673,16 @@ const ConversationItem = ({ conv, isSelected, onSelect }) => {
                     ref={menuRef}
                 >
                     <div className={styles.menuOption} onClick={(e) => handleMenuOption("delete", e)}>
-                        🗑️ Xóa
+                        <DeleteOutlined /> Delete
                     </div>
                     <div className={styles.menuOption} onClick={(e) => handleMenuOption("mute", e)}>
-                        🔇 Tắt thông báo
+                        <SoundOutlined /> Mute
                     </div>
                     <div className={styles.menuOption} onClick={(e) => handleMenuOption("call", e)}>
-                        ☎️ Gọi
+                        <PhoneOutlined /> Call
                     </div>
                     <div className={styles.menuOption} onClick={(e) => handleMenuOption("video", e)}>
-                        📹 Gọi video
+                        <VideoCameraOutlined /> Video Call
                     </div>
                 </div>
             )}

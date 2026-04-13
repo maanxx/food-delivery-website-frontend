@@ -1,3 +1,10 @@
+.chatWindowContainer {
+    display: flex;
+    height: 100%;
+    width: 100%;
+    position: relative;
+}
+
 .chatWindow {
     display: flex;
     flex-direction: column;
@@ -5,6 +12,7 @@
     min-height: 0;
     background: #fff;
     border-left: 1px solid #eee;
+    flex: 1;
 }
 
 .header {

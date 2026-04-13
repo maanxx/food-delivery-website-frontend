@@ -97,6 +97,10 @@ export const chatAPI = {
         return axiosInstance.delete(`${BASE_URL}/conversations/${conversationId}/messages/${messageId}`);
     },
 
+    recallMessage: async (conversationId, messageId) => {
+        return axiosInstance.put(`${BASE_URL}/conversations/${conversationId}/messages/${messageId}/recall`);
+    },
+
     markAsRead: async (conversationId, messageIds) => {
         return axiosInstance.put(`${BASE_URL}/conversations/${conversationId}/messages/read`, { messageIds });
     },

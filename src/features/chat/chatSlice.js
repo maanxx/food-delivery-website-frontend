@@ -243,6 +243,18 @@ export const removeMessage = createAsyncThunk(
     },
 );
 
+export const recallMessage = createAsyncThunk(
+    "chat/recallMessage",
+    async ({ conversationId, messageId }, { rejectWithValue }) => {
+        try {
+            await chatAPI.recallMessage(conversationId, messageId);
+            return { conversationId, messageId };
+        } catch (error) {
+            return rejectWithValue(error.response?.data?.message || "Failed to recall message");
+        }
+    },
+);
+
 export const deleteConversation = createAsyncThunk(
     "chat/deleteConversation",
     async (conversationId, { rejectWithValue }) => {
@@ -669,6 +681,15 @@ const chatSlice = createSlice({
             const conv = state.messages.byConversation[conversationId];
             if (conv && conv.byId[messageId]) {
                 conv.byId[messageId].isDeleted = true;
+            }
+        });
+
+        // ========== RECALL MESSAGE ==========
+        builder.addCase(recallMessage.fulfilled, (state, action) => {
+            const { conversationId, messageId } = action.payload;
+            const conv = state.messages.byConversation[conversationId];
+            if (conv && conv.byId[messageId]) {
+                conv.byId[messageId].isRecalled = true;
             }
         });
 

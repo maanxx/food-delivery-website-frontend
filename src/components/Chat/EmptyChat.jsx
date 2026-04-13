@@ -47,7 +47,7 @@ const EmptyChat = () => {
             </div>
 
             <div className={styles.hint}>
-                👈 <strong>Select a conversation</strong> from the list to begin
+                <strong>Select a conversation</strong> from the list to begin
             </div>
         </div>
     );

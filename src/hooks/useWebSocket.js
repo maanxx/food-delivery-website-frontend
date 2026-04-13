@@ -148,6 +148,17 @@ const useWebSocket = () => {
             );
         });
 
+        socket.on("message_recalled", ({ conversationId, messageId }) => {
+            console.log("↩️ Message recalled:", { conversationId, messageId });
+            dispatch(
+                updateMessage({
+                    conversationId,
+                    messageId,
+                    updates: { isRecalled: true },
+                }),
+            );
+        });
+
         // Typing indicators
         socket.on("user_typing", ({ conversationId, userId, username }) => {
             // If username is provided by backend, use it. Otherwise, get it from conversation name

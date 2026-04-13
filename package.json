@@ -18,6 +18,7 @@
         "classnames": "^2.5.1",
         "dotenv": "^16.4.5",
         "eatsy_food_delivery_frontend": "file:",
+        "emoji-picker-react": "^4.18.0",
         "jwt-decode": "^4.0.0",
         "lodash": "^4.17.21",
         "prop-types": "^15.8.1",
@@ -33,6 +34,7 @@
         "redux": "^5.0.1",
         "redux-persist": "^6.0.0",
         "redux-thunk": "^3.1.0",
+        "simple-peer": "^9.11.1",
         "socket.io-client": "^4.8.3",
         "web-vitals": "^2.1.4",
         "yup": "^1.7.1"

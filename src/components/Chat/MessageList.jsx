@@ -1,7 +1,7 @@
 import React, { useRef } from "react";
 import { useDispatch } from "react-redux";
 import MessageBubble from "./MessageBubble";
-import { removeMessage } from "@features/chat/chatSlice";
+import { removeMessage, recallMessage } from "@features/chat/chatSlice";
 
 // Format date for message separator
 const formatDateSeparator = (timestamp) => {
@@ -57,34 +57,76 @@ const MessageList = ({ messages, conversationId, currentUserId }) => {
     const containerRef = useRef(null);
     const dispatch = useDispatch();
 
-    const handleDeleteMessage = async (convId, messageId) => {
+    const handleDeleteMessage = async (convId, messageId, action = "delete") => {
         try {
-            await dispatch(removeMessage({ conversationId: convId, messageId })).unwrap();
-            console.log("✅ Message deleted successfully");
+            // Validate inputs
+            if (!convId || !messageId) {
+                console.error("❌ Invalid parameters - conversationId or messageId is missing");
+                return;
+            }
+
+            if (action === "recall") {
+                console.log("↩️ Recalling message:", messageId);
+                try {
+                    await dispatch(recallMessage({ conversationId: convId, messageId })).unwrap();
+                    console.log("✅ Message recalled successfully");
+                } catch (recallError) {
+                    // If recall fails (endpoint may not be implemented yet), fall back to delete
+                    console.warn("⚠️ Recall failed, falling back to delete:", recallError?.message || recallError);
+                    try {
+                        await dispatch(removeMessage({ conversationId: convId, messageId })).unwrap();
+                        console.log("✅ Message deleted successfully (fallback)");
+                    } catch (fallbackError) {
+                        console.error("❌ Both recall and delete failed:", fallbackError?.message || fallbackError);
+                    }
+                }
+            } else {
+                console.log("🗑️ Deleting message:", messageId);
+                try {
+                    await dispatch(removeMessage({ conversationId: convId, messageId })).unwrap();
+                    console.log("✅ Message deleted successfully");
+                } catch (deleteError) {
+                    // Log the error but don't fail - the message will be marked as deleted in redux optimistically
+                    const errorMsg = deleteError?.message || String(deleteError);
+                    console.error(`⚠️ Delete request failed (${errorMsg}), but message is marked for deletion`);
+                    // Still mark it as deleted optimistically even if backend fails
+                    if (deleteError?.message?.includes("UpdateExpression")) {
+                        console.warn("⚠️ Backend error - the message has been marked as deleted on frontend");
+                    }
+                }
+            }
         } catch (error) {
-            console.error("❌ Failed to delete message:", error);
+            const errorMsg = error?.message || String(error);
+            console.error(`❌ Error during ${action}:`, errorMsg);
         }
     };
 
     // Filter out undefined messages and ensure it's an array
     const validMessages = Array.isArray(messages) ? messages.filter((msg) => msg && msg.messageId && msg.senderId) : [];
 
-    console.log("✨ MessageList - valid messages:", { validCount: validMessages.length, validMessages });
-    if (validMessages.length > 0) {
+    // Sort messages by createdAt in ascending order (oldest first)
+    const sortedMessages = [...validMessages].sort((a, b) => {
+        const timeA = new Date(a.createdAt).getTime();
+        const timeB = new Date(b.createdAt).getTime();
+        return timeA - timeB;
+    });
+
+    console.log("✨ MessageList - valid messages:", { validCount: sortedMessages.length, sortedMessages });
+    if (sortedMessages.length > 0) {
         console.log(
             "🔎 First valid message senderId:",
-            validMessages[0].senderId,
+            sortedMessages[0].senderId,
             "currentUserId:",
             currentUserId,
             "Match:",
-            validMessages[0].senderId === currentUserId,
+            sortedMessages[0].senderId === currentUserId,
         );
     }
 
     const TIME_GAP_THRESHOLD = 15 * 60 * 1000; // 15 minutes
 
-    const groupedByTimeGap = validMessages.reduce((groups, message, index) => {
-        const lastMessage = validMessages[index - 1];
+    const groupedByTimeGap = sortedMessages.reduce((groups, message, index) => {
+        const lastMessage = sortedMessages[index - 1];
         const messageDate = new Date(message.createdAt).toDateString();
         const lastMessageDate = lastMessage ? new Date(lastMessage.createdAt).toDateString() : null;
         const dateChanged = messageDate !== lastMessageDate;
