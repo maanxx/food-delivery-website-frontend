@@ -2,12 +2,12 @@ import React from 'react';
 import { Empty, Button } from 'antd';
 import styles from './ProfileEmptyState.module.css';
 
-const ProfileEmptyState = ({ title, description, buttonText, onAction, icon }) => {
+const ProfileEmptyState = ({ title, description, buttonText, onAction, icon: Icon }) => {
   return (
     <div className={styles.emptyContainer}>
       <Empty
-        image={icon || Empty.PRESENTED_IMAGE_SIMPLE}
-        imageStyle={{ height: 150 }}
+        image={Icon ? <Icon style={{ fontSize: 48, color: '#bfbfbf' }} /> : Empty.PRESENTED_IMAGE_SIMPLE}
+        imageStyle={{ height: 60 }}
         description={
           <div className={styles.emptyContent}>
             <h3 className={styles.title}>{title}</h3>

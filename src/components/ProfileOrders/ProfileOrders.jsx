@@ -1,62 +1,85 @@
 import React, { useEffect, useState } from 'react';
-import { Tag, Button, Spin, Divider } from 'antd';
+import { Tag, Button, Spin, Divider, message } from 'antd';
 import { ShoppingOutlined, SyncOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import ProfileEmptyState from '../ProfileEmptyState/ProfileEmptyState';
+import profileService from '@services/profileService';
 import styles from './ProfileOrders.module.css';
-
-// Using mock data for now, as order API is not implemented yet.
-const MOCK_ORDERS = [
-  {
-    order_id: 10423,
-    date: '2026-04-12T14:30:00Z',
-    total_amount: 250000,
-    status: 'Delivered',
-    restaurant_name: 'Pho 24 - Ben Thanh',
-    items: [
-      { name: 'Pho Bo Dac Biet', quantity: 2, price: 85000 },
-      { name: 'Goi Cuon', quantity: 4, price: 20000 }
-    ]
-  },
-  {
-    order_id: 10455,
-    date: '2026-04-14T19:00:00Z',
-    total_amount: 120000,
-    status: 'Processing',
-    restaurant_name: 'Banh Mi Huynh Hoa',
-    items: [
-      { name: 'Banh Mi Thit', quantity: 2, price: 60000 }
-    ]
-  }
-];
 
 const ProfileOrders = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Simulate API call for orders
-    setTimeout(() => {
-      setOrders(MOCK_ORDERS);
-      setLoading(false);
-    }, 800);
+    fetchOrders();
   }, []);
 
-  const getStatusColor = (status) => {
-    switch(status.toLowerCase()) {
-      case 'delivered': return 'green';
-      case 'processing': return 'blue';
-      case 'cancelled': return 'red';
-      default: return 'default';
+  const fetchOrders = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await profileService.getOrders();
+      setOrders(response.data?.data || []);
+    } catch (err) {
+      console.error('Failed to fetch orders:', err);
+      setError('Could not load order history. Please try again later.');
+      message.error('Failed to load orders');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleReorder = (orderId) => {
-    // Navigate to cart/checkout and rebuild the order (API integration later)
-    console.log(`Reordering ${orderId}`);
+  const STATUS_MAP = {
+    pending: { label: "Chờ xử lý", color: "orange" },
+    confirmed: { label: "Xác nhận", color: "blue" },
+    delivering: { label: "Đang giao", color: "cyan" },
+    delivered: { label: "Đã giao", color: "green" },
+    cancelled: { label: "Đã hủy", color: "red" },
+  };
+
+  const getStatusInfo = (status) => {
+    const key = status?.toLowerCase() || 'pending';
+    return STATUS_MAP[key] || { label: status, color: 'default' };
+  };
+
+  const handleReorder = async (orderId) => {
+    try {
+      const response = await profileService.reorder(orderId);
+      const { added, skipped } = response.data.data;
+      
+      if (added.length > 0) {
+        message.success(`Added ${added.length} items to cart!`);
+      }
+      
+      if (skipped.length > 0) {
+        message.warning(`${skipped.length} items were unavailable and skipped.`);
+      }
+      
+      if (added.length === 0 && skipped.length === 0) {
+        message.info('No items could be added to cart.');
+      }
+    } catch (err) {
+      console.error('Reorder error:', err);
+      message.error(err.response?.data?.message || 'Failed to reorder items');
+    }
   };
 
   if (loading) {
-    return <div className={styles.loader}><Spin size="large" /></div>;
+    return <div className={styles.loader}><Spin size="large" tip="Loading orders..." /></div>;
+  }
+
+  if (error) {
+    return (
+      <div className={styles.errorContainer}>
+        <ProfileEmptyState 
+          title="Oops!" 
+          description={error}
+          buttonText="Retry" 
+          onAction={fetchOrders}
+          icon={ShoppingOutlined}
+        />
+      </div>
+    );
   }
 
   return (
@@ -72,6 +95,7 @@ const ProfileOrders = () => {
             title="No Orders Yet" 
             description="Looks like you haven't made your first delivery order yet." 
             buttonText="Browse Restaurants" 
+            onAction={() => window.location.href = '/menu'}
             icon={ShoppingOutlined}
           />
         ) : (
@@ -79,13 +103,13 @@ const ProfileOrders = () => {
             <div key={order.order_id} className={styles.card}>
               <div className={styles.cardHeader}>
                 <div>
-                  <h3 className={styles.restaurantName}>{order.restaurant_name}</h3>
+                  <h3 className={styles.restaurantName}>Order #{order.order_id}</h3>
                   <p className={styles.orderMeta}>
-                    Order #{order.order_id} • <ClockCircleOutlined /> {new Date(order.date).toLocaleDateString()}
+                    <ClockCircleOutlined /> {new Date(order.date).toLocaleDateString()} at {new Date(order.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
                   </p>
                 </div>
-                <Tag color={getStatusColor(order.status)} className={styles.statusTag}>
-                  {order.status}
+                <Tag color={getStatusInfo(order.status).color} className={styles.statusTag}>
+                  {getStatusInfo(order.status).label}
                 </Tag>
               </div>
 
