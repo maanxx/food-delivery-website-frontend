@@ -8,6 +8,8 @@ import useLoading from "@hooks/useLoading";
 import ProfileLayout from "@components/ProfileLayout/ProfileLayout";
 import ProfileInfo from "@components/ProfileInfo/ProfileInfo";
 import ProfileSkeleton from "@components/ProfileSkeleton/ProfileSkeleton";
+import ProfileAddresses from "@components/ProfileAddresses/ProfileAddresses";
+import ProfileOrders from "@components/ProfileOrders/ProfileOrders";
 // Placeholder for components we haven't refactored yet
 // import ProfileAddresses from "@components/ProfileAddresses/ProfileAddresses";
 // import ProfilePassword from "@components/ProfilePassword/ProfilePassword";
@@ -43,9 +45,9 @@ const Profile = () => {
       case "info":
         return <ProfileInfo profile={profile} loading={loading} onSuccess={setProfile} />;
       case "orders":
-        return <div>Orders Component (Coming soon)</div>;
+        return <ProfileOrders />;
       case "addresses":
-        return <div>Addresses Component (Migrating...)</div>;
+        return <ProfileAddresses />;
       case "payment":
         return <div>Payment Component (Coming soon)</div>;
       case "favorites":

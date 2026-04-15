@@ -1,0 +1,148 @@
+.container {
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  margin-bottom: 2rem;
+  border-bottom: 1px solid #f0f0f0;
+  padding-bottom: 1rem;
+}
+
+.header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #333;
+}
+
+.subtitle {
+  color: #888;
+  margin: 0.25rem 0 0 0;
+  font-size: 0.9rem;
+}
+
+.loader {
+  display: flex;
+  justify-content: center;
+  padding: 4rem;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.card {
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  background: white;
+  transition: box-shadow 0.2s;
+  padding: 1.5rem;
+}
+
+.card:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.restaurantName {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.orderMeta {
+  margin: 0;
+  color: #888;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.statusTag {
+  padding: 2px 12px;
+  border-radius: 12px;
+  font-weight: 500;
+}
+
+.divider {
+  margin: 1rem 0;
+}
+
+.itemsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.itemRow {
+  display: flex;
+  align-items: center;
+}
+
+.itemQty {
+  width: 30px;
+  font-weight: 600;
+  color: #ff4d4f;
+}
+
+.itemName {
+  flex: 1;
+  color: #555;
+}
+
+.itemPrice {
+  font-weight: 500;
+  color: #333;
+}
+
+.cardFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.totalBlock {
+  display: flex;
+  flex-direction: column;
+}
+
+.totalBlock span:first-child {
+  color: #888;
+  font-size: 0.85rem;
+}
+
+.totalAmount {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ff4d4f;
+}
+
+.reorderBtn {
+  background-color: #ff4d4f;
+  border-color: #ff4d4f;
+}
+
+.reorderBtn:hover {
+  background-color: #ff7875 !important;
+  border-color: #ff7875 !important;
+}
+
+@media (max-width: 576px) {
+  .cardFooter {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  .reorderBtn {
+    width: 100%;
+  }
+}
