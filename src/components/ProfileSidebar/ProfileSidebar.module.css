@@ -1,0 +1,104 @@
+.sidebar {
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.mobileSidebar {
+  box-shadow: none;
+  background-color: transparent;
+}
+
+.userSection {
+  padding: 1.5rem;
+  border-bottom: 1px solid #f0f0f0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.avatar {
+  border: 2px solid #ff4d4f;
+  margin-bottom: 1rem;
+}
+
+.userName {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.userEmail {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #888;
+}
+
+.menuList {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  flex-grow: 1;
+}
+
+.menuItem {
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  border-left: 3px solid transparent;
+  transition: all 0.2s ease-in-out;
+  color: #555;
+}
+
+.menuItem:hover {
+  background-color: #fff1f0;
+  color: #ff4d4f;
+}
+
+.menuItem.active {
+  background-color: #fff1f0;
+  border-left-color: #ff4d4f;
+  color: #ff4d4f;
+  font-weight: 600;
+}
+
+.icon {
+  margin-right: 12px;
+  font-size: 1.1rem;
+}
+
+.label {
+  font-size: 0.95rem;
+}
+
+.logoutWrapper {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #f0f0f0;
+}
+
+.logoutButton {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: white;
+  border: 1px solid #ff4d4f;
+  color: #ff4d4f;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.logoutButton:hover {
+  background: #ff4d4f;
+  color: white;
+}
