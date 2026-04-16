@@ -4,7 +4,6 @@ import { useParams } from "react-router-dom";
 import { Avatar, message } from "antd";
 import { InfoCircleOutlined, PhoneOutlined, SearchOutlined, VideoCameraOutlined } from "@ant-design/icons";
 import styles from "./ChatWindow.module.css";
-import { getUserInfo } from "@helpers/cookieHelper";
 import { getFirstLetterOfEachWord } from "@helpers/stringHelper";
 
 import MessageList from "./MessageList";
@@ -28,9 +27,9 @@ const ChatWindow = () => {
     const conversation = useSelector((state) => state.chat.conversations.byId[conversationId]);
     const typingUsers = useSelector((state) => state.chat.typing[conversationId] || []);
 
-    // Get currentUserId from JWT token instead of Redux
-    const userInfo = getUserInfo();
-    const currentUserId = userInfo?.sub || userInfo?.user_id || userInfo?.userId || userInfo?.id;
+    // Get currentUserId from Redux
+    const user = useSelector((state) => state.auth.user);
+    const currentUserId = user?.sub || user?.user_id || user?.userId || user?.id;
 
     const [isLoadingMessages, setIsLoadingMessages] = useState(false);
     const [loadError, setLoadError] = useState(null);

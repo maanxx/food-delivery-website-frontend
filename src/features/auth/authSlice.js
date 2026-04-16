@@ -1,29 +1,86 @@
-import { createSlice } from "@reduxjs/toolkit";
-import { getCookie } from "@helpers/cookieHelper";
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import profileService from "@services/profileService";
+
+export const initializeAuth = createAsyncThunk(
+    "auth/initialize",
+    async (_, { dispatch, rejectWithValue }) => {
+        const token = localStorage.getItem("access_token");
+        if (!token) {
+            return rejectWithValue("No token found");
+        }
+
+        try {
+            const response = await profileService.getProfile();
+            if (response.data && response.data.success) {
+                // Return payload in a structure the reducer expects
+                return { user: response.data.data, token };
+            }
+            return rejectWithValue("Session invalid");
+        } catch (error) {
+            // If the error is 401/403, the session is definitely invalid
+            if (error.response?.status === 401 || error.response?.status === 403) {
+                localStorage.removeItem("access_token");
+            }
+            return rejectWithValue(error.response?.data?.message || "Initialization failed");
+        }
+    }
+);
 
 const initialState = {
-    isAuthenticated: !!getCookie("token"), // Check token from cookie
+    isAuthenticated: false,
+    user: null,
+    isInitialized: false, // Prevents premature redirect
+    isLoading: false,
+    error: null,
 };
 
 const authSlice = createSlice({
     name: "auth",
     initialState,
     reducers: {
-        login: (state) => {
+        login: (state, action) => {
+            if (!action.payload) return;
+
             state.isAuthenticated = true;
+            // SAFE ACCESS: Support both { accessToken, user } and direct user object
+            state.user = action.payload?.user || action.payload || null;
+            state.isInitialized = true;
+            
+            const tokenSource = action.payload?.token || action.payload?.accessToken;
+            if (tokenSource) {
+                localStorage.setItem("access_token", tokenSource);
+            }
         },
         logout: (state) => {
             state.isAuthenticated = false;
-            // Clear token cookie when logout
-            const now = new Date().toUTCString();
-            document.cookie = `token=; expires=${now}; path=/;`;
+            state.user = null;
+            state.isInitialized = true;
+            localStorage.removeItem("access_token");
         },
-        clearCookie: () => {
-            const now = new Date().toUTCString();
-            document.cookie = `token=; expires=${now}; path=/;`;
-        },
+        setInitialized: (state) => {
+            state.isInitialized = true;
+        }
+    },
+    extraReducers: (builder) => {
+        builder
+            .addCase(initializeAuth.pending, (state) => {
+                state.isLoading = true;
+            })
+            .addCase(initializeAuth.fulfilled, (state, action) => {
+                state.isAuthenticated = true;
+                // SAFE ACCESS
+                state.user = action.payload?.user || null;
+                state.isInitialized = true;
+                state.isLoading = false;
+            })
+            .addCase(initializeAuth.rejected, (state) => {
+                state.isAuthenticated = false;
+                state.user = null;
+                state.isInitialized = true; // Still initialized even if failed
+                state.isLoading = false;
+            });
     },
 });
 
-export const { login, logout, clearCookie } = authSlice.actions;
+export const { login, logout, setInitialized } = authSlice.actions;
 export default authSlice.reducer;

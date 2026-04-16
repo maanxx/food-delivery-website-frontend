@@ -4,11 +4,18 @@ import { CircularProgress } from "@mui/material";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
+import { useDispatch } from "react-redux";
 import router from "@router/router";
 import useLoading from "@hooks/useLoading";
+import { initializeAuth } from "@features/auth/authSlice";
 
 function App() {
   const { loading } = useLoading();
+  const dispatch = useDispatch();
+
+  React.useEffect(() => {
+    dispatch(initializeAuth());
+  }, [dispatch]);
 
     return (
         <>

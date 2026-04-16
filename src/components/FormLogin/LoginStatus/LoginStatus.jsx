@@ -17,9 +17,10 @@ function LoginStatus() {
         });
 
         if (res.data.success) {
+          const { accessToken, user } = res.data;
           loginChannel.postMessage({ success: true });
           setLogged(true);
-          login();
+          login({ token: accessToken, user });
         } else {
           loginChannel.postMessage({ success: false });
           setLogged(false);

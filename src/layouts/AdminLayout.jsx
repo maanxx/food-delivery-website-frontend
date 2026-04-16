@@ -14,7 +14,7 @@ import {
     WechatOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
-import { getUserInfo } from "@helpers/cookieHelper";
+import { useSelector } from "react-redux";
 import { getFirstLetterOfEachWord } from "@helpers/stringHelper";
 import styles from "./AdminLayout.module.css";
 
@@ -23,7 +23,7 @@ const { Header, Sider, Content } = Layout;
 const AdminLayout = ({ children }) => {
     const [collapsed, setCollapsed] = useState(false);
     const navigate = useNavigate();
-    const user = getUserInfo();
+    const user = useSelector((state) => state.auth.user);
 
     const menuItems = [
         {

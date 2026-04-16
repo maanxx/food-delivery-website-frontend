@@ -113,7 +113,7 @@ function Menu() {
 
   // Format price function
   const formatPrice = (price) => {
-    return new Intl.NumberFormat("vi-VN", {
+    return new window.Intl.NumberFormat("vi-VN", {
       style: "currency",
       currency: "VND",
     }).format(price);

@@ -11,7 +11,6 @@ import {
     addConversation,
 } from "@features/chat/chatSlice";
 import { orderStatusUpdated } from "@features/order/orderSlice";
-import { getCookie, getUserInfo } from "@helpers/cookieHelper";
 import { toast } from "react-toastify";
 
 let socketInstance = null;
@@ -23,14 +22,15 @@ const useWebSocket = () => {
 
     // Get conversations data to look up user names
     const conversations = useSelector((state) => state.chat.conversations.byId);
+    const currentUser = useSelector((state) => state.auth.user);
 
     // Update ref whenever conversations change (without triggering re-mount)
     useEffect(() => {
         conversationsRef.current = conversations;
     }, [conversations]);
 
-    // Get token from cookie (JWT token stored by backend)
-    const authToken = getCookie("token");
+    // Get token from localStorage
+    const authToken = localStorage.getItem("access_token");
 
     // Initialize WebSocket connection
     useEffect(() => {
@@ -60,8 +60,7 @@ const useWebSocket = () => {
             console.log("✅ WebSocket connected", { socketId: socket.id });
 
             // ✅ Join personal room for user so they receive conversation updates even when Sidebar is open
-            const userInfo = getUserInfo();
-            const userId = userInfo?.sub || userInfo?.user_id || userInfo?.userId || userInfo?.id;
+            const userId = currentUser?.sub || currentUser?.user_id || currentUser?.userId || currentUser?.id;
             if (userId) {
                 socket.emit("join_personal_room", { userId });
                 console.log(`📍 Joined personal room: user:${userId}`);
