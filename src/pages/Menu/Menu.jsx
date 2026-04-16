@@ -11,24 +11,20 @@ import {
 import {
   Container,
   Grid,
-  Card,
-  CardMedia,
-  CardContent,
   Typography,
   Button,
   TextField,
   Chip,
-  IconButton,
 } from "@mui/material";
 import {
-  Add as AddIcon,
-  Remove as RemoveIcon,
   Search as SearchIcon,
   ShoppingCart as CartIcon,
 } from "@mui/icons-material";
-
+import DishCard from "@components/DishCard/DishCard";
 import styles from "./Menu.module.css";
 import axiosInstance from "@config/axiosInstance";
+
+import Pagination from "@components/Pagination/Pagination";
 
 const cx = classNames.bind(styles);
 
@@ -92,41 +88,6 @@ function Menu() {
     startIndex,
     startIndex + itemsPerPage,
   );
-
-  // Redux Add to cart
-  const handleAddToCart = useCallback((dish, e) => {
-    if (e) {
-        e.preventDefault();
-        e.stopPropagation();
-    }
-    const payload = { dishId: dish.dish_id, quantity: 1 };
-    console.log("🛒 ADD TO CART PAYLOAD:", payload);
-    dispatch(addItemToCart(payload));
-  }, [dispatch]);
-
-  // Redux Update quantity
-  const handleUpdateQuantity = useCallback((dish, currentQty, delta, e) => {
-    if (e) {
-        e.preventDefault();
-        e.stopPropagation();
-    }
-    
-    const newQuantity = currentQty + delta;
-    const cartItem = cartItems.find(item => item.dish_id === dish.dish_id);
-    
-    if (cartItem) {
-        console.log("🛒 UPDATING QUANTITY", { dish_id: dish.dish_id, newQuantity });
-        dispatch(updateItemQuantity({ cartItemId: cartItem.cart_item_id, quantity: newQuantity }));
-    }
-  }, [dispatch, cartItems]);
-
-  // Format price function
-  const formatPrice = (price) => {
-    return new window.Intl.NumberFormat("vi-VN", {
-      style: "currency",
-      currency: "VND",
-    }).format(price);
-  };
 
   // Get total items in cart from Redux
   const getTotalCartItems = () => {
@@ -240,119 +201,19 @@ function Menu() {
             </div>
           ) : (
             <Grid container spacing={3}>
-              {currentDishes.map((dish) => {
-                const quantityInCart = cartItems.find(item => item.dish_id === dish.dish_id)?.quantity || 0;
-                
-                return (
-                  <Grid item xs={12} sm={6} md={3} key={dish.dish_id}>
-                    <Card className={cx("dish-card")}>
-                      <Link to={`/dish/${dish.dish_id}`} className={cx("dish-link")}>
-                        <div className={cx("dish-image-container")}>
-                          <CardMedia
-                            component="img"
-                            height="200"
-                            image={dish.thumbnail_path}
-                            alt={dish.name}
-                            className={cx("dish-image")}
-                          />
-                          {quantityInCart > 0 && (
-                            <div className={cx("quantity-badge")}>
-                              {quantityInCart}
-                            </div>
-                          )}
-                        </div>
-
-                        <CardContent className={cx("dish-content")}>
-                          <Typography
-                            variant="h6"
-                            component="h3"
-                            className={cx("dish-name")}
-                          >
-                            {dish.name}
-                          </Typography>
-
-                          <Typography
-                            variant="body2"
-                            color="text.secondary"
-                            className={cx("dish-description")}
-                          >
-                            {dish.description}
-                          </Typography>
-
-                          <Typography
-                            variant="h6"
-                            component="span"
-                            className={cx("dish-price")}
-                          >
-                            {formatPrice(dish.price)}
-                          </Typography>
-                        </CardContent>
-                      </Link>
-
-                      {/* Interactive Actions OUTSIDE of Link wrapper */}
-                      <div className={cx("dish-footer-actions")}>
-                        <div className={cx("dish-actions")}>
-                          {quantityInCart > 0 ? (
-                            <div className={cx("quantity-controls")}>
-                              <IconButton
-                                size="small"
-                                onClick={(e) => handleUpdateQuantity(dish, quantityInCart, -1, e)}
-                                className={cx("quantity-btn")}
-                              >
-                                <RemoveIcon />
-                              </IconButton>
-                              <span className={cx("quantity")}>
-                                {quantityInCart}
-                              </span>
-                              <IconButton
-                                size="small"
-                                onClick={(e) => handleUpdateQuantity(dish, quantityInCart, 1, e)}
-                                className={cx("quantity-btn")}
-                              >
-                                <AddIcon />
-                              </IconButton>
-                            </div>
-                          ) : (
-                            <Button
-                              variant="contained"
-                              size="small"
-                              onClick={(e) => handleAddToCart(dish, e)}
-                              className={cx("add-btn")}
-                              startIcon={<AddIcon />}
-                            >
-                              Thêm
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    </Card>
-                  </Grid>
-                );
-              })}
+              {currentDishes.map((dish) => (
+                <Grid item xs={12} sm={6} md={3} key={dish.dish_id}>
+                  <DishCard dish={dish} />
+                </Grid>
+              ))}
             </Grid>
           )}
           
-          <div className={cx("pagination")}>
-            <button
-              className={cx("page-btn")}
-              disabled={currentPage === 1}
-              onClick={() => setCurrentPage((prev) => prev - 1)}
-            >
-              ◀
-            </button>
-
-            <span className={cx("page-info")}>
-              {currentPage} / {totalPages}
-            </span>
-
-            <button
-              className={cx("page-btn")}
-              disabled={currentPage === totalPages}
-              onClick={() => setCurrentPage((prev) => prev + 1)}
-            >
-              ▶
-            </button>
-          </div>
+          <Pagination 
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={(page) => setCurrentPage(page)}
+          />
         </div>
       </Container>
     </div>
