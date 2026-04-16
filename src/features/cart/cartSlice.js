@@ -1,11 +1,9 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import * as cartService from "@services/cartService";
-import { toast } from "react-toastify";
+import { message } from "antd";
 
 /**
  * Thunks for Cart Mutations
- * Each mutation (add, update, remove, clear) follows with a re-fetch
- * to ensure the backend remains the single source of truth.
  */
 
 export const fetchCartItems = createAsyncThunk(
@@ -25,18 +23,19 @@ export const fetchCartItems = createAsyncThunk(
 
 export const addItemToCart = createAsyncThunk(
     "cart/addItem",
-    async ({ dish_id, quantity }, { dispatch, rejectWithValue }) => {
+    async ({ dishId, quantity }, { rejectWithValue }) => {
         try {
-            const response = await cartService.addToCart(dish_id, quantity);
+            const payload = { dishId, quantity };
+            console.log("🛒 REDUX THUNK PAYLOAD:", payload);
+            const response = await cartService.addToCart(dishId, quantity);
             if (response.success) {
-                toast.success("Đã thêm món vào giỏ hàng!");
-                dispatch(fetchCartItems());
-                return response.data;
+                message.success("✅ Added to cart");
+                return response; // Return full response { success, data: { items, totalQuantity, totalAmount } }
             }
             return rejectWithValue(response.message);
         } catch (error) {
             const msg = error.response?.data?.message || "Lỗi khi thêm vào giỏ hàng";
-            toast.error(msg);
+            message.error(msg);
             return rejectWithValue(msg);
         }
     }
@@ -44,17 +43,16 @@ export const addItemToCart = createAsyncThunk(
 
 export const updateItemQuantity = createAsyncThunk(
     "cart/updateQuantity",
-    async ({ cartItemId, quantity }, { dispatch, rejectWithValue }) => {
+    async ({ cartItemId, quantity }, { rejectWithValue }) => {
         try {
             const response = await cartService.updateItemQuantity(cartItemId, quantity);
             if (response.success) {
-                dispatch(fetchCartItems());
-                return response.data;
+                return response;
             }
             return rejectWithValue(response.message);
         } catch (error) {
             const msg = error.response?.data?.message || "Lỗi khi cập nhật số lượng";
-            toast.error(msg);
+            message.error(msg);
             return rejectWithValue(msg);
         }
     }
@@ -62,17 +60,16 @@ export const updateItemQuantity = createAsyncThunk(
 
 export const removeItemFromCart = createAsyncThunk(
     "cart/removeItem",
-    async (cartItemId, { dispatch, rejectWithValue }) => {
+    async (cartItemId, { rejectWithValue }) => {
         try {
             const response = await cartService.removeItem(cartItemId);
             if (response.success) {
-                toast.success("Đã xóa sản phẩm khỏi giỏ hàng");
-                dispatch(fetchCartItems());
-                return response.data;
+                message.success("Đã xóa sản phẩm khỏi giỏ hàng");
+                return response;
             }
             return rejectWithValue(response.message);
         } catch (error) {
-            toast.error("Không thể xóa sản phẩm");
+            message.error("Không thể xóa sản phẩm");
             return rejectWithValue(error.response?.data?.message || "Lỗi xóa sản phẩm");
         }
     }
@@ -80,17 +77,16 @@ export const removeItemFromCart = createAsyncThunk(
 
 export const clearCart = createAsyncThunk(
     "cart/clear",
-    async (_, { dispatch, rejectWithValue }) => {
+    async (_, { rejectWithValue }) => {
         try {
             const response = await cartService.clearCart();
             if (response.success) {
-                toast.success("Đã làm trống giỏ hàng");
-                dispatch(fetchCartItems());
-                return response.data;
+                message.success("Đã làm trống giỏ hàng");
+                return response;
             }
             return rejectWithValue(response.message);
         } catch (error) {
-            toast.error("Lỗi khi làm trống giỏ hàng");
+            message.error("Lỗi khi làm trống giỏ hàng");
             return rejectWithValue(error.response?.data?.message || "Lỗi làm trống giỏ hàng");
         }
     }
@@ -123,10 +119,14 @@ const cartSlice = createSlice({
                 state.status = "loading";
             })
             .addCase(fetchCartItems.fulfilled, (state, action) => {
+                console.group("🛒 REDUX: fetchCartItems Fullfilled");
+                console.log("Payload:", action.payload);
                 state.status = "idle";
-                state.items = action.payload.items;
-                state.totalQuantity = action.payload.totalQuantity;
-                state.totalAmount = action.payload.totalAmount;
+                state.items = action.payload.items || [];
+                state.totalQuantity = action.payload.totalQuantity || 0;
+                state.totalAmount = action.payload.totalAmount || 0;
+                console.log("New State Items:", state.items);
+                console.groupEnd();
             })
             .addCase(fetchCartItems.rejected, (state, action) => {
                 state.status = "failed";
@@ -139,15 +139,49 @@ const cartSlice = createSlice({
                     state.status = "loading";
                 }
             )
+            // Mutation Fulfillment Handler (Direct State Update)
             .addMatcher(
-                (action) => action.type.startsWith('cart/') && action.type.endsWith('/rejected') && action.type !== 'cart/fetchItems/rejected',
+                (action) => action.type.startsWith('cart/') && action.type.endsWith('/fulfilled') && action.type !== 'cart/fetchItems/fulfilled',
+                (state, action) => {
+                    console.group(`🛒 REDUX: Mutation ${action.type} Fullfilled`);
+                    console.log("Payload:", action.payload);
+                    
+                    state.status = "idle";
+                    // Correctly access data from payload.data.items as per requirement
+                    const cartData = action.payload.data;
+                    if (cartData) {
+                        state.items = Array.isArray(cartData.items) ? cartData.items : [];
+                        state.totalQuantity = cartData.totalQuantity || 0;
+                        state.totalAmount = cartData.totalAmount || 0;
+                    }
+                    
+                    console.log("Updated State Items:", state.items);
+                    console.groupEnd();
+                }
+            )
+            // Generic Error Handler
+            .addMatcher(
+                (action) => action.type.startsWith('cart/') && action.type.endsWith('/rejected'),
                 (state, action) => {
                     state.status = "idle";
                     state.error = action.payload;
+                    console.error("🛒 REDUX: Cart Action Failed", action.type, action.payload);
                 }
             );
     },
 });
 
 export const { resetCartState } = cartSlice.actions;
+
+// Selectors
+export const selectCartItems = (state) => state.cart.items || [];
+export const selectCartTotalQuantity = (state) => state.cart.totalQuantity || 0;
+export const selectItemQuantity = (dishId) => (state) => {
+    const items = state.cart.items || [];
+    const item = items.find((i) => i.dish_id === dishId);
+    return item ? item.quantity : 0;
+};
+
 export default cartSlice.reducer;
+
+

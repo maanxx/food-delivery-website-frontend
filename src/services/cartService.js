@@ -16,9 +16,11 @@ const fetchCart = async () => {
 /**
  * Add a new dish to the cart.
  */
-const addToCart = async (dish_id, quantity = 1) => {
+const addToCart = async (dishId, quantity = 1) => {
     try {
-        const res = await axiosInstance.post("/api/cart/items", { dish_id, quantity });
+        const payload = { dishId, quantity };
+        console.log("🛒 ADD TO CART PAYLOAD:", payload);
+        const res = await axiosInstance.post("/api/cart/items", payload);
         return res.data;
     } catch (error) {
         console.error("AddToCart failed:", error);

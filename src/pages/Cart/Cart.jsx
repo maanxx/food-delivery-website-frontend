@@ -42,6 +42,13 @@ function Cart() {
     dispatch(fetchCartItems());
   }, [dispatch]);
 
+  // Handle auto-selection of all items by default
+  useEffect(() => {
+    if (cartItems.length > 0 && selectedItemIds.length === 0) {
+      setSelectedItemIds(cartItems.map(i => i.cart_item_id));
+    }
+  }, [cartItems, selectedItemIds.length]);
+
   // Sync selected items if they are removed from cart
   useEffect(() => {
     const existingIds = cartItems.map(i => i.cart_item_id);

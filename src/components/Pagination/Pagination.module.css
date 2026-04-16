@@ -1,0 +1,86 @@
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  margin: 40px 0;
+  list-style: none;
+  padding: 0;
+  font-family: 'Inter', sans-serif;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 999px; /* Rounded pill style */
+  border: 1px solid #f0f0f0;
+  background-color: #fff;
+  color: #555;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.04);
+  padding: 0;
+}
+
+.button:hover:not(:disabled):not(.active) {
+  transform: scale(1.05);
+  background-color: #fff3ec;
+  border-color: #ff914c;
+  color: #ff914c;
+  box-shadow: 0 4px 10px rgba(255, 145, 76, 0.15);
+}
+
+.active {
+  background-color: #ff914c;
+  color: #fff;
+  border-color: #ff914c;
+  box-shadow: 0 4px 12px rgba(255, 145, 76, 0.3);
+  cursor: default;
+}
+
+.button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  background-color: #f9f9f9;
+  border-color: #eee;
+}
+
+.arrow {
+  font-size: 18px;
+  font-weight: 400;
+}
+
+.ellipsis {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #999;
+  font-weight: 600;
+  cursor: default;
+}
+
+/* Responsiveness */
+@media (max-width: 480px) {
+  .button {
+    width: 34px;
+    height: 34px;
+    font-size: 13px;
+  }
+  
+  .container {
+    gap: 4px;
+  }
+}
