@@ -1,14 +1,20 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { Tag, Button, Spin, Divider, message } from 'antd';
-import { ShoppingOutlined, SyncOutlined, ClockCircleOutlined } from '@ant-design/icons';
+import { ShoppingOutlined, SyncOutlined, ClockCircleOutlined, ShopOutlined } from '@ant-design/icons';
 import ProfileEmptyState from '../ProfileEmptyState/ProfileEmptyState';
 import profileService from '@services/profileService';
 import styles from './ProfileOrders.module.css';
+import { seedOrders } from '@features/order/orderSlice';
 
 const ProfileOrders = () => {
+  const dispatch = useDispatch();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Get live order data from Redux
+  const liveOrdersByStatus = useSelector((state) => state.order.byId);
 
   useEffect(() => {
     fetchOrders();
@@ -19,7 +25,11 @@ const ProfileOrders = () => {
     setError(null);
     try {
       const response = await profileService.getOrders();
-      setOrders(response.data?.data || []);
+      const fetchedOrders = response.data?.data || [];
+      setOrders(fetchedOrders);
+      
+      // Seed our tracking slice
+      dispatch(seedOrders(fetchedOrders));
     } catch (err) {
       console.error('Failed to fetch orders:', err);
       setError('Could not load order history. Please try again later.');
@@ -99,19 +109,39 @@ const ProfileOrders = () => {
             icon={ShoppingOutlined}
           />
         ) : (
-          orders.map(order => (
-            <div key={order.order_id} className={styles.card}>
-              <div className={styles.cardHeader}>
-                <div>
-                  <h3 className={styles.restaurantName}>Order #{order.order_id}</h3>
-                  <p className={styles.orderMeta}>
-                    <ClockCircleOutlined /> {new Date(order.date).toLocaleDateString()} at {new Date(order.date).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                  </p>
+          orders.map(order => {
+            const liveData = liveOrdersByStatus[order.order_id] || {};
+            const displayStatus = liveData.status || order.status;
+            const displayBrand = liveData.brand || order.brand || "Eatsy";
+            const estTime = liveData.estimated_time || order.estimated_time;
+            const statusInfo = getStatusInfo(displayStatus);
+
+            return (
+              <div key={order.order_id} className={styles.card}>
+                <div className={styles.cardHeader}>
+                  <div className={styles.brandInfo}>
+                    <div className={styles.brandIcon}>
+                      <ShopOutlined />
+                    </div>
+                    <div>
+                      <h3 className={styles.restaurantName}>{displayBrand}</h3>
+                      <div className={styles.metaContainer}>
+                        <p className={styles.orderMeta}>
+                          <ClockCircleOutlined /> {new Date(order.date).toLocaleDateString()}
+                        </p>
+                        <span className={styles.orderIdText}>#{order.order_id.slice(-8).toUpperCase()}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className={styles.statusSection}>
+                    {estTime && displayStatus !== 'delivered' && displayStatus !== 'cancelled' && (
+                      <span className={styles.estTime}>~{estTime} mins</span>
+                    )}
+                    <Tag color={statusInfo.color} className={styles.statusTag}>
+                      {statusInfo.label}
+                    </Tag>
+                  </div>
                 </div>
-                <Tag color={getStatusInfo(order.status).color} className={styles.statusTag}>
-                  {getStatusInfo(order.status).label}
-                </Tag>
-              </div>
 
               <Divider className={styles.divider} />
 
@@ -142,8 +172,9 @@ const ProfileOrders = () => {
                 </Button>
               </div>
             </div>
-          ))
-        )}
+          );
+        })
+      )}
       </div>
     </div>
   );

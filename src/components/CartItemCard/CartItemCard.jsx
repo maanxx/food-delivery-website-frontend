@@ -9,19 +9,22 @@ const CartItemCard = memo(({
   isSelected, 
   onSelect, 
   onDelete, 
-  onLoadCartItems 
 }) => {
-  const { cart_item_id, name, price, quantity, thumbnail_path } = item;
+  const { cart_item_id, quantity, price_snapshot, is_available, has_stock, warning, dish } = item;
+  const { name, thumbnail_path } = dish || {};
 
   const handleZeroQuantity = React.useCallback(() => {
     onDelete(cart_item_id);
   }, [onDelete, cart_item_id]);
 
+  const isInvalid = !is_available || !has_stock;
+
   return (
-    <div className={styles.card}>
+    <div className={`${styles.card} ${isInvalid ? styles.invalid : ''}`}>
       <Checkbox 
         className={styles.checkbox}
         checked={isSelected}
+        disabled={isInvalid}
         onChange={() => onSelect(cart_item_id)}
         sx={{
           color: 'var(--primaryColor)',
@@ -33,14 +36,18 @@ const CartItemCard = memo(({
       
       <div className={styles.imageContainer}>
         <img src={thumbnail_path} alt={name} className={styles.image} />
+        {isInvalid && <div className={styles.overlay}>Không khả dụng</div>}
       </div>
 
       <div className={styles.info}>
         <h3 className={styles.name}>{name}</h3>
-        <span className={styles.price}>
-          {Number(price).toLocaleString('vi-VN')}
-          <span className={styles.priceUnit}>₫</span>
-        </span>
+        <div className={styles.priceContainer}>
+          <span className={styles.price}>
+            {Number(price_snapshot).toLocaleString('vi-VN')}
+            <span className={styles.priceUnit}>₫</span>
+          </span>
+          {warning && <span className={styles.warningText}>{warning}</span>}
+        </div>
       </div>
 
       <div className={styles.controls}>
@@ -49,8 +56,8 @@ const CartItemCard = memo(({
           max={999} 
           currentValue={quantity}
           cartItemId={cart_item_id}
-          loadCartItems={onLoadCartItems}
           setOpenModal={handleZeroQuantity}
+          disabled={!is_available}
         />
         
         <button 

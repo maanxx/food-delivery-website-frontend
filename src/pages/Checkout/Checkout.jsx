@@ -78,7 +78,7 @@ function Checkout() {
           dish_id: item.dish_id,
           name: item.name,
           quantity: item.quantity,
-          price: item.price
+          price: item.price_snapshot
         })),
         address_id: selectedAddressId,
         payment_method: "Cash",
@@ -113,7 +113,7 @@ function Checkout() {
             <span className={styles.itemMeta}>Số lượng: {item.quantity}</span>
           </div>
           <span className={styles.itemPrice}>
-            {(item.price * item.quantity).toLocaleString("vi-VN")} ₫
+            {(Number(item.price_snapshot) * item.quantity).toLocaleString("vi-VN")} ₫
           </span>
         </div>
       ))}

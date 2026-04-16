@@ -51,7 +51,7 @@ function Menu() {
 
       const fetchDishes = async () => {
         const response = await axiosInstance.get("/api/dish");
-        setDishes(response.data);
+        setDishes(response.data.data || []);
       };
       fetchDishes();
     } catch (error) {
@@ -63,18 +63,20 @@ function Menu() {
     setCurrentPage(1);
   }, [selectedCategoryId, searchTerm]);
 
-  const filteredDishes = dishes.filter((dish) => {
+  const safeDishes = Array.isArray(dishes) ? dishes : [];
+
+  const filteredDishes = safeDishes.filter((dish) => {
     const matchesCategory =
-      selectedCategoryId === "all" || dish.category_id === selectedCategoryId;
+      selectedCategoryId === "all" ||
+      dish.category_id === selectedCategoryId;
 
     const matchesSearch =
       !searchTerm ||
       dish.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (dish.description &&
         dish.description.toLowerCase().includes(searchTerm.toLowerCase()));
-
     return matchesCategory && matchesSearch;
-  });
+  }); 
 
   const totalPages = Math.ceil(filteredDishes.length / itemsPerPage);
 

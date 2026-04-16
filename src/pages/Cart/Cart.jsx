@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
 import { Container, Checkbox } from "@mui/material";
 import { ShoppingBasketOutlined, DeleteSweepOutlined } from "@mui/icons-material";
 import { message } from "antd";
 
 import styles from "./Cart.module.css";
-import { getCartItems, deleteCartItem } from "@services/cartService";
+import { fetchCartItems, removeItemFromCart, clearCart } from "@features/cart/cartSlice";
 import { checkVoucher } from "@services/voucherService";
 import { CartItemCard, ProfileEmptyState } from "@components/index";
 
@@ -23,42 +24,40 @@ const CART_TEXT = {
   APPLY: "Áp dụng",
   DISCOUNT: "Giảm giá",
   WARNING_SELECT: "Vui lòng chọn món để tiếp tục",
+  WARNING_INVALID: "Vui lòng xóa các món không khả dụng để tiếp tục",
 };
 
 function Cart() {
   const navigate = useNavigate();
-  const [cartItems, setCartItems] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const dispatch = useDispatch();
+  
+  const { items: cartItems, status, totalAmount: backendTotal } = useSelector((state) => state.cart);
+  const loading = status === 'loading';
+
   const [selectedItemIds, setSelectedItemIds] = useState([]);
   const [voucherCode, setVoucherCode] = useState("");
   const [discountInfo, setDiscountInfo] = useState(null);
 
-  const loadCartItems = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await getCartItems();
-      const items = data || [];
-      setCartItems(items);
-      
-      const existingIds = items.map(i => i.cart_item_id);
-      setSelectedItemIds(prev => prev.filter(id => existingIds.includes(id)));
-    } catch (error) {
-      message.error("Không thể tải giỏ hàng");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
-    loadCartItems();
-  }, [loadCartItems]);
+    dispatch(fetchCartItems());
+  }, [dispatch]);
+
+  // Sync selected items if they are removed from cart
+  useEffect(() => {
+    const existingIds = cartItems.map(i => i.cart_item_id);
+    setSelectedItemIds(prev => prev.filter(id => existingIds.includes(id)));
+  }, [cartItems]);
 
   const selectedItems = useMemo(() => 
     (cartItems || []).filter(item => selectedItemIds.includes(item.cart_item_id)),
   [cartItems, selectedItemIds]);
 
   const selectedTotal = useMemo(() => 
-    selectedItems.reduce((acc, cur) => acc + Number(cur.price) * cur.quantity, 0),
+    selectedItems.reduce((acc, cur) => acc + Number(cur.price_snapshot) * cur.quantity, 0),
+  [selectedItems]);
+
+  const hasInvalidSelectedItems = useMemo(() => 
+    selectedItems.some(item => !item.is_available || !item.has_stock),
   [selectedItems]);
 
   const discountAmount = useMemo(() => {
@@ -85,29 +84,19 @@ function Cart() {
   }, [selectedItemIds.length, cartItems]);
 
   const handleDeleteItem = useCallback(async (itemId) => {
-    try {
-      await deleteCartItem(itemId);
-      message.success("Đã xóa sản phẩm");
-      loadCartItems();
-    } catch (error) {
-      message.error("Xóa thất bại");
-    }
-  }, [loadCartItems]);
+    dispatch(removeItemFromCart(itemId));
+  }, [dispatch]);
 
   const handleBulkDelete = useCallback(async () => {
     if (selectedItemIds.length === 0) return;
-    try {
-      setLoading(true);
-      await Promise.all(selectedItemIds.map(id => deleteCartItem(id)));
-      message.success(`Đã xóa ${selectedItemIds.length} món ăn`);
-      setSelectedItemIds([]);
-      await loadCartItems();
-    } catch (error) {
-      message.error("Xóa hàng loạt thất bại");
-    } finally {
-      setLoading(false);
+    if (selectedItemIds.length === cartItems.length) {
+      dispatch(clearCart());
+    } else {
+      // If partially selected, remove them one by one (or implement bulk remove in backend)
+      await Promise.all(selectedItemIds.map(id => dispatch(removeItemFromCart(id))));
     }
-  }, [selectedItemIds, loadCartItems]);
+    setSelectedItemIds([]);
+  }, [selectedItemIds, cartItems.length, dispatch]);
 
   const handleApplyVoucher = useCallback(async () => {
     if (!voucherCode) return;
@@ -130,6 +119,10 @@ function Cart() {
       message.warning(CART_TEXT.WARNING_SELECT);
       return;
     }
+    if (hasInvalidSelectedItems) {
+      message.error(CART_TEXT.WARNING_INVALID);
+      return;
+    }
     if (finalTotal === 0) return;
     
     navigate("/checkout", { 
@@ -140,18 +133,19 @@ function Cart() {
         subtotal: selectedTotal
       } 
     });
-  }, [selectedItemIds.length, finalTotal, navigate, selectedItems, discountAmount, selectedTotal]);
+  }, [selectedItemIds.length, hasInvalidSelectedItems, finalTotal, navigate, selectedItems, discountAmount, selectedTotal]);
 
   if (loading && cartItems.length === 0) {
     return (
       <div className={styles.wrapper}>
-        <div className={styles.title}>{CART_TEXT.TITLE}</div>
         <Container maxWidth="lg">
           <div style={{ textAlign: "center", padding: "100px" }}>Đang tải giỏ hàng...</div>
         </Container>
       </div>
     );
   }
+
+  const isCheckoutDisabled = selectedItemIds.length === 0 || finalTotal === 0 || hasInvalidSelectedItems || loading;
 
   return (
     <div className={styles.wrapper}>
@@ -163,7 +157,7 @@ function Cart() {
               title={CART_TEXT.EMPTY_CART}
               description="Hãy thêm món ăn yêu thích của bạn vào giỏ hàng ngay."
               buttonText={CART_TEXT.BACK_HOME}
-              onAction={() => window.location.href = '/'}
+              onAction={() => navigate("/")}
               icon={ShoppingBasketOutlined}
             />
           </div>
@@ -196,7 +190,6 @@ function Cart() {
                   isSelected={selectedItemIds.includes(item.cart_item_id)}
                   onSelect={handleSelectItem}
                   onDelete={handleDeleteItem}
-                  onLoadCartItems={loadCartItems}
                 />
               ))}
             </div>
@@ -246,10 +239,16 @@ function Cart() {
               <button 
                 className={styles.checkoutBtn}
                 onClick={handleCheckout}
-                disabled={selectedItemIds.length === 0 || finalTotal === 0}
+                disabled={isCheckoutDisabled}
               >
-                {CART_TEXT.CHECKOUT}
+                {loading ? "Đang xử lý..." : CART_TEXT.CHECKOUT}
               </button>
+              
+              {hasInvalidSelectedItems && (
+                <p className={styles.errorText} style={{ color: "#ff4d4f", fontSize: "12px", marginTop: "8px" }}>
+                  {CART_TEXT.WARNING_INVALID}
+                </p>
+              )}
             </div>
           </div>
         )}

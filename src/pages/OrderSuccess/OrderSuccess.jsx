@@ -1,10 +1,12 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSelector, useDispatch } from "react-redux";
 import { CheckCircleOutline, ShoppingBagOutlined, HomeOutlined } from "@mui/icons-material";
 import { message, Spin } from "antd";
 
 import styles from "./OrderSuccess.module.css";
 import profileService from "@services/profileService";
+import { seedOrder, selectOrderStatus } from "@features/order/orderSlice";
 
 const SUCCESS_TEXT = {
   TITLE: "Đặt hàng thành công!",
@@ -12,6 +14,8 @@ const SUCCESS_TEXT = {
   ORDER_ID: "Mã đơn hàng",
   TOTAL: "Tổng thanh toán",
   STATUS: "Trạng thái",
+  BRAND: "Thương hiệu",
+  ESTIMATED: "Thời gian dự kiến",
   ITEMS: "Sản phẩm",
   VIEW_ORDERS: "Xem đơn hàng",
   CONTINUE: "Tiếp tục mua sắm",
@@ -30,10 +34,14 @@ const STATUS_MAP = {
 function OrderSuccess() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const orderId = searchParams.get("orderId");
 
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // Live status from Redux (updated via socket in real-time)
+  const liveStatus = useSelector(selectOrderStatus(orderId));
 
   const fetchOrderDetails = useCallback(async (id) => {
     try {
@@ -41,6 +49,8 @@ function OrderSuccess() {
       const res = await profileService.getOrderDetails(id);
       if (res.data.success) {
         setOrder(res.data.data);
+        // Hydrate the orderSlice so selectors work immediately
+        dispatch(seedOrder(res.data.data));
       } else {
         throw new Error("Failed to load");
       }
@@ -50,7 +60,7 @@ function OrderSuccess() {
     } finally {
       setLoading(false);
     }
-  }, [navigate]);
+  }, [navigate, dispatch]);
 
   useEffect(() => {
     if (!orderId) {
@@ -74,7 +84,9 @@ function OrderSuccess() {
 
   if (!order) return null;
 
-  const currentStatus = STATUS_MAP[order.status.toLowerCase()] || STATUS_MAP.pending;
+  // Use live status from Redux (socket) if available, fallback to API-fetched status
+  const displayStatus = liveStatus || order.status;
+  const currentStatus = STATUS_MAP[displayStatus.toLowerCase()] || STATUS_MAP.pending;
 
   return (
     <div className={styles.wrapper}>
@@ -91,6 +103,11 @@ function OrderSuccess() {
             <span className={styles.detailLabel}>{SUCCESS_TEXT.ORDER_ID}</span>
             <span className={`${styles.detailValue} ${styles.orderId}`}>{order.order_id}</span>
           </div>
+
+          <div className={styles.detailRow}>
+            <span className={styles.detailLabel}>{SUCCESS_TEXT.BRAND}</span>
+            <span className={styles.detailValue}>{order.brand || "Eatsy"}</span>
+          </div>
           
           <div className={styles.detailRow}>
             <span className={styles.detailLabel}>{SUCCESS_TEXT.STATUS}</span>
@@ -101,6 +118,13 @@ function OrderSuccess() {
               {currentStatus.label}
             </span>
           </div>
+
+          {order.estimated_time && (
+            <div className={styles.detailRow}>
+              <span className={styles.detailLabel}>{SUCCESS_TEXT.ESTIMATED}</span>
+              <span className={styles.detailValue}>~{order.estimated_time} phút</span>
+            </div>
+          )}
 
           <div className={styles.detailRow}>
             <span className={styles.detailLabel}>{SUCCESS_TEXT.TOTAL}</span>
@@ -136,3 +160,4 @@ function OrderSuccess() {
 }
 
 export default OrderSuccess;
+

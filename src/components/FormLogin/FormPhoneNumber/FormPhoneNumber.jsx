@@ -116,7 +116,6 @@ function FormPhoneNumber() {
         const left = screen.width / 2 - width / 2;
         const top = screen.height / 2 - height / 2;
 
-        // Open google login popup
         const popup = window.open(
             `${serverBaseUrl}/api/auth/google`,
             "_blank",
@@ -187,18 +186,19 @@ function FormPhoneNumber() {
         const fetchCountries = async () => {
             try {
                 const data = await countryService.getAll();
-                const defaultCountry = data[167];
-                setCountries(data);
-                setCurrentCountry(defaultCountry); // default country
+                if (data && data.length > 0) {
+                    setCountries(data);
+                    const vnCountry = data.find(c => c.cca3 === "VNM") || data[0];
+                    setCurrentCountry(vnCountry);
+                }
             } catch (error) {
-                console.log(error);
+                console.error("Failed to load countries:", error);
+                setAlertMessage("Không thể tải danh sách quốc gia. Vui lòng thử lại.");
             } finally {
                 setLoading(false);
             }
         };
         fetchCountries();
-
-        return;
     }, [setLoading]);
 
     return (

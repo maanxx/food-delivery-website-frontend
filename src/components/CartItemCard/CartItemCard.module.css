@@ -115,3 +115,39 @@
     right: 8px;
   }
 }
+
+/* Invalid / Warning Styles */
+.card.invalid {
+  background-color: #fff1f0;
+  border-color: #ffa39e;
+  opacity: 0.8;
+}
+
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.priceContainer {
+  display: flex;
+  flex-direction: column;
+}
+
+.warningText {
+  font-size: 11px;
+  color: #ff4d4f;
+  font-weight: 500;
+  margin-top: 2px;
+}
+

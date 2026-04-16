@@ -10,7 +10,9 @@ import {
     moveConversationToTop,
     addConversation,
 } from "@features/chat/chatSlice";
+import { orderStatusUpdated } from "@features/order/orderSlice";
 import { getCookie, getUserInfo } from "@helpers/cookieHelper";
+import { toast } from "react-toastify";
 
 let socketInstance = null;
 
@@ -243,6 +245,36 @@ const useWebSocket = () => {
         socket.on("conversation:deleted", ({ conversationId }) => {
             // Handle conversation deletion
             console.log("Conversation deleted:", conversationId);
+        });
+
+        // ========== ORDER TRACKING ==========
+        socket.on("order_updated", (data) => {
+            const { order_id, status, brand } = data;
+            
+            console.log("📦 Order status updated:", { orderId: order_id, status, brand });
+            
+            // 1. Update Redux State
+            dispatch(orderStatusUpdated(data));
+
+            // 2. Show Toast Notification
+            const statusMessages = {
+                pending: "đang chờ xử lý",
+                confirmed: "đã được xác nhận",
+                delivering: "đang trên đường giao đến bạn",
+                delivered: "đã được giao thành công. Chúc bạn ngon miệng!",
+                cancelled: "đã bị hủy",
+            };
+
+            const msg = statusMessages[status?.toLowerCase()] || `chuyển sang trạng thái ${status}`;
+            const toastRef = `Đơn hàng ${brand || "Eatsy"} (${order_id.slice(-6).toUpperCase()})`;
+            
+            if (status === "delivered") {
+                toast.success(`${toastRef} ${msg}`);
+            } else if (status === "cancelled") {
+                toast.error(`${toastRef} ${msg}`);
+            } else {
+                toast.info(`${toastRef} ${msg}`);
+            }
         });
 
         socketInstance = socket;
