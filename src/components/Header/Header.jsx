@@ -23,6 +23,16 @@ function Header() {
     const { disconnect } = useWebSocket();
     const [showProfileNav, setShowProfileNav] = useState(false);
     const user = useSelector((state) => state.auth.user);
+    const cartTotalQuantity = useSelector((state) => state.cart.totalQuantity);
+    const [isCartBumped, setIsCartBumped] = useState(false);
+
+    // Animation Effect when cart items change
+    useEffect(() => {
+        if (cartTotalQuantity === 0) return;
+        setIsCartBumped(true);
+        const timer = setTimeout(() => setIsCartBumped(false), 300);
+        return () => clearTimeout(timer);
+    }, [cartTotalQuantity]);
 
     const handleChangeModeBtnClick = () => {
         setDarkmode((prevMode) => !prevMode);
@@ -127,10 +137,12 @@ function Header() {
                                 <Search />
                             </Link>
                         </button>
-                        <button className={cx("cart-btn")}>
+                        <button className={cx("cart-btn", { bump: isCartBumped })}>
                             <Link to={"/cart"}>
                                 <ShoppingCart />
-                                <span className={cx("cart-badge")}>0</span>
+                                {isAuthenticated && cartTotalQuantity > 0 && (
+                                    <span className={cx("cart-badge")}>{cartTotalQuantity}</span>
+                                )}
                             </Link>
                         </button>
                         {isAuthenticated ? (
