@@ -1,5 +1,4 @@
 .about {
-    padding-top: 100px;
     min-height: 100vh;
     background-color: #fafafa;
 }
@@ -377,7 +376,6 @@
 /* Responsive Design */
 @media (max-width: 768px) {
     .about {
-        padding-top: 80px;
     }
 
     .hero-content h1 {

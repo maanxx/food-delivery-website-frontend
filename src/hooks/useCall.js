@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useSelector } from "react-redux";
 import SimplePeer from "simple-peer";
-import { getUserInfo } from "@helpers/cookieHelper";
-import callService from "@services/callService";
 
 const useCall = (socket) => {
-    const userInfo = getUserInfo();
+    const userInfo = useSelector((state) => state.auth.user);
     const userId = userInfo?.sub || userInfo?.user_id || userInfo?.userId || userInfo?.id;
 
     const [callState, setCallState] = useState({

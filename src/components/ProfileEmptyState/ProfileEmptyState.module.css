@@ -1,0 +1,40 @@
+.emptyContainer {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 4rem 2rem;
+  background-color: #fafafa;
+  border-radius: 8px;
+  border: 1px dashed #e8e8e8;
+  min-height: 400px;
+}
+
+.emptyContent {
+  margin-top: 1rem;
+}
+
+.title {
+  font-size: 1.25rem;
+  color: #333;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.description {
+  color: #888;
+  font-size: 0.95rem;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.actionBtn {
+  margin-top: 1.5rem;
+  background-color: #ff4d4f;
+  border-color: #ff4d4f;
+  padding: 0 2rem;
+}
+
+.actionBtn:hover {
+  background-color: #ff7875 !important;
+  border-color: #ff7875 !important;
+}

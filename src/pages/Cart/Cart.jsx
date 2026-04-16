@@ -1,371 +1,257 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
-import classNames from "classnames/bind";
-import { Button, Container } from "@mui/material";
-import Table from "@mui/material/Table";
-import TableBody from "@mui/material/TableBody";
-import TableCell from "@mui/material/TableCell";
-import TableContainer from "@mui/material/TableContainer";
-import TableHead from "@mui/material/TableHead";
-import TableRow from "@mui/material/TableRow";
-import Paper from "@mui/material/Paper";
+import React, { useCallback, useEffect, useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { Container, Checkbox } from "@mui/material";
+import { ShoppingBasketOutlined, DeleteSweepOutlined } from "@mui/icons-material";
+import { message } from "antd";
 
 import styles from "./Cart.module.css";
-import { deleteCartItem, getCartItems } from "@services/cartService";
-import { QuantityInput } from "@components/index";
-import { Modal } from "antd";
-import { Link } from "react-router-dom";
-import { Home } from "@mui/icons-material";
+import { fetchCartItems, removeItemFromCart, clearCart } from "@features/cart/cartSlice";
 import { checkVoucher } from "@services/voucherService";
+import { CartItemCard, ProfileEmptyState } from "@components/index";
 
-const cx = classNames.bind(styles);
+const CART_TEXT = {
+  TITLE: "Giỏ hàng của bạn",
+  ORDER_SUMMARY: "Chi tiết đơn hàng",
+  SELECTED_ITEMS: "Đã chọn",
+  TOTAL_PAYMENT: "Tổng thanh toán",
+  CHECKOUT: "Thanh toán",
+  EMPTY_CART: "Giỏ hàng của bạn còn trống",
+  BACK_HOME: "Quay lại trang chủ",
+  BULK_DELETE: "Xóa mục đã chọn",
+  SELECT_ALL: "Chọn tất cả",
+  VOUCHER_PLACEHOLDER: "Nhập mã khuyến mãi",
+  APPLY: "Áp dụng",
+  DISCOUNT: "Giảm giá",
+  WARNING_SELECT: "Vui lòng chọn món để tiếp tục",
+  WARNING_INVALID: "Vui lòng xóa các món không khả dụng để tiếp tục",
+};
 
 function Cart() {
-  const [cartItems, setCartItems] = useState([]);
-  const checkBoxesRef = useRef([]);
-  const [editMode, setEditMode] = useState(false);
-  const [openModal, setOpenModal] = useState(false);
-  const selectAllRef = useRef();
-  const [validVoucher, setValidVoucher] = useState(true);
-  const [totalAmount, setTotalAmount] = useState(0);
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  
+  const { items: cartItems, status, totalAmount: backendTotal } = useSelector((state) => state.cart);
+  const loading = status === 'loading';
+
+  const [selectedItemIds, setSelectedItemIds] = useState([]);
   const [voucherCode, setVoucherCode] = useState("");
-  const [voucherAlert, setVoucherAlert] = useState("");
-
-  const selectAll = (e) => {
-    checkBoxesRef.current?.forEach((checkbox) => {
-      if (checkbox === null) return;
-
-      if (e.target.checked) {
-        checkbox.checked = true;
-      } else {
-        checkbox.checked = false;
-      }
-    });
-  };
-
-  const refreshCheckBoxes = () => {
-    checkBoxesRef.current?.forEach((checkbox) => {
-      if (checkbox) {
-        checkbox.checked = false;
-      }
-    });
-
-    selectAllRef.current.checked = false;
-  };
-
-  const checkSelectAll = () => {
-    const isAllChecked = Array.from(checkBoxesRef.current).every(
-      (checkbox) => checkbox?.checked,
-    );
-    selectAllRef.current.checked = isAllChecked;
-  };
-
-  const selectProduct = () => {
-    checkSelectAll();
-
-    // * More handle here
-  };
-
-  const handleDeleteCartItem = async () => {
-    setOpenModal(false);
-
-    const checkedIndexes = checkBoxesRef.current
-      .map((checkbox, index) => (checkbox?.checked ? index : null))
-      .filter((index) => index !== null);
-
-    cartItems.forEach(async (item, index) => {
-      if (checkedIndexes.includes(index) || item.quantity === 0) {
-        await deleteCartItem(item.cart_item_id);
-        setCartItems(cartItems.filter((item) => item.quantity === 0));
-        loadCartItems();
-      }
-    });
-
-    refreshCheckBoxes();
-  };
-
-  const submitVoucher = async (e) => {
-    e.preventDefault();
-
-    const data = await checkVoucher(voucherCode);
-
-    switch (data.status) {
-      case "MISSING_FIELD":
-        setVoucherAlert("Chưa nhập mã");
-        setValidVoucher(false);
-        break;
-      case "NOT_FOUND":
-        setVoucherAlert("Không tìm thấy mã");
-        setValidVoucher(false);
-        break;
-      case "HAS_NOT_STARTED":
-        setVoucherAlert("Mã chưa được hoạt động");
-        setValidVoucher(false);
-        break;
-      case "HAS_ENDED":
-        setVoucherAlert("Mã đã hết hạn sử dụng");
-        setValidVoucher(false);
-        break;
-      default:
-        setValidVoucher(true);
-        applyVoucher(data.voucher.discount_type, data.voucher.discount_value);
-        break;
-    }
-  };
-
-  const applyVoucher = (discountType, discountAmount) => {
-    switch (discountType) {
-      case "Percentage":
-        setTotalAmount((prev) => prev * discountAmount);
-        break;
-      case "Amount":
-        setTotalAmount((prev) => prev - discountAmount);
-        break;
-    }
-  };
-
-  // load cart items
-  const loadCartItems = useCallback(async () => {
-    setCartItems(await getCartItems());
-  }, []);
+  const [discountInfo, setDiscountInfo] = useState(null);
 
   useEffect(() => {
-    loadCartItems();
-  }, [loadCartItems]);
+    dispatch(fetchCartItems());
+  }, [dispatch]);
 
+  // Sync selected items if they are removed from cart
   useEffect(() => {
-    const total = cartItems.reduce(
-      (acc, cur) => acc + cur.price * cur.quantity,
-      0,
-    );
-    setTotalAmount(total);
+    const existingIds = cartItems.map(i => i.cart_item_id);
+    setSelectedItemIds(prev => prev.filter(id => existingIds.includes(id)));
   }, [cartItems]);
 
-  return (
-    <div className={cx("wrapper")}>
-      <div className={cx("title")}>
-        <h1>Giỏ hàng</h1>
+  const selectedItems = useMemo(() => 
+    (cartItems || []).filter(item => selectedItemIds.includes(item.cart_item_id)),
+  [cartItems, selectedItemIds]);
+
+  const selectedTotal = useMemo(() => 
+    selectedItems.reduce((acc, cur) => acc + Number(cur.price_snapshot) * cur.quantity, 0),
+  [selectedItems]);
+
+  const hasInvalidSelectedItems = useMemo(() => 
+    selectedItems.some(item => !item.is_available || !item.has_stock),
+  [selectedItems]);
+
+  const discountAmount = useMemo(() => {
+    if (!discountInfo || selectedTotal === 0) return 0;
+    const { discount_type, discount_value } = discountInfo;
+    if (discount_type === "Percentage") return (selectedTotal * discount_value);
+    return Math.min(discount_value, selectedTotal);
+  }, [discountInfo, selectedTotal]);
+
+  const finalTotal = Math.max(0, selectedTotal - discountAmount);
+
+  const handleSelectItem = useCallback((id) => {
+    setSelectedItemIds(prev => 
+      prev.includes(id) ? prev.filter(itemId => itemId !== id) : [...prev, id]
+    );
+  }, []);
+
+  const handleSelectAll = useCallback(() => {
+    if (selectedItemIds.length === cartItems.length) {
+      setSelectedItemIds([]);
+    } else {
+      setSelectedItemIds((cartItems || []).map(item => item.cart_item_id));
+    }
+  }, [selectedItemIds.length, cartItems]);
+
+  const handleDeleteItem = useCallback(async (itemId) => {
+    dispatch(removeItemFromCart(itemId));
+  }, [dispatch]);
+
+  const handleBulkDelete = useCallback(async () => {
+    if (selectedItemIds.length === 0) return;
+    if (selectedItemIds.length === cartItems.length) {
+      dispatch(clearCart());
+    } else {
+      // If partially selected, remove them one by one (or implement bulk remove in backend)
+      await Promise.all(selectedItemIds.map(id => dispatch(removeItemFromCart(id))));
+    }
+    setSelectedItemIds([]);
+  }, [selectedItemIds, cartItems.length, dispatch]);
+
+  const handleApplyVoucher = useCallback(async () => {
+    if (!voucherCode) return;
+    try {
+      const res = await checkVoucher(voucherCode);
+      if (res.status === "OK") {
+        setDiscountInfo(res.voucher);
+        message.success("Áp dụng mã thành công!");
+      } else {
+        setDiscountInfo(null);
+        message.error("Mã không hợp lệ hoặc đã hết hạn");
+      }
+    } catch (error) {
+      message.error("Lỗi khi kiểm tra mã");
+    }
+  }, [voucherCode]);
+
+  const handleCheckout = useCallback(() => {
+    if (selectedItemIds.length === 0) {
+      message.warning(CART_TEXT.WARNING_SELECT);
+      return;
+    }
+    if (hasInvalidSelectedItems) {
+      message.error(CART_TEXT.WARNING_INVALID);
+      return;
+    }
+    if (finalTotal === 0) return;
+    
+    navigate("/checkout", { 
+      state: { 
+        items: selectedItems,
+        total: finalTotal,
+        discount: discountAmount,
+        subtotal: selectedTotal
+      } 
+    });
+  }, [selectedItemIds.length, hasInvalidSelectedItems, finalTotal, navigate, selectedItems, discountAmount, selectedTotal]);
+
+  if (loading && cartItems.length === 0) {
+    return (
+      <div className={styles.wrapper}>
+        <Container maxWidth="lg">
+          <div style={{ textAlign: "center", padding: "100px" }}>Đang tải giỏ hàng...</div>
+        </Container>
       </div>
+    );
+  }
+
+  const isCheckoutDisabled = selectedItemIds.length === 0 || finalTotal === 0 || hasInvalidSelectedItems || loading;
+
+  return (
+    <div className={styles.wrapper}>
+      <div className={styles.title}>{CART_TEXT.TITLE}</div>
       <Container maxWidth="lg">
-        <Modal
-          open={openModal}
-          title="Thay đổi giỏ hàng"
-          okText="Xác nhận"
-          cancelText="Trở lại"
-          onOk={handleDeleteCartItem}
-          okButtonProps={{ className: cx("ok-button") }}
-          onCancel={() => setOpenModal(false)}
-        >
-          Xác nhận xóa{" "}
-          {checkBoxesRef.current.filter((checkbox) => checkbox?.checked)
-            .length || 1}{" "}
-          món ăn
-        </Modal>
-        {cartItems?.length === 0 ? (
-          <div className={cx("empty-cart")}>
-            <img
-              src={require("@images/icons/empty-cart-icon.png")}
-              alt="Empty cart icon"
+        {cartItems.length === 0 ? (
+          <div className={styles.emptyCart}>
+            <ProfileEmptyState 
+              title={CART_TEXT.EMPTY_CART}
+              description="Hãy thêm món ăn yêu thích của bạn vào giỏ hàng ngay."
+              buttonText={CART_TEXT.BACK_HOME}
+              onAction={() => navigate("/")}
+              icon={ShoppingBasketOutlined}
             />
-            <span>Không có món ăn trong giỏ hàng. </span>
-            <Button
-              style={{
-                backgroundColor: "var(--primaryColor)",
-                padding: "10px 20px",
-                marginTop: "15px",
-              }}
-            >
-              <Link
-                to={"/"}
-                style={{
-                  color: "white",
-                  display: "flex",
-                  justifyItems: "center",
-                  alignItems: "center",
-                }}
-              >
-                Quay lại trang chủ <Home />
-              </Link>
-            </Button>
           </div>
         ) : (
-          <div className={cx("cart")}>
-            <div className={cx("operation")}>
-              <div
-                className={cx("left")}
-                style={{
-                  display: editMode ? "block" : "none",
-                  justifySelf: "flex-start",
-                }}
-              >
-                <input
-                  ref={selectAllRef}
-                  type="checkbox"
-                  onChange={selectAll}
-                  name="select-all-product"
-                  id="select-all-product"
+          <div className={styles.cartGrid}>
+            <div className={styles.itemList}>
+              <div className={styles.listHeader}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <Checkbox 
+                    checked={selectedItemIds.length === cartItems.length && cartItems.length > 0}
+                    indeterminate={selectedItemIds.length > 0 && selectedItemIds.length < cartItems.length}
+                    onChange={handleSelectAll}
+                    sx={{ color: 'var(--primaryColor)', '&.Mui-checked': { color: 'var(--primaryColor)' } }}
+                  />
+                  <span>{CART_TEXT.SELECT_ALL} ({cartItems.length})</span>
+                </div>
+                
+                {selectedItemIds.length > 0 && (
+                  <button className={styles.bulkDeleteBtn} onClick={handleBulkDelete} style={{ color: "#ff4d4f", display: "flex", alignItems: "center", gap: "4px" }}>
+                    <DeleteSweepOutlined />
+                    {CART_TEXT.BULK_DELETE} ({selectedItemIds.length})
+                  </button>
+                )}
+              </div>
+
+              {cartItems.map((item) => (
+                <CartItemCard 
+                  key={item.cart_item_id}
+                  item={item}
+                  isSelected={selectedItemIds.includes(item.cart_item_id)}
+                  onSelect={handleSelectItem}
+                  onDelete={handleDeleteItem}
                 />
-                <label
-                  htmlFor="select-all-product"
-                  style={{ marginLeft: "5px", cursor: "pointer" }}
-                >
-                  Chọn tất cả
-                </label>
-              </div>
-              <div className={cx("right")} style={{ justifySelf: "flex-end" }}>
-                <button
-                  hidden={!editMode}
-                  onClick={() =>
-                    checkBoxesRef.current.filter(
-                      (checkbox) => checkbox?.checked,
-                    ).length > 0
-                      ? setOpenModal(true)
-                      : null
-                  }
-                  className={cx("delete-cart-btn", "cart-btn")}
-                >
-                  Xóa
-                </button>
-                <button
-                  hidden={!editMode}
-                  onClick={() => {
-                    setEditMode(!editMode);
-                    refreshCheckBoxes();
-                  }}
-                  className={cx("cancel-cart-btn", "cart-btn")}
-                >
-                  Hủy
-                </button>
-                <button
-                  hidden={editMode}
-                  onClick={() => setEditMode(!editMode)}
-                  className={cx("edit-cart-btn", "cart-btn")}
-                >
-                  Sửa
-                </button>
-              </div>
+              ))}
             </div>
-            <TableContainer component={Paper}>
-              <div style={{ padding: "20px 30px" }}>
-                <Table sx={{ minWidth: 650 }} aria-label="cart table">
-                  <TableHead>
-                    <TableRow className={cx("cart-header")}>
-                      <TableCell width={editMode ? 80 : 0}></TableCell>
-                      <TableCell>Sản phẩm</TableCell>
-                      <TableCell align="center">Đơn giá</TableCell>
-                      <TableCell width={250} align="center">
-                        Số lượng
-                      </TableCell>
-                      <TableCell align="center">Tạm tính</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {cartItems?.map((item, index) => (
-                      <TableRow
-                        key={index}
-                        sx={{
-                          "&:last-child td, &:last-child th": { border: 0 },
-                        }}
-                      >
-                        <TableCell align="left">
-                          <div
-                            hidden={!editMode}
-                            className={cx("product-select")}
-                          >
-                            <input
-                              onChange={selectProduct}
-                              ref={(el) => (checkBoxesRef.current[index] = el)}
-                              type="checkbox"
-                              name={`product-${index + 1}`}
-                              id={`product-${index + 1}`}
-                            />
-                          </div>
-                        </TableCell>
-                        <TableCell
-                          align="left"
-                          component="th"
-                          scope="row"
-                          className={cx("product")}
-                        >
-                          <div
-                            className={cx("product-image")}
-                            style={{
-                              backgroundImage: `url("${item.thumbnail_path}")`,
-                            }}
-                          ></div>
-                          <div className={cx("product-name")}>{item.name}</div>
-                        </TableCell>
-                        <TableCell align="center" className={cx("price")}>
-                          {Number(item.price).toLocaleString("vi-VN")}{" "}
-                          <span>₫</span>
-                        </TableCell>
-                        <TableCell align="center" className={cx("quantity")}>
-                          <QuantityInput
-                            min={0}
-                            max={999}
-                            currentValue={item.quantity}
-                            cartItemId={item.cart_item_id}
-                            loadCartItems={loadCartItems}
-                            setOpenModal={setOpenModal}
-                          />
-                        </TableCell>
-                        <TableCell align="center" className={cx("subtotal")}>
-                          {(Number(item.price) * item.quantity).toLocaleString(
-                            "vi-VN",
-                          )}{" "}
-                          <span>₫</span>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+
+            <div className={styles.orderSummary}>
+              <h2 className={styles.summaryTitle}>{CART_TEXT.ORDER_SUMMARY}</h2>
+              
+              <div className={styles.summaryRow}>
+                <span>{CART_TEXT.SELECTED_ITEMS}</span>
+                <span>{selectedItemIds.length}</span>
               </div>
-            </TableContainer>
+              
+              <div className={styles.summaryRow}>
+                <span>Tạm tính</span>
+                <span>{selectedTotal.toLocaleString("vi-VN")} ₫</span>
+              </div>
+
+              {discountAmount > 0 && (
+                <div className={styles.discountRow}>
+                  <span>{CART_TEXT.DISCOUNT}</span>
+                  <span>-{discountAmount.toLocaleString("vi-VN")} ₫</span>
+                </div>
+              )}
+
+              <div className={styles.voucherSection}>
+                <div className={styles.voucherInputGroup}>
+                  <input 
+                    type="text" 
+                    className={styles.voucherInput}
+                    placeholder={CART_TEXT.VOUCHER_PLACEHOLDER}
+                    value={voucherCode}
+                    onChange={(e) => setVoucherCode(e.target.value)}
+                  />
+                  <button className={styles.applyBtn} onClick={handleApplyVoucher}>
+                    {CART_TEXT.APPLY}
+                  </button>
+                </div>
+              </div>
+
+              <div className={styles.totalRow}>
+                <span>{CART_TEXT.TOTAL_PAYMENT}</span>
+                <span className={styles.totalAmount}>
+                  {finalTotal.toLocaleString("vi-VN")} ₫
+                </span>
+              </div>
+
+              <button 
+                className={styles.checkoutBtn}
+                onClick={handleCheckout}
+                disabled={isCheckoutDisabled}
+              >
+                {loading ? "Đang xử lý..." : CART_TEXT.CHECKOUT}
+              </button>
+              
+              {hasInvalidSelectedItems && (
+                <p className={styles.errorText} style={{ color: "#ff4d4f", fontSize: "12px", marginTop: "8px" }}>
+                  {CART_TEXT.WARNING_INVALID}
+                </p>
+              )}
+            </div>
           </div>
         )}
-
-        <div
-          style={{
-            display: "flex",
-            width: "100%",
-            margin: "20px 0",
-            justifyContent: "space-between",
-          }}
-        >
-          <div className={cx("voucher-input")}>
-            <form onSubmit={submitVoucher}>
-              <input
-                type="text"
-                placeholder="Nhập mã khuyến mãi"
-                className={cx({ invalid: !validVoucher })}
-                onChange={(e) => setVoucherCode(e.currentTarget.value)}
-              />
-              <button type="submit" className={cx("apply-voucher-btn")}>
-                Áp dụng
-              </button>
-            </form>
-            <div hidden={validVoucher} className={cx("voucher-alert")}>
-              {voucherAlert}
-            </div>
-          </div>
-          <div className={cx("invoice-total")}>
-            <span style={{ fontSize: "var(--fontSizeLarge)" }}>
-              Tổng thanh toán:{" "}
-              <span
-                className={cx("amount")}
-                style={{
-                  fontSize: "30px",
-                  color: "var(--primaryColor)",
-                  fontWeight: "var(--fontWeightBold)",
-                }}
-              >
-                {totalAmount >= 0 ? totalAmount.toLocaleString("vi-VN") : 0} ₫
-              </span>
-            </span>
-            <button className={cx("checkout-btn")}>
-              <Link to={"/checkout"}>Thanh toán</Link>
-            </button>
-          </div>
-        </div>
       </Container>
     </div>
   );

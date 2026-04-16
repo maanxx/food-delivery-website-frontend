@@ -15,6 +15,8 @@ import FormForgotPasswordOTP from "./FormForgotPassword/FormForgotPasswordOTP/Fo
 import FormForgotPasswordInfo from "./FormForgotPassword/FormForgotPasswordInfo/FormForgotPasswordInfo";
 import FormResetPassword from "./FormForgotPassword/FormResetPassword/FormResetPassword";
 import QuantityInput from "./QuantityInput/QuantityInput";
+import CartItemCard from "./CartItemCard/CartItemCard";
+import ProfileEmptyState from "./ProfileEmptyState/ProfileEmptyState";
 
 export {
     Authentication,
@@ -34,4 +36,6 @@ export {
     FormResetPassword,
     QuantityInput,
     FloatingWidget,
+    CartItemCard,
+    ProfileEmptyState,
 };

@@ -3,7 +3,8 @@ import { Unstable_NumberInput as BaseNumberInput } from "@mui/base/Unstable_Numb
 import { styled } from "@mui/system";
 import RemoveIcon from "@mui/icons-material/Remove";
 import AddIcon from "@mui/icons-material/Add";
-import { updateCartItemQuantity } from "@services/cartService";
+import { useDispatch } from "react-redux";
+import { updateItemQuantity } from "@features/cart/cartSlice";
 
 const NumberInput = React.forwardRef(function CustomNumberInput(props, ref) {
     return (
@@ -30,21 +31,20 @@ const NumberInput = React.forwardRef(function CustomNumberInput(props, ref) {
     );
 });
 
-export default function QuantityInput({ min, max, currentValue, cartItemId, loadCartItems, setOpenModal }) {
-    const [value, setValue] = React.useState(currentValue);
+export default function QuantityInput({ min, max, currentValue, cartItemId, setOpenModal, disabled }) {
+    const dispatch = useDispatch();
 
     const handleChange = async (event, newValue) => {
-        if (newValue !== null && newValue >= min && newValue <= max) {
-            setValue(newValue);
-            await updateCartItemQuantity(cartItemId, newValue);
-            await loadCartItems();
+        if (newValue !== null && newValue >= 0 && newValue <= max) {
             if (newValue === 0) {
                 setOpenModal(true);
+            } else {
+                await dispatch(updateItemQuantity({ cartItemId, quantity: newValue }));
             }
         }
     };
 
-    return <NumberInput aria-label="Quantity Input" min={min} max={max} value={value} onChange={handleChange} />;
+    return <NumberInput aria-label="Quantity Input" min={min} max={max} value={currentValue} onChange={handleChange} disabled={disabled} />;
 }
 
 const orange = {

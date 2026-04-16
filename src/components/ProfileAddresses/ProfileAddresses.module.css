@@ -1,0 +1,80 @@
+.container {
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid #f0f0f0;
+  padding-bottom: 1rem;
+}
+
+.header h2 {
+  margin: 0;
+  font-size: 1.25rem;
+  color: #333;
+}
+
+.loader {
+  display: flex;
+  justify-content: center;
+  padding: 4rem;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.card {
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  padding: 1rem 1.5rem;
+  background: white;
+  transition: box-shadow 0.2s;
+}
+
+.card:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.defaultCard {
+  border-left: 4px solid #ff4d4f;
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.title {
+  margin: 0;
+  font-size: 1.05rem;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.icon {
+  color: #ff4d4f;
+}
+
+.phone {
+  margin: 0 0 1rem 0;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.actions {
+  display: flex;
+  gap: 0.5rem;
+  border-top: 1px dashed #f0f0f0;
+  padding-top: 0.75rem;
+}

@@ -5,15 +5,20 @@ import { thunk } from "redux-thunk";
 
 import authReducer from "@features/auth/authSlice";
 import chatReducer from "@features/chat/chatSlice";
+import orderReducer from "@features/order/orderSlice";
+import cartReducer from "@features/cart/cartSlice";
 
 const persistConfig = {
     key: "root",
     storage,
+    blacklist: ["order"], // Order state is transient
 };
 
 const rootReducer = combineReducers({
     auth: authReducer,
     chat: chatReducer,
+    order: orderReducer,
+    cart: cartReducer,
 });
 
 const middlewares = [thunk];
@@ -30,3 +35,4 @@ const store = configureStore({
 const persistor = persistStore(store);
 
 export { store, persistor };
+

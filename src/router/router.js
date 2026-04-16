@@ -19,6 +19,7 @@ import {
     ForgotPassword,
     DishDetail,
     Admin,
+    OrderSuccess,
 } from "@pages/index";
 import Orders from "@pages/Admin/Orders";
 import Employees from "@pages/Admin/Employees";
@@ -142,6 +143,10 @@ const privateRoutes = [
             {
                 path: "/checkout",
                 element: <Checkout />,
+            },
+            {
+                path: "/checkout/success",
+                element: <OrderSuccess />,
             },
             {
                 path: "/profile",

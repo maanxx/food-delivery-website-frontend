@@ -1,5 +1,4 @@
 .menu {
-  padding-top: 100px;
   min-height: 100vh;
   background-color: #fafafa;
 }
@@ -233,7 +232,6 @@
 /* Responsive Design */
 @media (max-width: 768px) {
   .menu {
-    padding-top: 80px;
   }
 
   .menu-header {

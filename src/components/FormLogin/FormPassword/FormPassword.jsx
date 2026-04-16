@@ -45,10 +45,12 @@ function FormPassword() {
             });
 
             if (res.data.success) {
-                login();
+                const { accessToken, user } = res.data;
+                // Dispatch login with payload to save token to localStorage via slice
+                login({ token: accessToken, user });
                 setIsValidPassword(true);
                 navigate(res.data.redirect);
-                window.location.reload();
+                // Removed window.location.reload() to maintain SPA experience
             } else {
                 setIsValidPassword(false);
                 setPasswordAlertMessage("Mật khẩu chưa đúng.");
