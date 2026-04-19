@@ -9,9 +9,11 @@ import {
 } from "@mui/icons-material";
 import { message } from "antd";
 
+import { useDispatch, useSelector } from "react-redux";
+import { createOrder } from "@features/order/orderSlice";
+
 import styles from "./Checkout.module.css";
 import profileService from "@services/profileService";
-import axiosInstance from "@config/axiosInstance";
 
 const CHECKOUT_TEXT = {
   TITLE: "Thanh toán",
@@ -28,12 +30,13 @@ const CHECKOUT_TEXT = {
 function Checkout() {
   const location = useLocation();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
   const checkoutData = location.state;
+  const { loading: orderLoading } = useSelector((state) => state.order);
 
   const [addresses, setAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState(null);
   const [note, setNote] = useState("");
-  const [loading, setLoading] = useState(false);
 
   // Redirect if no data from cart
   useEffect(() => {
@@ -71,37 +74,27 @@ function Checkout() {
       return;
     }
 
-    setLoading(true);
     try {
       const orderPayload = {
-        items: checkoutData.items.map(item => ({
-          dish_id: item.dish_id,
-          name: item.name,
-          quantity: item.quantity,
-          price: item.price_snapshot
-        })),
         address_id: selectedAddressId,
-        payment_method: "Cash",
         note: note,
-        total_amount: checkoutData.total
+        payment_method: "COD"
       };
 
-      const res = await axiosInstance.post("/api/user/orders", orderPayload);
+      const resultAction = await dispatch(createOrder(orderPayload));
       
-      if (res.data.success) {
-        const orderId = res.data.data.order_id;
+      if (createOrder.fulfilled.match(resultAction)) {
+        const orderId = resultAction.payload.order_id;
         message.success("Đặt hàng thành công!");
         navigate(`/checkout/success?orderId=${orderId}`);
       } else {
-        message.error(res.data.message || "Đặt hàng thất bại");
+        message.error(resultAction.payload || "Đặt hàng thất bại");
       }
     } catch (error) {
       console.error("Order error:", error);
-      message.error(error.response?.data?.message || "Lỗi hệ thống khi đặt hàng");
-    } finally {
-      setLoading(false);
+      message.error("Lỗi hệ thống khi đặt hàng");
     }
-  }, [selectedAddressId, checkoutData, note, navigate]);
+  }, [selectedAddressId, note, navigate, dispatch]);
 
   const orderSummaryList = useMemo(() => (
     <div className={styles.summaryList}>
@@ -229,9 +222,9 @@ function Checkout() {
               <button 
                 className={styles.placeOrderBtn}
                 onClick={handlePlaceOrder}
-                disabled={loading || !selectedAddressId}
+                disabled={orderLoading || !selectedAddressId}
               >
-                {loading ? "Đang xử lý..." : CHECKOUT_TEXT.PLACE_ORDER}
+                {orderLoading ? "Đang xử lý..." : CHECKOUT_TEXT.PLACE_ORDER}
               </button>
             </div>
           </div>

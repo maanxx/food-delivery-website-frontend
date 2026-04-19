@@ -5,8 +5,7 @@ import { CheckCircleOutline, ShoppingBagOutlined, HomeOutlined } from "@mui/icon
 import { message, Spin } from "antd";
 
 import styles from "./OrderSuccess.module.css";
-import profileService from "@services/profileService";
-import { seedOrder, selectOrderStatus } from "@features/order/orderSlice";
+import { fetchOrderDetails, selectCurrentOrder, selectOrderLoading } from "@features/order/orderSlice";
 
 const SUCCESS_TEXT = {
   TITLE: "Đặt hàng thành công!",
@@ -37,30 +36,8 @@ function OrderSuccess() {
   const dispatch = useDispatch();
   const orderId = searchParams.get("orderId");
 
-  const [order, setOrder] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  // Live status from Redux (updated via socket in real-time)
-  const liveStatus = useSelector(selectOrderStatus(orderId));
-
-  const fetchOrderDetails = useCallback(async (id) => {
-    try {
-      setLoading(true);
-      const res = await profileService.getOrderDetails(id);
-      if (res.data.success) {
-        setOrder(res.data.data);
-        // Hydrate the orderSlice so selectors work immediately
-        dispatch(seedOrder(res.data.data));
-      } else {
-        throw new Error("Failed to load");
-      }
-    } catch (error) {
-      message.error(SUCCESS_TEXT.ERROR_NOT_FOUND);
-      navigate("/profile/orders", { replace: true });
-    } finally {
-      setLoading(false);
-    }
-  }, [navigate, dispatch]);
+  const order = useSelector(selectCurrentOrder);
+  const loading = useSelector(selectOrderLoading);
 
   useEffect(() => {
     if (!orderId) {
@@ -68,8 +45,8 @@ function OrderSuccess() {
       navigate("/", { replace: true });
       return;
     }
-    fetchOrderDetails(orderId);
-  }, [orderId, fetchOrderDetails, navigate]);
+    dispatch(fetchOrderDetails(orderId));
+  }, [orderId, dispatch, navigate]);
 
   if (loading) {
     return (
@@ -84,9 +61,7 @@ function OrderSuccess() {
 
   if (!order) return null;
 
-  // Use live status from Redux (socket) if available, fallback to API-fetched status
-  const displayStatus = liveStatus || order.status;
-  const currentStatus = STATUS_MAP[displayStatus.toLowerCase()] || STATUS_MAP.pending;
+  const currentStatus = STATUS_MAP[order.status?.toLowerCase()] || STATUS_MAP.pending;
 
   return (
     <div className={styles.wrapper}>

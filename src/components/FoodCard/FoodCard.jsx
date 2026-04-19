@@ -1,13 +1,14 @@
 import React, { memo, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { addToCart } from '@features/cart/cartSlice';
+import { addItemToCart, selectItemQuantity } from '@features/cart/cartSlice';
+import { message } from 'antd';
 import styles from './FoodCard.module.css';
 
 const FoodCard = memo(({ dish = {} }) => {
   const dispatch = useDispatch();
   const cartStatus = useSelector((state) => state.cart.status);
-  const [isAdding, setIsAdding] = React.useState(false);
-
+  const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
+  
   const {
     dish_id,
     name = "Unknown",
@@ -17,6 +18,9 @@ const FoodCard = memo(({ dish = {} }) => {
     thumbnail_path,
   } = dish;
 
+  const quantityInCart = useSelector(selectItemQuantity(dish_id));
+  const [isAdding, setIsAdding] = React.useState(false);
+
   const displayImage = image || thumbnail_path || "/images/dishes/pizza/pizza1.jpg";
 
   const discountPercent = discount;
@@ -25,11 +29,27 @@ const FoodCard = memo(({ dish = {} }) => {
       ? (price / (1 - discountPercent / 100)).toFixed(2)
       : null;
 
-  const handleAddToCart = () => {
-    dispatch(addToCart({ dish_id: dish.dish_id, quantity: 1 }));
-  };
+  const handleAddToCart = useCallback(async () => {
+    if (!dish_id || isAdding) return;
 
-  const isLoading = cartStatus === 'loading';
+    if (!isAuthenticated) {
+      message.warning("Vui lòng đăng nhập để thêm món vào giỏ hàng!");
+      return;
+    }
+    
+    const payload = { dishId: dish_id, quantity: 1 };
+    console.log("🛒 ADD TO CART PAYLOAD:", payload);
+    setIsAdding(true);
+    try {
+      await dispatch(addItemToCart(payload)).unwrap();
+    } catch (error) {
+      // Error handled by slice
+    } finally {
+      setIsAdding(false);
+    }
+  }, [dispatch, dish_id, isAdding, isAuthenticated]);
+
+  const isLoading = isAdding || (cartStatus === 'loading' && isAdding);
 
   return (
     <div className={styles.foodCard}>
@@ -44,6 +64,11 @@ const FoodCard = memo(({ dish = {} }) => {
           alt={name}
           className={styles.image}
         />
+        {quantityInCart > 0 && (
+          <div className={styles.quantityBadge}>
+            x{quantityInCart}
+          </div>
+        )}
       </div>
 
       <div className={styles.content}>
@@ -55,7 +80,7 @@ const FoodCard = memo(({ dish = {} }) => {
 
         <div className={styles.priceWrapper}>
           <span className={styles.price}>
-            ${Number(price).toFixed(0)}
+            ${Number(price).toLocaleString()}
           </span>
         </div>
 
@@ -72,3 +97,4 @@ const FoodCard = memo(({ dish = {} }) => {
 });
 
 export default FoodCard;
+

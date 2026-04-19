@@ -35,6 +35,21 @@
   z-index: 2;
 }
 
+.quantityBadge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: var(--primaryColor);
+  color: white;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 12px;
+  z-index: 2;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+
 .originalPrice {
   text-decoration: line-through;
   color: #6c757d;
