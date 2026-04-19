@@ -3,7 +3,7 @@ import classNames from "classnames/bind";
 import { Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import {
-  addItemToCart,
+  addToCart,
   updateItemQuantity,
   selectCartItems,
   selectItemQuantity,
