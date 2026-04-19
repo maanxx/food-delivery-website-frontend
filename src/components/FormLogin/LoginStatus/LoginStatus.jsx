@@ -18,6 +18,7 @@ function LoginStatus() {
 
         if (res.data.success) {
           const { accessToken, user } = res.data;
+          localStorage.setItem("access_token", accessToken);
           loginChannel.postMessage({ success: true });
           setLogged(true);
           login({ token: accessToken, user });

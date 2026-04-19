@@ -46,6 +46,7 @@ function FormPassword() {
 
             if (res.data.success) {
                 const { accessToken, user } = res.data;
+                localStorage.setItem("access_token", accessToken);
                 // Dispatch login with payload to save token to localStorage via slice
                 login({ token: accessToken, user });
                 setIsValidPassword(true);

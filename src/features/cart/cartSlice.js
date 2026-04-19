@@ -23,7 +23,7 @@ export const fetchCartItems = createAsyncThunk(
     }
 );
 
-export const addItemToCart = createAsyncThunk(
+export const addToCart = createAsyncThunk(
     "cart/addItem",
     async ({ dish_id, quantity }, { dispatch, rejectWithValue }) => {
         try {

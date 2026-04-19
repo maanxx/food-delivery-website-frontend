@@ -2,21 +2,21 @@ import axiosInstance from '@config/axiosInstance';
 
 const profileService = {
   // Profile APIs
-  getProfile: () => axiosInstance.get('/users/profile'),
-  updateProfile: (formData) => axiosInstance.put('/users/profile', formData),
-  changePassword: (data) => axiosInstance.put('/users/password', data),
+  getProfile: () => axiosInstance.get('/api/user/profile'),
+  updateProfile: (formData) => axiosInstance.put('/api/user/profile', formData),
+  changePassword: (data) => axiosInstance.put('/api/user/password', data),
 
   // Address APIs
-  getAddresses: () => axiosInstance.get('/users/addresses'),
-  addAddress: (data) => axiosInstance.post('/users/addresses', data),
-  updateAddress: (id, data) => axiosInstance.put(`/users/addresses/${id}`, data),
-  deleteAddress: (id) => axiosInstance.delete(`/users/addresses/${id}`),
-  setDefaultAddress: (id) => axiosInstance.put(`/user/addresses/${id}/default`),
+  getAddresses: () => axiosInstance.get('/api/user/addresses'),
+  addAddress: (data) => axiosInstance.post('/api/user/addresses', data),
+  updateAddress: (id, data) => axiosInstance.put(`/api/user/addresses/${id}`, data),
+  deleteAddress: (id) => axiosInstance.delete(`/api/user/addresses/${id}`),
+  setDefaultAddress: (id) => axiosInstance.put(`/api/user/addresses/${id}/default`),
 
   // Order APIs
-  getOrders: () => axiosInstance.get('/user/orders'),
-  getOrderDetails: (id) => axiosInstance.get(`/user/orders/${id}`),
-  reorder: (orderId) => axiosInstance.post(`/user/orders/${orderId}/reorder`),
+  getOrders: () => axiosInstance.get('/api/user/orders'),
+  getOrderDetails: (id) => axiosInstance.get(`/api/user/orders/${id}`),
+  reorder: (orderId) => axiosInstance.post(`/api/user/orders/${orderId}/reorder`),
 };
 
 export default profileService;

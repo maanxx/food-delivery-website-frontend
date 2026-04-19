@@ -1,4 +1,5 @@
 import Authentication from "./Authentication/Authentication";
+import RoleGuard from "./Authentication/RoleGuard";
 import Body from "./Body/Body";
 import FloatingWidget from "./FloatingWidget/FloatingWidget";
 import Footer from "./Footer/Footer";
@@ -20,6 +21,7 @@ import ProfileEmptyState from "./ProfileEmptyState/ProfileEmptyState";
 
 export {
     Authentication,
+    RoleGuard,
     Body,
     Footer,
     Header,

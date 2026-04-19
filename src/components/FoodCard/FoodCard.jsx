@@ -1,6 +1,6 @@
 import React, { memo, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { addItemToCart } from '@features/cart/cartSlice';
+import { addToCart } from '@features/cart/cartSlice';
 import styles from './FoodCard.module.css';
 
 const FoodCard = memo(({ dish = {} }) => {
@@ -25,18 +25,11 @@ const FoodCard = memo(({ dish = {} }) => {
       ? (price / (1 - discountPercent / 100)).toFixed(2)
       : null;
 
-  const handleAddToCart = useCallback(async () => {
-    if (!dish_id || isAdding) return;
-    
-    setIsAdding(true);
-    try {
-      await dispatch(addItemToCart({ dish_id, quantity: 1 })).unwrap();
-    } finally {
-      setIsAdding(false);
-    }
-  }, [dispatch, dish_id, isAdding]);
+  const handleAddToCart = () => {
+    dispatch(addToCart({ dish_id: dish.dish_id, quantity: 1 }));
+  };
 
-  const isLoading = isAdding || cartStatus === 'loading';
+  const isLoading = cartStatus === 'loading';
 
   return (
     <div className={styles.foodCard}>

@@ -25,6 +25,12 @@ const AdminLayout = ({ children }) => {
     const navigate = useNavigate();
     const user = useSelector((state) => state.auth.user);
 
+    // ✅ PRIORITY 6: Frontend Debug Logs
+    console.log("--- ADMIN LAYOUT DEBUG ---");
+    console.log("USER:", user);
+    console.log("ROLE:", user?.role);
+    console.log("TOKEN:", localStorage.getItem("access_token"));
+
     const menuItems = [
         {
             key: "/admin",

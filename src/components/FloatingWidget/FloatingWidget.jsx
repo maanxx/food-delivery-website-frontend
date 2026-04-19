@@ -56,7 +56,6 @@ const FloatingWidget = () => {
                 </Fab>
             </Tooltip>
 
-            {/* Chat Box Popup */}
             {isChatOpen && <ChatBox onClose={() => setIsChatOpen(false)} />}
         </Box>
     );

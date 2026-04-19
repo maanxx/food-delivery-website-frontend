@@ -34,6 +34,7 @@ import {
     FormPhoneNumber,
     FormUserName,
     LoginStatus,
+    RoleGuard,
 } from "@components/index";
 import DefaultLayout from "@layouts/DefaultLayout";
 import AdminLayout from "@layouts/AdminLayout";
@@ -123,7 +124,6 @@ const publicRoutes = [
     },
 ];
 
-// ✅ PRIVATE ROUTES
 const privateRoutes = [
     {
         element: (
@@ -164,38 +164,42 @@ const adminRoutes = [
     {
         path: "/admin",
         element: (
-            <Authentication>
+            // <RoleGuard allowedRoles={["Admin"]}>
                 <AdminLayout />
-            </Authentication>
+            // </RoleGuard>
         ),
         children: [
             {
-                path: "/admin",
+                index: true,
                 element: <Admin />,
             },
             {
-                path: "/admin/chat",
+                path: "chat",
                 element: <ChatPage />,
             },
             {
-                path: "/admin/chat/:conversationId",
+                path: "chat/:conversationId",
                 element: <ChatPage />,
             },
             {
-                path: "/admin/employees",
+                path: "employees",
                 element: <Employees />,
             },
             {
-                path: "/admin/products",
+                path: "products",
                 element: <Products />,
             },
             {
-                path: "/admin/reports",
+                path: "reports",
                 element: <Reports />,
             },
             {
-                path: "/admin/settings",
+                path: "settings",
                 element: <Settings />,
+            },
+            {
+                path: "orders",
+                element: <Orders />,
             },
         ],
     },

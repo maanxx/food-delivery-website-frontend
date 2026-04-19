@@ -50,6 +50,11 @@ const authSlice = createSlice({
             if (tokenSource) {
                 localStorage.setItem("access_token", tokenSource);
             }
+
+            // ✅ PRIORITY 6: Frontend Debug Logs
+            console.log("--- AUTH LOGIN DEBUG ---");
+            console.log("USER:", state.user);
+            console.log("TOKEN:", tokenSource);
         },
         logout: (state) => {
             state.isAuthenticated = false;
