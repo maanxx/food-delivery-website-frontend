@@ -49,8 +49,16 @@ export const testMediaPermissions = async (type = "audio") => {
         const constraints = type === "audio" ? { audio: true } : { video: true };
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
 
-        // Stop the test stream
-        stream.getTracks().forEach((track) => track.stop());
+        // Stop the test stream - safe check for native MediaStream API
+        if (typeof stream.getTracks === "function") {
+            stream.getTracks().forEach((track) => {
+                try {
+                    track.stop();
+                } catch (e) {
+                    console.warn("Error stopping test stream track:", e);
+                }
+            });
+        }
 
         console.log(`✅ ${type.charAt(0).toUpperCase() + type.slice(1)} permission granted`);
         return true;

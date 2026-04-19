@@ -2,12 +2,8 @@ import axios from "axios";
 
 import { getCookie } from "@helpers/cookieHelper";
 
-const token = getCookie("token");
-
 // Configure can exchange cookie
 axios.defaults.withCredentials = true;
-
-axios.defaults.headers.common["Authorization"] = token ? `Bearer ${token}` : "";
 
 // Create instance Axios for global config
 const axiosInstance = axios.create({
@@ -35,6 +31,8 @@ axiosInstance.interceptors.response.use(
 
 axiosInstance.interceptors.request.use(
     (config) => {
+        // 🔑 Get fresh token EVERY request (not just once at startup)
+        const token = getCookie("token");
         if (token) {
             config.headers["Authorization"] = `Bearer ${token}`;
         }

@@ -4,10 +4,11 @@ const API_BASE = "/api/calls";
 
 const callService = {
     // Initiate a call
-    initiateCall: (conversationId, callType = "voice") => {
-        return axiosInstance.post(`${API_BASE}/initiate`, {
+    initiateCall: (recipientId, conversationId, callType = "voice") => {
+        return axiosInstance.post(`${API_BASE}`, {
+            recipientId,
             conversationId,
-            callType, // 'voice' or 'video'
+            callType,
         });
     },
 

@@ -6,3 +6,4 @@ export { default as TypingIndicator } from "./TypingIndicator";
 export { default as Sidebar } from "./Sidebar";
 export { default as ChatSidebar } from "./ChatSidebar";
 export { default as EmptyChat } from "./EmptyChat";
+export { default as MicrophoneReaction } from "./MicrophoneReaction";
