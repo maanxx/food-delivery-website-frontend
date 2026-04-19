@@ -5,7 +5,7 @@ import axiosInstance from "@config/axiosInstance";
  */
 export const fetchMyOrders = async () => {
     try {
-        const response = await axiosInstance.get("/orders/my");
+        const response = await axiosInstance.get("/orders/my-orders");
         return response.data;
     } catch (error) {
         throw error;

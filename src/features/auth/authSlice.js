@@ -17,9 +17,9 @@ export const initializeAuth = createAsyncThunk(
             }
             return rejectWithValue("Session invalid");
         } catch (error) {
-            // If the error is 401/403, the session is definitely invalid
             if (error.response?.status === 401 || error.response?.status === 403) {
                 localStorage.removeItem("access_token");
+                localStorage.removeItem("refresh_token");
             }
             return rejectWithValue(error.response?.data?.message || "Initialization failed");
         }
@@ -47,20 +47,28 @@ const authSlice = createSlice({
             state.isInitialized = true;
             
             const tokenSource = action.payload?.token || action.payload?.accessToken;
+            const refreshSource = action.payload?.refreshToken;
+            
             if (tokenSource) {
                 localStorage.setItem("access_token", tokenSource);
+            }
+            if (refreshSource) {
+                localStorage.setItem("refresh_token", refreshSource);
             }
 
             // ✅ PRIORITY 6: Frontend Debug Logs
             console.log("--- AUTH LOGIN DEBUG ---");
             console.log("USER:", state.user);
-            console.log("TOKEN:", tokenSource);
+            console.log("ACCESS_TOKEN:", tokenSource);
+            console.log("REFRESH_TOKEN:", refreshSource);
         },
         logout: (state) => {
             state.isAuthenticated = false;
             state.user = null;
             state.isInitialized = true;
             localStorage.removeItem("access_token");
+            localStorage.removeItem("refresh_token");
+            console.log("--- USER LOGGED OUT ---");
         },
         setInitialized: (state) => {
             state.isInitialized = true;

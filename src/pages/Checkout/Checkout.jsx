@@ -11,6 +11,7 @@ import { message } from "antd";
 
 import { useDispatch, useSelector } from "react-redux";
 import { createOrder } from "@features/order/orderSlice";
+import { resetCartState } from "@features/cart/cartSlice";
 
 import styles from "./Checkout.module.css";
 import profileService from "@services/profileService";
@@ -86,6 +87,7 @@ function Checkout() {
       if (createOrder.fulfilled.match(resultAction)) {
         const orderId = resultAction.payload.order_id;
         message.success("Đặt hàng thành công!");
+        dispatch(resetCartState());
         navigate(`/checkout/success?orderId=${orderId}`);
       } else {
         message.error(resultAction.payload || "Đặt hàng thất bại");
