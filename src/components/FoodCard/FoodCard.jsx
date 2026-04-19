@@ -1,6 +1,6 @@
 import React, { memo, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { addItemToCart, selectItemQuantity } from '@features/cart/cartSlice';
+import { addToCart, selectItemQuantity } from '@features/cart/cartSlice';
 import { message } from 'antd';
 import styles from './FoodCard.module.css';
 
@@ -41,7 +41,7 @@ const FoodCard = memo(({ dish = {} }) => {
     console.log("🛒 ADD TO CART PAYLOAD:", payload);
     setIsAdding(true);
     try {
-      await dispatch(addItemToCart(payload)).unwrap();
+      await dispatch(addToCart(payload)).unwrap();
     } catch (error) {
       // Error handled by slice
     } finally {

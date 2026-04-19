@@ -1,7 +1,7 @@
 import React, { memo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { addItemToCart, updateItemQuantity, selectCartItems } from "@features/cart/cartSlice";
+import { addToCart, updateItemQuantity, selectCartItems } from "@features/cart/cartSlice";
 import { message } from "antd";
 import { 
   Add as AddIcon, 
@@ -77,7 +77,7 @@ const DishCard = memo(({ dish = {} }) => {
     console.log("Payload:", payload);
     console.groupEnd();
 
-    dispatch(addItemToCart(payload))
+    dispatch(addToCart(payload))
       .unwrap()
       .then(() => {
         message.success(`Đã thêm ${name} vào giỏ hàng`);
