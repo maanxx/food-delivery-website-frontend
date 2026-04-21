@@ -180,13 +180,6 @@ function Menu() {
                 Tìm kiếm
               </Button>
 
-              {getTotalCartItems() > 0 && (
-                <Chip
-                  icon={<CartIcon />}
-                  label={`${getTotalCartItems()} món`}
-                  color="primary"
-                />
-              )}
             </div>
           </div>
         </div>
