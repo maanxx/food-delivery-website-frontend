@@ -40,7 +40,6 @@ const ProfileSidebar = ({ activeTab, onTabSelect, profileData, isMobile = false 
         />
         <div className={styles.userInfo}>
           <h3 className={styles.userName}>{profileData?.fullname || 'Loading...'}</h3>
-          <p className={styles.userEmail}>{profileData?.email || ''}</p>
         </div>
       </div>
 

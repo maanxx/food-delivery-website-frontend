@@ -7,7 +7,6 @@ import styles from './ProfileInfo.module.css';
 const ProfileInfo = ({ profile, loading, onSuccess }) => {
   const [form] = Form.useForm();
 
-  // Set initial fields on mount/profile change
   React.useEffect(() => {
     if (profile) {
       const formattedProfile = { ...profile };

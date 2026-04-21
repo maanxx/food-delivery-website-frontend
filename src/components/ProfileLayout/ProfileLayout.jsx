@@ -25,7 +25,6 @@ const ProfileLayout = ({ children, activeTab, onTabSelect, profileData }) => {
         </Button>
       </div>
 
-      {/* Desktop Sidebar */}
       <div className={styles.sidebarWrapper}>
         <ProfileSidebar 
           activeTab={activeTab} 
