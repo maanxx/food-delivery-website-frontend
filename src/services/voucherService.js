@@ -16,4 +16,12 @@ const checkVoucher = async (voucherCode) => {
     }
 };
 
-export { checkVoucher };
+const getVouchers = () => axiosInstance.get('/api/voucher');
+
+const voucherService = {
+  checkVoucher,
+  getVouchers,
+};
+
+export { checkVoucher, getVouchers };
+export default voucherService;

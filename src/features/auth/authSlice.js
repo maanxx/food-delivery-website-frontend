@@ -72,6 +72,12 @@ const authSlice = createSlice({
         },
         setInitialized: (state) => {
             state.isInitialized = true;
+        },
+        updateUser: (state, action) => {
+            if (state.user && action.payload) {
+                state.user = { ...state.user, ...action.payload };
+                console.log("--- AUTH USER SYNCED ---", state.user);
+            }
         }
     },
     extraReducers: (builder) => {
@@ -95,5 +101,5 @@ const authSlice = createSlice({
     },
 });
 
-export const { login, logout, setInitialized } = authSlice.actions;
+export const { login, logout, setInitialized, updateUser } = authSlice.actions;
 export default authSlice.reducer;

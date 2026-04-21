@@ -1,77 +1,50 @@
-import React from 'react';
-import { Form, Input, Select, Button, Row, Col, Upload, Avatar, Spin, message } from 'antd';
+import React, { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { Form, Input, Select, Button, Row, Col, Upload, Avatar, message } from 'antd';
 import { UserOutlined, PhoneOutlined, MailOutlined, CameraOutlined, SaveOutlined } from '@ant-design/icons';
-import profileService from '@services/profileService';
+import { updateUserProfile, updateUserAvatar } from '@features/user/userSlice';
+import { getAvatarUrl } from '@utils/urlHelper';
 import styles from './ProfileInfo.module.css';
 
-const ProfileInfo = ({ profile, loading, onSuccess }) => {
+const ProfileInfo = () => {
   const [form] = Form.useForm();
+  const dispatch = useDispatch();
+  
+  // Select user from auth state (Global source of truth)
+  const { user } = useSelector((state) => state.auth);
+  // Select loading states from user state (Action-specific source of truth)
+  const { loading, avatarLoading } = useSelector((state) => state.user);
 
-  // Set initial fields on mount/profile change
-  React.useEffect(() => {
-    if (profile) {
-      const formattedProfile = { ...profile };
-      if (formattedProfile.dateOfBirth) {
-        formattedProfile.dateOfBirth = new Date(formattedProfile.dateOfBirth).toISOString().split('T')[0];
+  // Sync form with Redux user state
+  useEffect(() => {
+    if (user) {
+      const formattedUser = { ...user };
+      if (formattedUser.dateOfBirth) {
+        formattedUser.dateOfBirth = new Date(formattedUser.dateOfBirth).toISOString().split('T')[0];
       }
-      
-      // Map phone with countryCode if available
-      if (formattedProfile.countryCode && formattedProfile.phoneNumber) {
-          formattedProfile.phoneNumber = `${formattedProfile.countryCode} ${formattedProfile.phoneNumber}`;
-      }
-      
-      form.setFieldsValue(formattedProfile);
+      form.setFieldsValue(formattedUser);
     }
-  }, [profile, form]);
+  }, [user, form]);
 
   const handleUpdateProfile = async (values) => {
-    const formData = new FormData();
-    formData.append("fullname", values.fullname);
-    
-    // Extract raw phone number if it contains country code
-    let phoneToSave = values.phoneNumber || "";
-    if (phoneToSave.includes(" ")) {
-        phoneToSave = phoneToSave.split(" ")[1];
-    }
-    formData.append("phoneNumber", phoneToSave);
-    
-    formData.append("gender", values.gender || "");
-    formData.append("dateOfBirth", values.dateOfBirth || "");
-    formData.append("email", values.email || "");
-    
-    try {
-      const response = await profileService.updateProfile(formData);
-      message.success("Profile updated successfully");
-      if (onSuccess) onSuccess(response.data.data);
-    } catch (error) {
-      message.error("Failed to update profile");
-    }
+    // According to requirements: Strictly using backend response as source of truth
+    await dispatch(updateUserProfile(values));
   };
 
   const handleAvatarUpload = async (info) => {
-    const formData = new FormData();
-    formData.append("avatar", info.file.originFileObj);
-    try {
-      const response = await profileService.updateProfile(formData);
-      message.success("Avatar updated successfully");
-      if (onSuccess) onSuccess(response.data.data);
-    } catch (error) {
-      message.error("Failed to update avatar");
-    }
-  };
+    if (info.file.status === 'uploading') return;
+    
+    const file = info.file.originFileObj;
+    if (!file) return;
 
-  if (loading && !profile) {
-    return (
-      <div className={styles.loadingWrapper}>
-        <Spin size="large" />
-      </div>
-    );
-  }
+    // Per-action loading: specifically for avatar
+    await dispatch(updateUserAvatar(file));
+  };
 
   return (
     <div className={styles.container}>
-      <h2 className={styles.title}>My Profile</h2>
-      <p className={styles.subtitle}>Manage and protect your account</p>
+      <h2 className={styles.title}>Hồ sơ của tôi</h2>
+      <p className={styles.subtitle}>Quản lý thông tin hồ sơ để bảo mật tài khoản</p>
       
       <div className={styles.content}>
         <div className={styles.formSection}>
@@ -79,50 +52,47 @@ const ProfileInfo = ({ profile, loading, onSuccess }) => {
             form={form}
             layout="vertical"
             onFinish={handleUpdateProfile}
-            disabled={loading}
+            disabled={loading || avatarLoading}
           >
             <Row gutter={24}>
               <Col xs={24} md={12}>
-                <Form.Item label="Username" name="username">
-                  <Input prefix={<UserOutlined />} disabled size="large" />
+                <Form.Item label="Tên đăng nhập" name="username">
+                  <Input prefix={<UserOutlined />} size="large" placeholder="Nhập tên đăng nhập" />
                 </Form.Item>
               </Col>
               <Col xs={24} md={12}>
-                <Form.Item label="Full Name" name="fullname">
-                  <Input prefix={<UserOutlined />} size="large" />
-                </Form.Item>
-              </Col>
-            </Row>
-
-            <Row gutter={24}>
-              <Col xs={24} md={12}>
-                <Form.Item label="Phone" name="phoneNumber">
-                  <Input prefix={<PhoneOutlined />} size="large" />
+                <Form.Item label="Họ và tên" name="fullname">
+                  <Input prefix={<UserOutlined />} size="large" placeholder="Nhập họ và tên" />
                 </Form.Item>
               </Col>
             </Row>
 
             <Row gutter={24}>
               <Col xs={24} md={12}>
-                <Form.Item label="Gender" name="gender">
-                  <Select size="large">
-                    <Select.Option value="Male">Male</Select.Option>
-                    <Select.Option value="Female">Female</Select.Option>
-                    <Select.Option value="Other">Other</Select.Option>
+                <Form.Item label="Số điện thoại" name="phoneNumber">
+                  <Input prefix={<PhoneOutlined />} disabled size="large" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} md={12}>
+                <Form.Item label="Email" name="email">
+                  <Input prefix={<MailOutlined />} disabled size="large" />
+                </Form.Item>
+              </Col>
+            </Row>
+
+            <Row gutter={24}>
+              <Col xs={24} md={12}>
+                <Form.Item label="Giới tính" name="gender">
+                  <Select size="large" placeholder="Chọn giới tính">
+                    <Select.Option value="Male">Nam</Select.Option>
+                    <Select.Option value="Female">Nữ</Select.Option>
+                    <Select.Option value="Other">Khác</Select.Option>
                   </Select>
                 </Form.Item>
               </Col>
               <Col xs={24} md={12}>
-                <Form.Item label="Date of Birth" name="dateOfBirth">
+                <Form.Item label="Ngày sinh" name="dateOfBirth">
                   <Input type="date" size="large" />
-                </Form.Item>
-              </Col>
-            </Row>
-
-            <Row gutter={24}>
-              <Col xs={24} md={12}>
-                <Form.Item label="Email" name="email">
-                  <Input prefix={<MailOutlined />} size="large" />
                 </Form.Item>
               </Col>
             </Row>
@@ -132,10 +102,11 @@ const ProfileInfo = ({ profile, loading, onSuccess }) => {
               htmlType="submit"
               icon={<SaveOutlined />}
               loading={loading}
+              disabled={loading || avatarLoading}
               size="large"
               className={styles.saveBtn}
             >
-              Save Changes
+              Lưu thay đổi
             </Button>
           </Form>
         </div>
@@ -143,7 +114,7 @@ const ProfileInfo = ({ profile, loading, onSuccess }) => {
         <div className={styles.avatarSection}>
           <Avatar
             size={120}
-            src={profile?.avatarPath ? `http://localhost:3001${profile.avatarPath}` : null}
+            src={getAvatarUrl(user?.avatarPath)}
             icon={<UserOutlined />}
             className={styles.avatar}
           />
@@ -151,12 +122,19 @@ const ProfileInfo = ({ profile, loading, onSuccess }) => {
             showUploadList={false}
             beforeUpload={() => false}
             onChange={handleAvatarUpload}
+            disabled={avatarLoading}
           >
-            <Button icon={<CameraOutlined />}>Select Image</Button>
+            <Button 
+              icon={<CameraOutlined />} 
+              loading={avatarLoading}
+              disabled={avatarLoading || loading}
+            >
+              Chọn ảnh
+            </Button>
           </Upload>
           <div className={styles.avatarHelpText}>
-            File size: maximum 1 MB<br/>
-            File extension: .JPEG, .PNG
+            Dung lượng file tối đa 1 MB<br/>
+            Định dạng: .JPEG, .PNG
           </div>
         </div>
       </div>

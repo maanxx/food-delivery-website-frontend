@@ -1,19 +1,21 @@
 import React from "react";
-import { Button, Input, Select, Modal } from "antd";
+import { Button, Input, Select } from "antd";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { useForm, Controller } from "react-hook-form";
 import * as yup from "yup";
+import styles from "./AddressForm.module.css";
+
+// UPDATED SCHEMA
 const schema = yup.object().shape({
-  label: yup.string().required("Label is required"),
-  street: yup.string().required("Street is required"),
-  ward: yup.string().required("Ward is required"),
-  district: yup.string().required("District is required"),
-  city: yup.string().required("City is required"),
-  country: yup.string().required("Country is required"),
+  label: yup.string().required("Vui lòng chọn nhãn"),
+  street: yup.string().required("Vui lòng nhập địa chỉ"),
+  ward: yup.string().required("Vui lòng nhập phường/xã"),
+  city: yup.string().required("Vui lòng nhập thành phố"),
 });
 
 const { Option } = Select;
 
+// UPDATED
 const AddressForm = ({
   visible,
   onCancel,
@@ -22,133 +24,142 @@ const AddressForm = ({
   loading,
 }) => {
   const {
-    register,
     handleSubmit,
     reset,
     control,
     formState: { errors },
   } = useForm({
     resolver: yupResolver(schema),
+    mode: "onChange",
     defaultValues: {
-      country: "Vietnam",
+      label: "",
+      street: "",
+      ward: "",
+      city: "",
       ...initialData,
     },
   });
 
   React.useEffect(() => {
     if (visible) {
-      reset(initialData);
+      reset({
+        label: "",
+        street: "",
+        ward: "",
+        city: "",
+        ...initialData,
+      });
     }
   }, [visible, initialData, reset]);
 
   const onFormSubmit = (data) => {
     onSubmit(data);
-    reset();
   };
 
   return (
-    <Modal
-      title={initialData?.address_id ? "Edit Address" : "Add New Address"}
-      open={visible}
-      onCancel={onCancel}
-      footer={null}
-      width={500}
-    >
-      <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
-            <div>
-            <label className="block text-sm font-medium mb-1">Label *</label>
-            <Controller
-                name="label"
-                control={control}
-                render={({ field }) => (
-                <Select {...field} style={{ width: "100%" }}>
-                    <Option value="Home">Home</Option>
-                    <Option value="Work">Work</Option>
-                    <Option value="Other">Other</Option>
-                </Select>
-                )}
-            />
-            {errors.label && (
-                <p className="text-red-500 text-xs mt-1">{errors.label.message}</p>
+    <div className={styles.formContainer}>
+      <form onSubmit={handleSubmit(onFormSubmit)} className={styles.form}>
+        <div className={styles.fieldGroup}>
+          <label className={styles.label}>Phân loại địa chỉ</label>
+          <Controller
+            name="label"
+            control={control}
+            render={({ field }) => (
+              <Select
+                {...field}
+                className={styles.input}
+                placeholder="Chọn nhãn (Nhà riêng, Công ty...)"
+              >
+                <Option value="Home">Nhà riêng</Option>
+                <Option value="Work">Công ty</Option>
+                <Option value="Other">Khác</Option>
+              </Select>
             )}
-            </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium mb-1">
-            Street Address *
-          </label>
-          <Input
-            {...register("street")}
-            placeholder="123 Main St"
-            className={errors.street ? "border-red-500" : ""}
           />
-          {errors.street && (
-            <p className="text-red-500 text-xs mt-1">{errors.street.message}</p>
+          {errors.label && (
+            <p className={styles.errorMessage}>{errors.label.message}</p>
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">City *</label>
-            <Input
-              {...register("city")}
-              className={errors.city ? "border-red-500" : ""}
-            />
-            {errors.city && (
-              <p className="text-red-500 text-xs mt-1">{errors.city.message}</p>
+        <div className={styles.fieldGroup}>
+          <label className={styles.label}>Số nhà, tên đường *</label>
+          <Controller
+            name="street"
+            control={control}
+            render={({ field }) => (
+              <Input
+                {...field}
+                placeholder="Ví dụ: 123 Lê Lợi"
+                className={`${styles.input} ${
+                  errors.street ? styles.inputError : ""
+                }`}
+              />
             )}
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">District *</label>
-            <Input
-              {...register("district")}
-              className={errors.district ? "border-red-500" : ""}
-            />
-            {errors.district && (
-              <p className="text-red-500 text-xs mt-1">{errors.district.message}</p>
-            )}
-          </div>
+          />
+          {errors.street && (
+            <p className={styles.errorMessage}>{errors.street.message}</p>
+          )}
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Ward *</label>
-            <Input
-              {...register("ward")}
-              className={errors.ward ? "border-red-500" : ""}
-            />
-            {errors.ward && (
-              <p className="text-red-500 text-xs mt-1">{errors.ward.message}</p>
-            )}
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Country</label>
+        <div className={styles.row}>
+          <div className={styles.fieldGroup}>
+            <label className={styles.label}>Phường / Xã *</label>
             <Controller
-              name="country"
+              name="ward"
               control={control}
               render={({ field }) => (
-                <Select {...field} style={{ width: "100%" }}>
-                  <Option value="Vietnam">Vietnam</Option>
-                  <Option value="USA">USA</Option>
-                  <Option value="Other">Other</Option>
-                </Select>
+                <Input
+                  {...field}
+                  placeholder="Nhập phường/xã"
+                  className={`${styles.input} ${
+                    errors.ward ? styles.inputError : ""
+                  }`}
+                />
               )}
             />
+            {errors.ward && (
+              <p className={styles.errorMessage}>{errors.ward.message}</p>
+            )}
+          </div>
+          <div className={styles.fieldGroup}>
+            <label className={styles.label}>Thành phố *</label>
+            <Controller
+              name="city"
+              control={control}
+              render={({ field }) => (
+                <Input
+                  {...field}
+                  placeholder="Ví dụ: TP. Hồ Chí Minh"
+                  className={`${styles.input} ${
+                    errors.city ? styles.inputError : ""
+                  }`}
+                />
+              )}
+            />
+            {errors.city && (
+              <p className={styles.errorMessage}>{errors.city.message}</p>
+            )}
           </div>
         </div>
 
-        <div className="flex gap-3 pt-4">
-          <Button type="primary" htmlType="submit" loading={loading} block>
-            {initialData?.address_id ? "Update Address" : "Add Address"}
+        <div className={styles.footer}>
+          <Button 
+            type="primary" 
+            htmlType="submit" 
+            loading={loading} 
+            className={styles.submitBtn}
+          >
+            {initialData?.address_id ? "Cập nhật" : "Lưu địa chỉ"}
           </Button>
-          <Button onClick={onCancel} block>
-            Cancel
+          <Button 
+            onClick={onCancel} 
+            className={styles.cancelBtn}
+          >
+            Hủy
           </Button>
         </div>
       </form>
-    </Modal>
+    </div>
   );
 };
 

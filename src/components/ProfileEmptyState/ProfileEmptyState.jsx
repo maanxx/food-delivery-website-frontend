@@ -7,7 +7,7 @@ const ProfileEmptyState = ({ title, description, buttonText, onAction, icon: Ico
     <div className={styles.emptyContainer}>
       <Empty
         image={Icon ? <Icon style={{ fontSize: 48, color: '#bfbfbf' }} /> : Empty.PRESENTED_IMAGE_SIMPLE}
-        imageStyle={{ height: 60 }}
+        styles={{ image: { height: 60 } }}
         description={
           <div className={styles.emptyContent}>
             <h3 className={styles.title}>{title}</h3>

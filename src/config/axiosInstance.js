@@ -11,14 +11,23 @@ const axiosInstance = axios.create({
 axiosInstance.interceptors.request.use((config) => {
     const token = localStorage.getItem("access_token");
 
-    // Commented out to prevent console flooding
-    // console.log("AXIOS TOKEN:", token); 
+    // ✅ DEBUG LOGGING
+    console.log("--- AXIOS REQUEST DEBUG ---");
+    console.log("URL:", config.url);
+    console.log("METHOD:", config.method);
+    console.log("TOKEN PRESENT:", !!token);
+
+    config.headers = config.headers || {};
 
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
 
+    console.log("REQUEST HEADERS:", config.headers);
+
     return config;
+}, (error) => {
+    return Promise.reject(error);
 });
 
 let isRefreshing = false;
@@ -85,7 +94,7 @@ axiosInstance.interceptors.response.use(
                     processQueue(null, newAccessToken);
                     
                     // Proceed with original request
-                    originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`;
+                    originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
                     return axiosInstance(originalRequest);
                 }
             } catch (refreshError) {
