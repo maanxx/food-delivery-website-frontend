@@ -7,3 +7,5 @@ export { default as Sidebar } from "./Sidebar";
 export { default as ChatSidebar } from "./ChatSidebar";
 export { default as EmptyChat } from "./EmptyChat";
 export { default as MicrophoneReaction } from "./MicrophoneReaction";
+export { default as ForwardModal } from "./ForwardModal";
+export { default as GroupSettingsModal } from "./GroupSettingsModal";

@@ -240,6 +240,12 @@ const useWebSocket = () => {
             }
         });
 
+        socket.on("new_conversation", (conversation) => {
+            console.log("🆕 New conversation received via WebSocket:", conversation);
+            dispatch(addConversation(conversation));
+            dispatch(moveConversationToTop(conversation.conversationId));
+        });
+
         socket.on("conversation:deleted", ({ conversationId }) => {
             // Handle conversation deletion
             console.log("Conversation deleted:", conversationId);

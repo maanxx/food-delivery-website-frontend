@@ -58,6 +58,24 @@ export const chatAPI = {
         return axiosInstance.put(`${BASE_URL}/conversations/${conversationId}/settings`, { isMuted, isPinned });
     },
 
+    disbandGroup: async (conversationId) => {
+        return axiosInstance.delete(`${BASE_URL}/conversations/${conversationId}/disband`);
+    },
+
+    updateMemberRole: async (conversationId, { memberId, role }) => {
+        return axiosInstance.put(`${BASE_URL}/conversations/${conversationId}/members/role`, { memberId, role });
+    },
+
+    addMembersToGroup: async (conversationId, memberIds) => {
+        return axiosInstance.post(`${BASE_URL}/conversations/${conversationId}/members`, { memberIds });
+    },
+
+    removeMemberFromGroup: async (conversationId, memberId) => {
+        return axiosInstance.delete(`${BASE_URL}/conversations/${conversationId}/members`, {
+            data: { memberId },
+        });
+    },
+
     // ========== MESSAGES ==========
     getMessages: async (conversationId, limit = 50, cursor = null) => {
         return axiosInstance.post(`${BASE_URL}/conversations/messages`, {
@@ -86,6 +104,13 @@ export const chatAPI = {
 
         return axiosInstance.post(`${BASE_URL}/conversations/${conversationId}/messages`, formData, {
             headers: { "Content-Type": "multipart/form-data" },
+        });
+    },
+
+    forwardMessage: async (conversationId, { originalConversationId, messageId }) => {
+        return axiosInstance.post(`${BASE_URL}/conversations/${conversationId}/messages/forward`, {
+            originalConversationId,
+            messageId,
         });
     },
 

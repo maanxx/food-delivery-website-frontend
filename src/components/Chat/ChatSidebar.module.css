@@ -118,6 +118,96 @@
     border-bottom: 1px solid #e8e8e8;
 }
 
+.menuItemHeader {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.sectionContent {
+    padding: 12px 0;
+}
+
+.addMemberBtn {
+    width: 100%;
+    padding: 8px;
+    background: #e6f7ff;
+    border: 1px dashed #1890ff;
+    color: #1890ff;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-weight: 500;
+    margin-bottom: 12px;
+    transition: all 0.2s;
+}
+
+.addMemberBtn:hover {
+    background: #bae7ff;
+}
+
+.memberList {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.memberItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.memberInfo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.memberNameContainer {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.memberName {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.adminBadge {
+    display: flex;
+    align-items: center;
+}
+
+.removeBtn {
+    background: transparent;
+    border: none;
+    color: #ff4d4f;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.6;
+    transition: all 0.2s;
+}
+
+.removeBtn:hover {
+    opacity: 1;
+    background: #fff1f0;
+}
+
 .navOption {
     display: flex;
     flex-direction: column;

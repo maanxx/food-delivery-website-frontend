@@ -13,7 +13,19 @@ import TypingIndicator from "./TypingIndicator";
 import EmptyChat from "./EmptyChat";
 import CallWindow from "./CallWindow";
 import ChatSidebar from "./ChatSidebar";
-import { loadMessages, selectMessages, markMessagesAsRead } from "@features/chat/chatSlice";
+import ForwardModal from "./ForwardModal";
+import GroupSettingsModal from "./GroupSettingsModal";
+import GroupAvatar from "./GroupAvatar";
+import {
+    loadMessages,
+    selectMessages,
+    markMessagesAsRead,
+    updateConversationList,
+    updateMemberInConversation,
+    removeMemberFromConversation,
+    markGroupAsDisbanded,
+    loadConversations,
+} from "@features/chat/chatSlice";
 import useWebSocket from "@hooks/useWebSocket";
 import { useCallContext } from "@contexts/CallContext";
 
@@ -35,6 +47,10 @@ const ChatWindow = () => {
     const [loadError, setLoadError] = useState(null);
     const [isInitiatingCall, setIsInitiatingCall] = useState(false);
     const [showSidebar, setShowSidebar] = useState(false);
+    const [showForwardModal, setShowForwardModal] = useState(false);
+    const [showGroupSettings, setShowGroupSettings] = useState(false);
+    const [messageToForward, setMessageToForward] = useState(null);
+
     const messagesEndRef = useRef(null);
     const messageContainerRef = useRef(null);
 
@@ -165,6 +181,68 @@ const ChatWindow = () => {
             }, 500);
         }
     }, [messages, conversationId, currentUserId, isConnected, dispatch, markAsRead]);
+
+    // Handle WebSocket events for groups
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleGroupDisbanded = (data) => {
+            if (data.conversationId === conversationId) {
+                message.warning("This group has been disbanded by the admin.");
+                dispatch(markGroupAsDisbanded(conversationId));
+            }
+        };
+
+        const handleMemberRoleUpdated = (data) => {
+            if (data.conversationId === conversationId) {
+                dispatch(
+                    updateMemberInConversation({
+                        conversationId,
+                        memberId: data.memberId,
+                        updates: { role: data.role },
+                    })
+                );
+                if (data.memberId === currentUserId) {
+                    message.info(`Your role in this group has been updated to ${data.role}`);
+                }
+            }
+        };
+
+        const handleMemberAdded = (data) => {
+            if (data.conversationId === conversationId) {
+                // If the backend sends the full updated participant list, use it
+                // Otherwise we might need to add just the new member
+                // For now, let's assume we update the conversation
+                dispatch(loadConversations()); // Refresh list to be sure
+            }
+        };
+
+        const handleMemberRemoved = (data) => {
+            if (data.conversationId === conversationId) {
+                dispatch(removeMemberFromConversation({
+                    conversationId,
+                    memberId: data.memberId
+                }));
+            }
+        };
+
+        socket.on("group_disbanded", handleGroupDisbanded);
+        socket.on("member_role_updated", handleMemberRoleUpdated);
+        socket.on("member_added", handleMemberAdded);
+        socket.on("member_removed", handleMemberRemoved);
+
+        return () => {
+            socket.off("group_disbanded", handleGroupDisbanded);
+            socket.off("member_role_updated", handleMemberRoleUpdated);
+            socket.off("member_added", handleMemberAdded);
+            socket.off("member_removed", handleMemberRemoved);
+        };
+    }, [socket, conversationId, dispatch, currentUserId]);
+
+    const handleForwardMessage = (msg) => {
+        setMessageToForward(msg);
+        setShowForwardModal(true);
+    };
 
     // Show error notifications when call state has errors
     useEffect(() => {
@@ -321,27 +399,31 @@ const ChatWindow = () => {
                 {/* Header */}
                 <div className={styles.header}>
                     <div className={styles.headerInfo}>
-                        <Avatar
-                            size={40}
-                            src={conversation.avatarPath || conversation.avatar_path || null}
-                            style={{
-                                backgroundColor: "#1890ff",
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                fontWeight: "bold",
-                                fontSize: "14px",
-                            }}
-                        >
-                            {!conversation.avatarPath && !conversation.avatar_path && conversation.name
-                                ? getFirstLetterOfEachWord(conversation.name).children
-                                : "U"}
-                        </Avatar>
+                        {conversation.type === "group" || conversation.conversationType === "group" ? (
+                            <GroupAvatar members={conversation.memberAvatars || conversation.participants} size={40} />
+                        ) : (
+                            <Avatar
+                                size={40}
+                                src={conversation.avatarPath || conversation.avatar_path || null}
+                                style={{
+                                    backgroundColor: "#1890ff",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    fontWeight: "bold",
+                                    fontSize: "14px",
+                                }}
+                            >
+                                {!conversation.avatarPath && !conversation.avatar_path && conversation.name
+                                    ? getFirstLetterOfEachWord(conversation.name).children
+                                    : "U"}
+                            </Avatar>
+                        )}
                         <div className={styles.headerText}>
                             <h3>{conversation.name}</h3>
-                            {conversation.conversationType === "group" && (
+                            {(conversation.type === "group" || conversation.conversationType === "group") && (
                                 <span className={styles.participants}>
-                                    {conversation.participantIds?.length || 0} members
+                                    {conversation.memberCount || conversation.participants?.length || 0} members
                                 </span>
                             )}
                         </div>
@@ -375,61 +457,106 @@ const ChatWindow = () => {
                 </div>
 
                 {/* Messages Container */}
-                <div className={styles.messagesContainer} ref={messageContainerRef}>
-                    {loadError ? (
-                        <div className={styles.errorPlaceholder}>
-                            <div style={{ fontSize: "32px", marginBottom: "12px" }}>⚠️</div>
-                            <h3>Không thể tải tin nhắn</h3>
-                            <p>{loadError}</p>
-                            <button
-                                onClick={() => {
-                                    setLoadError(null);
-                                    dispatch(loadMessages({ conversationId, limit: 50 }));
-                                }}
-                                style={{
-                                    marginTop: "16px",
-                                    padding: "8px 16px",
-                                    backgroundColor: "#007bff",
-                                    color: "white",
-                                    border: "none",
-                                    borderRadius: "6px",
-                                    cursor: "pointer",
-                                    fontSize: "14px",
-                                }}
-                            >
-                                Thử lại
-                            </button>
-                        </div>
-                    ) : isLoadingMessages ? (
-                        <div className={styles.loadingPlaceholder}>
-                            <span className={styles.spinner}></span>
-                            <p>Loading messages...</p>
-                        </div>
-                    ) : messages.length === 0 ? (
-                        <div className={styles.emptyPlaceholder}>
-                            <div>💬</div>
-                            <h3>No messages yet</h3>
-                            <p>Send a message to start the conversation</p>
-                        </div>
-                    ) : (
-                        <MessageList
-                            messages={messages}
-                            conversationId={conversationId}
-                            currentUserId={currentUserId}
-                        />
-                    )}
+                {conversation.isDisbanded || conversation.is_active === false || conversation.isActive === false ? (
+                    <div
+                        style={{
+                            flex: 1,
+                            display: "flex",
+                            flexDirection: "column",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            background: "#f9f9f9",
+                            padding: "40px",
+                            textAlign: "center",
+                        }}
+                    >
+                        <div style={{ fontSize: "64px", marginBottom: "20px" }}>🚫</div>
+                        <h2 style={{ color: "#262626", marginBottom: "8px" }}>Group Disbanded</h2>
+                        <p style={{ color: "#8c8c8c", maxWidth: "400px" }}>
+                            This group has been disbanded by the administrator. You can no longer send or receive
+                            messages in this conversation.
+                        </p>
+                    </div>
+                ) : (
+                    <>
+                        <div className={styles.messagesContainer} ref={messageContainerRef}>
+                            {loadError ? (
+                                <div className={styles.errorPlaceholder}>
+                                    <div style={{ fontSize: "32px", marginBottom: "12px" }}>⚠️</div>
+                                    <h3>Không thể tải tin nhắn</h3>
+                                    <p>{loadError}</p>
+                                    <button
+                                        onClick={() => {
+                                            setLoadError(null);
+                                            dispatch(loadMessages({ conversationId, limit: 50 }));
+                                        }}
+                                        style={{
+                                            marginTop: "16px",
+                                            padding: "8px 16px",
+                                            backgroundColor: "#007bff",
+                                            color: "white",
+                                            border: "none",
+                                            borderRadius: "6px",
+                                            cursor: "pointer",
+                                            fontSize: "14px",
+                                        }}
+                                    >
+                                        Thử lại
+                                    </button>
+                                </div>
+                            ) : isLoadingMessages ? (
+                                <div className={styles.loadingPlaceholder}>
+                                    <span className={styles.spinner}></span>
+                                    <p>Loading messages...</p>
+                                </div>
+                            ) : messages.length === 0 ? (
+                                <div className={styles.emptyPlaceholder}>
+                                    <div>💬</div>
+                                    <h3>No messages yet</h3>
+                                    <p>Send a message to start the conversation</p>
+                                </div>
+                            ) : (
+                                <MessageList
+                                    messages={messages}
+                                    conversationId={conversationId}
+                                    currentUserId={currentUserId}
+                                    onForward={handleForwardMessage}
+                                />
+                            )}
 
-                    {typingUsers.length > 0 && <TypingIndicator users={typingUsers} />}
+                            {typingUsers.length > 0 && <TypingIndicator users={typingUsers} />}
 
-                    <div ref={messagesEndRef} />
-                </div>
+                            <div ref={messagesEndRef} />
+                        </div>
 
-                {/* Input */}
-                <MessageInput conversationId={conversationId} />
+                        {/* Input */}
+                        <MessageInput conversationId={conversationId} />
+                    </>
+                )}
             </div>
 
             {/* Sidebar */}
-            {showSidebar && <ChatSidebar conversation={conversation} onClose={() => setShowSidebar(false)} />}
+            {showSidebar && (
+                <ChatSidebar
+                    conversation={conversation}
+                    currentUserId={currentUserId}
+                    onClose={() => setShowSidebar(false)}
+                    onOpenGroupSettings={() => setShowGroupSettings(true)}
+                />
+            )}
+
+            {/* Modals */}
+            <ForwardModal
+                visible={showForwardModal}
+                onClose={() => setShowForwardModal(false)}
+                messageToForward={messageToForward}
+            />
+
+            <GroupSettingsModal
+                visible={showGroupSettings}
+                onClose={() => setShowGroupSettings(false)}
+                conversation={conversation}
+            />
         </div>
     );
 };
