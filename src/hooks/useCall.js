@@ -36,6 +36,7 @@ const useCall = (socket) => {
     const pendingSignalsRef = useRef([]); // Queue signals if peer not ready
     const answerRetryCountRef = useRef(0); // Track answer retry attempts
     const signalsProcessedRef = useRef({ offers: 0, answers: 0, iceCandidates: 0 }); // Track signal counts
+    const offerProcessedRef = useRef(false); // Guard: prevent processing same offer twice per call
 
     // Process queued signals when peer is ready
     const processPendingSignals = useCallback(() => {
@@ -69,14 +70,22 @@ const useCall = (socket) => {
                         console.error("      ❌ OFFER missing SDP!");
                         continue;
                     }
+
+                    // GUARD: Skip duplicate offers — processing the same offer twice causes
+                    // 'setLocalDescription called in wrong state: stable' error.
+                    if (offerProcessedRef.current) {
+                        console.warn("      ⚠️ Duplicate offer detected — skipping (already processed for this call)");
+                        signalsProcessedRef.current.offers++;
+                        continue;
+                    }
+
                     console.log(
                         `      ✅ About to call peer.signal(offer) - offer SDP length: ${signal.data.sdp.length}`,
                     );
-                    console.log(`         Peer exists: ${!!peerRef.current}`);
-                    console.log(`         Peer.signal type: ${typeof peerRef.current?.signal}`);
 
                     // CRITICAL: This should trigger peer.on('signal') with answer for non-initiator
                     peerRef.current.signal(signal.data);
+                    offerProcessedRef.current = true; // Mark offer as processed for this call
 
                     signalsProcessedRef.current.offers++;
                     console.log(`      ✅ OFFER signaled successfully!`);
@@ -316,6 +325,7 @@ const useCall = (socket) => {
         // Reset WebRTC signal state for next call
         pendingSignalsRef.current = [];
         peerReadyRef.current = false;
+        offerProcessedRef.current = false; // Allow next call to process its offer
         signalsProcessedRef.current = { offers: 0, answers: 0, iceCandidates: 0 };
         answerRetryCountRef.current = 0;
         console.log("📵 [endCall] Signal state reset for next call");
@@ -1270,6 +1280,7 @@ const useCall = (socket) => {
                 // prevent the WebRTC handshake from completing on subsequent calls.
                 // endCall() is responsible for clearing signal state between calls.
                 peerReadyRef.current = false;
+                offerProcessedRef.current = false; // Reset so incoming offer can be processed
                 answerRetryCountRef.current = 0;
                 signalsProcessedRef.current = { offers: 0, answers: 0, iceCandidates: 0 };
                 console.log("🔄 [acceptCall] Reset peer state - preserving any pre-queued signals:", pendingSignalsRef.current.length);

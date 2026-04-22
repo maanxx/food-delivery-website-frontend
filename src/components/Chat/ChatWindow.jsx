@@ -16,12 +16,15 @@ import ChatSidebar from "./ChatSidebar";
 import { loadMessages, selectMessages, markMessagesAsRead } from "@features/chat/chatSlice";
 import useWebSocket from "@hooks/useWebSocket";
 import useCall from "@hooks/useCall";
+import useCallNotification from "@hooks/useCallNotification";
 
 const ChatWindow = () => {
     const { conversationId } = useParams();
     const dispatch = useDispatch();
     const { socket, isConnected, markAsRead } = useWebSocket();
     const { callState, makeCall, acceptCall, rejectCall, endCall } = useCall(socket);
+
+    useCallNotification(callState.incomingCall);
 
     const messages = useSelector(selectMessages(conversationId));
     const conversation = useSelector((state) => state.chat.conversations.byId[conversationId]);

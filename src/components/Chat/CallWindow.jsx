@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState, useCallback } from "react";
 import { Button, Avatar, Space, Tooltip, Alert } from "antd";
 import { PhoneOutlined, VideoCameraOutlined, PhoneOutlined as HangupIcon } from "@ant-design/icons";
 import styles from "./CallWindow.module.css";
-import useCallNotification from "@hooks/useCallNotification";
 import useAudioLevel from "@hooks/useAudioLevel";
 import MicrophoneReaction from "./MicrophoneReaction";
 
@@ -101,9 +100,6 @@ const CallWindow = ({ callState, onEndCall, isIncomingMode = false, onAcceptVO, 
         return name;
     };
 
-    // Use notification hook for incoming calls
-    useCallNotification(callState.incomingCall);
-
     // Display local stream
     useEffect(() => {
         if (localVideoRef.current && callState.localStream) {
@@ -171,15 +167,10 @@ const CallWindow = ({ callState, onEndCall, isIncomingMode = false, onAcceptVO, 
                     const playPromise = remoteAudioRef.current.play();
                     if (playPromise !== undefined) {
                         await playPromise;
-                        console.log("   ✅ Audio playback started successfully");
-                        console.log("   Audio element paused:", remoteAudioRef.current.paused);
-                        console.log("   Audio element current time:", remoteAudioRef.current.currentTime);
                         setAudioError(null);
                     }
                 }
             } catch (err) {
-                console.error("   ❌ Error playing audio:", err);
-                console.error("   Error type:", err.name);
                 console.error("   Error message:", err.message);
 
                 // Handle specific autoplay policy errors
