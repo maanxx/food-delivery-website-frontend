@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import { Avatar } from "antd";
+import { Avatar, Button, Tag, message } from "antd";
 import {
     SearchOutlined,
     PlusOutlined,
@@ -15,11 +15,13 @@ import {
     EllipsisOutlined,
 } from "@ant-design/icons";
 import styles from "./Sidebar.module.css";
+import GroupAvatar from "./GroupAvatar";
 import {
     loadConversations,
     selectConversation,
     searchUsers,
     createConversation,
+    createGroupConversation,
     clearSearchResults,
     selectMessages,
     deleteConversation,
@@ -65,6 +67,11 @@ const Sidebar = () => {
         isDeleting: false,
         error: null,
     });
+
+    // Group creation state
+    const [isGroupMode, setIsGroupMode] = useState(false);
+    const [selectedMembers, setSelectedMembers] = useState([]);
+    const [groupName, setGroupName] = useState("");
 
     // Handle delete modal events
     useEffect(() => {
@@ -255,6 +262,53 @@ const Sidebar = () => {
         }
     };
 
+    const handleToggleMember = (user) => {
+        const userId = user.user_id || user.userId;
+        if (selectedMembers.find((m) => (m.user_id || m.userId) === userId)) {
+            setSelectedMembers(selectedMembers.filter((m) => (m.user_id || m.userId) !== userId));
+        } else {
+            setSelectedMembers([...selectedMembers, user]);
+        }
+    };
+
+    const handleCreateGroup = async () => {
+        if (!groupName.trim()) {
+            message.error("Please enter a group name");
+            return;
+        }
+        if (selectedMembers.length === 0) {
+            message.error("Please select at least one member");
+            return;
+        }
+
+        try {
+            setIsCreatingConversation(true);
+            const participantIds = selectedMembers.map((m) => m.user_id || m.userId);
+            const result = await dispatch(
+                createGroupConversation({
+                    name: groupName,
+                    participantIds,
+                })
+            ).unwrap();
+
+            handleSelectConversation(result.conversationId);
+            setShowAddUserModal(false);
+            resetGroupState();
+        } catch (error) {
+            message.error(error || "Failed to create group");
+        } finally {
+            setIsCreatingConversation(false);
+        }
+    };
+
+    const resetGroupState = () => {
+        setIsGroupMode(false);
+        setSelectedMembers([]);
+        setGroupName("");
+        setAddUserSearchQuery("");
+        setAddUserSearchResults([]);
+    };
+
     const displayList = searchQuery ? searchResults : conversations;
     const isLoading = isSearching || (isLoadingConversations && !conversations.length);
 
@@ -413,15 +467,75 @@ const Sidebar = () => {
                     <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
                         {/* Modal Header */}
                         <div className={styles.modalHeader}>
-                            <h3>Start New Chat</h3>
-                            <button
-                                className={styles.closeBtn}
-                                onClick={() => setShowAddUserModal(false)}
-                                title="Close"
-                            >
-                                <CloseOutlined />
-                            </button>
+                            <h3>{isGroupMode ? "Create New Group" : "Start New Chat"}</h3>
+                            <div style={{ display: "flex", gap: "8px" }}>
+                                <button
+                                    className={`${styles.headerBtn} ${isGroupMode ? styles.active : ""}`}
+                                    onClick={() => {
+                                        if (isGroupMode) {
+                                            resetGroupState();
+                                        } else {
+                                            setIsGroupMode(true);
+                                        }
+                                    }}
+                                    title={isGroupMode ? "Cancel Group" : "Create Group"}
+                                    style={{
+                                        color: isGroupMode ? "#1890ff" : "inherit",
+                                        background: isGroupMode ? "#e6f7ff" : "transparent",
+                                    }}
+                                >
+                                    <PlusOutlined />
+                                </button>
+                                <button
+                                    className={styles.closeBtn}
+                                    onClick={() => {
+                                        setShowAddUserModal(false);
+                                        resetGroupState();
+                                    }}
+                                    title="Close"
+                                >
+                                    <CloseOutlined />
+                                </button>
+                            </div>
                         </div>
+
+                        {/* Group Name Input */}
+                        {isGroupMode && (
+                            <div style={{ padding: "0 20px 15px" }}>
+                                <div style={{ display: "flex", gap: "8px" }}>
+                                    <input
+                                        type="text"
+                                        placeholder="Enter group name..."
+                                        value={groupName}
+                                        onChange={(e) => setGroupName(e.target.value)}
+                                        className={styles.modalSearchInput}
+                                        style={{ borderBottom: "2px solid #1890ff", flex: 1 }}
+                                    />
+                                    <Button
+                                        type="primary"
+                                        onClick={handleCreateGroup}
+                                        loading={isCreatingConversation}
+                                        disabled={!groupName.trim() || selectedMembers.length === 0}
+                                    >
+                                        Create ({selectedMembers.length})
+                                    </Button>
+                                </div>
+                                {selectedMembers.length > 0 && (
+                                    <div style={{ marginTop: "10px", display: "flex", flexWrap: "wrap", gap: "8px" }}>
+                                        {selectedMembers.map((m) => (
+                                            <Tag
+                                                key={m.user_id || m.userId}
+                                                closable
+                                                onClose={() => handleToggleMember(m)}
+                                                color="blue"
+                                            >
+                                                {m.fullname || m.username}
+                                            </Tag>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
 
                         {/* Search Input */}
                         <div className={styles.modalSearchContainer}>
@@ -456,12 +570,21 @@ const Sidebar = () => {
                                     <div
                                         key={user.user_id || user.userId}
                                         className={styles.modalUserItem}
-                                        onClick={() =>
-                                            !isCreatingConversation && handleSelectUser(user.user_id || user.userId)
-                                        }
+                                        onClick={() => {
+                                            if (isGroupMode) {
+                                                handleToggleMember(user);
+                                            } else if (!isCreatingConversation) {
+                                                handleSelectUser(user.user_id || user.userId);
+                                            }
+                                        }}
                                         style={{
                                             opacity: isCreatingConversation ? 0.5 : 1,
                                             pointerEvents: isCreatingConversation ? "none" : "auto",
+                                            backgroundColor: selectedMembers.find(
+                                                (m) => (m.user_id || m.userId) === (user.user_id || user.userId)
+                                            )
+                                                ? "#e6f7ff"
+                                                : "transparent",
                                         }}
                                     >
                                         <Avatar
@@ -631,24 +754,35 @@ const ConversationItem = ({ conv, isSelected, onSelect }) => {
 
     return (
         <div className={`${styles.conversationItem} ${isSelected ? styles.selected : ""}`} onClick={onSelect}>
-            <Avatar
-                size={40}
-                src={conv.avatar_path || conv.avatarPath || null}
-                style={{
-                    backgroundColor: "#1890ff",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontWeight: "bold",
-                    fontSize: "14px",
-                }}
-            >
-                {!conv.avatar_path && !conv.avatarPath && conv.name
-                    ? getFirstLetterOfEachWord(conv.name).children
-                    : "U"}
-            </Avatar>
+            {conv.type === "group" || conv.conversationType === "group" ? (
+                <GroupAvatar members={conv.memberAvatars || conv.participants} size={40} />
+            ) : (
+                <Avatar
+                    size={40}
+                    src={conv.avatar_path || conv.avatarPath || null}
+                    style={{
+                        backgroundColor: "#1890ff",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontWeight: "bold",
+                        fontSize: "14px",
+                    }}
+                >
+                    {!conv.avatar_path && !conv.avatarPath && conv.name
+                        ? getFirstLetterOfEachWord(conv.name).children
+                        : "U"}
+                </Avatar>
+            )}
             <div className={styles.convInfo}>
-                <div className={styles.convName}>{conv.name}</div>
+                <div className={styles.convName}>
+                    {conv.name}
+                    {(conv.isDisbanded || conv.is_active === false) && (
+                        <span style={{ color: "#ff4d4f", fontSize: "11px", marginLeft: "8px", fontWeight: "normal" }}>
+                            (Disbanded)
+                        </span>
+                    )}
+                </div>
                 <div className={styles.convPreview}>
                     {conv.conversationType === "group" && lastMessageSender
                         ? `${lastMessageSender}: ${lastMessageText}`

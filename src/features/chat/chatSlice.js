@@ -100,16 +100,16 @@ export const loadMessages = createAsyncThunk(
             let errorMessage = "Không thể tải tin nhắn";
             const statusCode = error?.response?.status;
 
-            if (statusCode === 404) {
+            if (error?.response?.data?.message) {
+                errorMessage = error.response.data.message;
+            } else if (statusCode === 404) {
                 errorMessage = "Cuộc trò chuyện không tồn tại";
             } else if (statusCode === 400) {
-                errorMessage = "ID cuộc trò chuyện không hợp lệ";
+                errorMessage = "ID cuộc trò chuyện không hợp lệ hoặc thiếu thông tin";
             } else if (statusCode === 403) {
                 errorMessage = "Bạn không có quyền truy cập cuộc trò chuyện này";
             } else if (statusCode === 500) {
                 errorMessage = "Lỗi máy chủ. Vui lòng thử lại sau";
-            } else if (error?.response?.data?.message) {
-                errorMessage = error.response.data.message;
             } else if (error?.message) {
                 errorMessage = error.message;
             }
@@ -185,9 +185,22 @@ export const createGroupConversation = createAsyncThunk(
                 participantIds,
                 avatar,
             });
-            return response.data;
+            // Unwrap the data from { success: true, data: { ... } }
+            return response.data?.data || response.data;
         } catch (error) {
             return rejectWithValue(error.response?.data?.message || "Failed to create group");
+        }
+    },
+);
+
+export const updateConversation = createAsyncThunk(
+    "chat/updateConversation",
+    async ({ conversationId, name, avatar }, { rejectWithValue }) => {
+        try {
+            const response = await chatAPI.updateConversation(conversationId, { name, avatar });
+            return { conversationId, name, avatar, data: response.data };
+        } catch (error) {
+            return rejectWithValue(error.response?.data?.message || "Failed to update conversation");
         }
     },
 );
@@ -280,6 +293,63 @@ export const deleteConversation = createAsyncThunk(
             }
 
             return rejectWithValue(errorMessage);
+        }
+    },
+);
+
+export const disbandGroup = createAsyncThunk("chat/disbandGroup", async (conversationId, { rejectWithValue }) => {
+    try {
+        await chatAPI.disbandGroup(conversationId);
+        return conversationId;
+    } catch (error) {
+        return rejectWithValue(error.response?.data?.message || "Failed to disband group");
+    }
+});
+
+export const updateMemberRole = createAsyncThunk(
+    "chat/updateMemberRole",
+    async ({ conversationId, memberId, role }, { rejectWithValue }) => {
+        try {
+            const response = await chatAPI.updateMemberRole(conversationId, { memberId, role });
+            return { conversationId, memberId, role, data: response.data };
+        } catch (error) {
+            return rejectWithValue(error.response?.data?.message || "Failed to update role");
+        }
+    },
+);
+
+export const addMembersToGroup = createAsyncThunk(
+    "chat/addMembersToGroup",
+    async ({ conversationId, memberIds }, { rejectWithValue }) => {
+        try {
+            const response = await chatAPI.addMembersToGroup(conversationId, memberIds);
+            return { conversationId, memberIds, data: response.data };
+        } catch (error) {
+            return rejectWithValue(error.response?.data?.message || "Failed to add members");
+        }
+    },
+);
+
+export const removeMemberFromGroup = createAsyncThunk(
+    "chat/removeMemberFromGroup",
+    async ({ conversationId, memberId }, { rejectWithValue }) => {
+        try {
+            await chatAPI.removeMemberFromGroup(conversationId, memberId);
+            return { conversationId, memberId };
+        } catch (error) {
+            return rejectWithValue(error.response?.data?.message || "Failed to remove member");
+        }
+    },
+);
+
+export const forwardMessage = createAsyncThunk(
+    "chat/forwardMessage",
+    async ({ conversationId, originalConversationId, messageId }, { rejectWithValue }) => {
+        try {
+            const response = await chatAPI.forwardMessage(conversationId, { originalConversationId, messageId });
+            return { conversationId, message: response.data.data || response.data };
+        } catch (error) {
+            return rejectWithValue(error.response?.data?.message || "Failed to forward message");
         }
     },
 );
@@ -392,6 +462,24 @@ const chatSlice = createSlice({
             }
         },
 
+        updateMemberInConversation: (state, action) => {
+            const { conversationId, memberId, updates } = action.payload;
+            const conv = state.conversations.byId[conversationId];
+            if (conv && Array.isArray(conv.participants)) {
+                conv.participants = conv.participants.map((p) =>
+                    p.user_id === memberId || p.userId === memberId ? { ...p, ...updates } : p,
+                );
+            }
+        },
+
+        removeMemberFromConversation: (state, action) => {
+            const { conversationId, memberId } = action.payload;
+            const conv = state.conversations.byId[conversationId];
+            if (conv && Array.isArray(conv.participants)) {
+                conv.participants = conv.participants.filter((p) => p.user_id !== memberId && p.userId !== memberId);
+            }
+        },
+
         addConversation: (state, action) => {
             const conversation = action.payload;
             state.conversations.byId[conversation.conversationId] = conversation;
@@ -436,6 +524,24 @@ const chatSlice = createSlice({
             state.conversations.selectedId = null;
             state.conversations.cursor = null;
             console.log("🧹 Conversations cleared");
+        },
+
+        markGroupAsDisbanded: (state, action) => {
+            const conversationId = action.payload;
+            if (state.conversations.byId[conversationId]) {
+                state.conversations.byId[conversationId].isDisbanded = true;
+                state.conversations.byId[conversationId].is_active = false;
+                state.conversations.byId[conversationId].isActive = false;
+            }
+        },
+
+        markAsKicked: (state, action) => {
+            const conversationId = action.payload;
+            if (state.conversations.byId[conversationId]) {
+                state.conversations.byId[conversationId].wasKicked = true;
+                state.conversations.byId[conversationId].is_active = false;
+                state.conversations.byId[conversationId].isActive = false;
+            }
         },
 
         resetChatState: () => initialState,
@@ -647,6 +753,50 @@ const chatSlice = createSlice({
                 state.error = action.payload;
             });
 
+        // ========== UPDATE CONVERSATION ==========
+        builder.addCase(updateConversation.fulfilled, (state, action) => {
+            const { conversationId, name, avatar, data } = action.payload;
+            if (state.conversations.byId[conversationId]) {
+                if (name) state.conversations.byId[conversationId].name = name;
+                if (avatar) {
+                    // If the API returns the new avatar path, use it
+                    const newAvatarPath = data?.data?.avatar_path || data?.avatar_path;
+                    if (newAvatarPath) {
+                        state.conversations.byId[conversationId].avatar_path = newAvatarPath;
+                    }
+                }
+            }
+        });
+
+        // ========== MEMBER MANAGEMENT ==========
+        builder.addCase(updateMemberRole.fulfilled, (state, action) => {
+            const { conversationId, memberId, role } = action.payload;
+            const conv = state.conversations.byId[conversationId];
+            if (conv && Array.isArray(conv.participants)) {
+                conv.participants = conv.participants.map((p) =>
+                    p.user_id === memberId || p.userId === memberId ? { ...p, role } : p,
+                );
+            }
+        });
+
+        builder.addCase(removeMemberFromGroup.fulfilled, (state, action) => {
+            const { conversationId, memberId } = action.payload;
+            const conv = state.conversations.byId[conversationId];
+            if (conv && Array.isArray(conv.participants)) {
+                conv.participants = conv.participants.filter((p) => p.user_id !== memberId && p.userId !== memberId);
+            }
+        });
+
+        builder.addCase(addMembersToGroup.fulfilled, (state, action) => {
+            const { conversationId, data } = action.payload;
+            const conv = state.conversations.byId[conversationId];
+            // Assuming API returns updated participant list or the new participants
+            // If data.participants exists, use it, otherwise we might need to fetch
+            if (conv && data && (data.participants || data.data?.participants)) {
+                conv.participants = data.participants || data.data.participants;
+            }
+        });
+
         // ========== SEARCH USERS ==========
         builder
             .addCase(searchUsers.pending, (state) => {
@@ -720,6 +870,52 @@ const chatSlice = createSlice({
                 state.error = action.payload;
                 console.error("❌ Failed to delete conversation:", action.payload);
             });
+
+        // ========== DISBAND GROUP ==========
+        builder.addCase(disbandGroup.fulfilled, (state, action) => {
+            const conversationId = action.payload;
+            // Remove from byId
+            delete state.conversations.byId[conversationId];
+            // Remove from allIds
+            state.conversations.allIds = state.conversations.allIds.filter((id) => id !== conversationId);
+            // Clear selected if it was the disbanded conversation
+            if (state.conversations.selectedId === conversationId) {
+                state.conversations.selectedId = state.conversations.allIds[0] || null;
+            }
+            // Remove messages for this conversation
+            delete state.messages.byConversation[conversationId];
+        });
+
+        // ========== FORWARD MESSAGE ==========
+        builder.addCase(forwardMessage.fulfilled, (state, action) => {
+            const { conversationId, message } = action.payload;
+            if (!state.messages.byConversation[conversationId]) {
+                state.messages.byConversation[conversationId] = {
+                    byId: {},
+                    allIds: [],
+                    hasMore: true,
+                    cursor: null,
+                };
+            }
+            const conv = state.messages.byConversation[conversationId];
+            conv.byId[message.messageId] = message;
+            if (!conv.allIds.includes(message.messageId)) {
+                conv.allIds.push(message.messageId);
+            }
+
+            // Update last message in conversation list
+            if (state.conversations.byId[conversationId]) {
+                state.conversations.byId[conversationId].lastMessage = message;
+                state.conversations.byId[conversationId].lastMessageTimestamp = new Date(message.createdAt).getTime();
+            }
+
+            // Move to top
+            const idx = state.conversations.allIds.indexOf(conversationId);
+            if (idx > -1) {
+                state.conversations.allIds.splice(idx, 1);
+            }
+            state.conversations.allIds.unshift(conversationId);
+        });
     },
 });
 
@@ -731,12 +927,16 @@ export const {
     setTyping,
     setUserOnline,
     updateConversationList,
+    updateMemberInConversation,
+    removeMemberFromConversation,
     addConversation,
     moveConversationToTop,
     clearSearchResults,
     setSendingMessageId,
     clearError,
     clearConversations,
+    markGroupAsDisbanded,
+    markAsKicked,
     resetChatState,
 } = chatSlice.actions;
 

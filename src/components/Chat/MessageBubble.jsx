@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Avatar } from "antd";
-import { EllipsisOutlined, PlayCircleOutlined, PauseCircleOutlined, CloseOutlined } from "@ant-design/icons";
+import { EllipsisOutlined, PlayCircleOutlined, PauseCircleOutlined, CloseOutlined, ForwardOutlined } from "@ant-design/icons";
 import styles from "./ChatWindow.module.css";
 import { formatTime, formatFileSize } from "@utils/formatters";
 import { getFirstLetterOfEachWord } from "@helpers/stringHelper";
@@ -19,7 +19,7 @@ const animationStyles = `
   }
 `;
 
-const MessageBubble = ({ message, isOwn, showAvatar, showTimestamp, onDelete, conversationId }) => {
+const MessageBubble = ({ message, isOwn, showAvatar, showTimestamp, onDelete, onForward, conversationId, currentUserId }) => {
     const [showMenu, setShowMenu] = useState(false);
     const [isHovering, setIsHovering] = useState(false);
     const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
@@ -65,6 +65,64 @@ const MessageBubble = ({ message, isOwn, showAvatar, showTimestamp, onDelete, co
         return null;
     }
 
+    // Special rendering for system messages (centered, no bubble)
+    if (message.type === "system") {
+        return (
+            <div
+                style={{
+                    display: "flex",
+                    justifyContent: "center",
+                    width: "100%",
+                    margin: "12px 0",
+                    padding: "0 20px",
+                }}
+            >
+                <div
+                    style={{
+                        backgroundColor: "rgba(0, 0, 0, 0.05)",
+                        padding: "4px 12px",
+                        borderRadius: "12px",
+                        fontSize: "12px",
+                        color: "#8c8c8c",
+                        textAlign: "center",
+                        maxWidth: "80%",
+                    }}
+                >
+                    {(() => {
+                        const metadata = message.metadata || {};
+                        if (metadata.action === "member_removed") {
+                            const isKicked = metadata.removedMemberId === currentUserId;
+                            const isKicker = metadata.adminId === currentUserId;
+
+                            const adminName = metadata.adminName || "Admin";
+                            const removedName = metadata.removedMemberName || "a member";
+
+                            if (isKicker) {
+                                return `You removed ${removedName} from the group`;
+                            }
+                            if (isKicked) {
+                                return `You have been removed from the group by ${adminName}`;
+                            }
+                            return `${adminName} removed ${removedName} from the group`;
+                        }
+                        if (metadata.action === "member_added") {
+                            const adderName = metadata.adminName || "Admin";
+                            const addedName = metadata.addedMemberName || "a member";
+                            return `${adderName} added ${addedName} to the group`;
+                        }
+                        if (metadata.action === "group_disbanded") {
+                            if (isOwn) {
+                                return `You have disbanded the group`;
+                            }
+                            return `${metadata.adminName} has disbanded the group`;
+                        }
+                        return message.content;
+                    })()}
+                </div>
+            </div>
+        );
+    }
+
     const getSeenStatus = () => {
         if (!message) return null;
 
@@ -103,6 +161,26 @@ const MessageBubble = ({ message, isOwn, showAvatar, showTimestamp, onDelete, co
             return <p className={styles.messageText}>{message?.content || "Message"}</p>;
         }
 
+        let effectiveType = message.type;
+        if (effectiveType === "forward") {
+            if (Array.isArray(message.attachments) && message.attachments.length > 0) {
+                const firstAtt = message.attachments[0];
+                if (isAudioFile(firstAtt?.fileUrl, firstAtt?.fileName)) {
+                    effectiveType = "voice";
+                } else if (
+                    firstAtt?.fileUrl?.match(/\.(jpeg|jpg|gif|png|webp|heic)$/i) || 
+                    firstAtt?.fileName?.match(/\.(jpeg|jpg|gif|png|webp|heic)$/i) ||
+                    firstAtt?.type?.startsWith("image")
+                ) {
+                    effectiveType = "image";
+                } else {
+                    effectiveType = "file";
+                }
+            } else {
+                effectiveType = "text";
+            }
+        }
+
         // Check if this should be treated as voice even if type is 'file'
         const hasVoiceAttachment =
             Array.isArray(message.attachments) &&
@@ -110,7 +188,7 @@ const MessageBubble = ({ message, isOwn, showAvatar, showTimestamp, onDelete, co
             isAudioFile(message.attachments[0].fileUrl, message.attachments[0].fileName);
 
         // If type is file but it's audio, treat as voice
-        if (message.type === "file" && hasVoiceAttachment) {
+        if ((effectiveType === "file" || message.type === "file") && hasVoiceAttachment) {
             const formatAudioTime = (seconds) => {
                 if (!seconds || isNaN(seconds)) return "0:00";
                 const mins = Math.floor(seconds / 60);
@@ -271,7 +349,7 @@ const MessageBubble = ({ message, isOwn, showAvatar, showTimestamp, onDelete, co
             );
         }
 
-        switch (message.type) {
+        switch (effectiveType) {
             case "text":
                 return <p className={styles.messageText}>{message.content || ""}</p>;
 
@@ -677,6 +755,21 @@ const MessageBubble = ({ message, isOwn, showAvatar, showTimestamp, onDelete, co
             )}
 
             <div className={styles.bubbleContent}>
+                {message.forwardedFromId && (
+                    <div
+                        style={{
+                            fontSize: "11px",
+                            opacity: 0.7,
+                            marginBottom: "4px",
+                            fontStyle: "italic",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: "4px",
+                        }}
+                    >
+                        <ForwardOutlined style={{ fontSize: "12px" }} /> Forwarded
+                    </div>
+                )}
                 {renderContent()}
 
                 <div className={styles.messageFooter}>
@@ -739,6 +832,28 @@ const MessageBubble = ({ message, isOwn, showAvatar, showTimestamp, onDelete, co
                     }}
                     onClick={(e) => e.stopPropagation()}
                 >
+                    <button
+                        onClick={() => {
+                            if (onForward) onForward(message);
+                            setShowMenu(false);
+                        }}
+                        style={{
+                            display: "block",
+                            width: "100%",
+                            padding: "8px 12px",
+                            border: "none",
+                            background: "none",
+                            textAlign: "left",
+                            cursor: "pointer",
+                            fontSize: "14px",
+                            color: "#1890ff",
+                            borderBottom: "1px solid #f0f0f0",
+                        }}
+                        onMouseEnter={(e) => (e.target.style.backgroundColor = "#e6f7ff")}
+                        onMouseLeave={(e) => (e.target.style.backgroundColor = "transparent")}
+                    >
+                        Forward
+                    </button>
                     {isOwn && canRecall() && (
                         <button
                             onClick={handleRecall}

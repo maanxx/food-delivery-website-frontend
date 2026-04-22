@@ -147,6 +147,13 @@
     text-overflow: ellipsis;
 }
 
+.memberCount {
+    font-size: 11px;
+    color: #8c8c8c;
+    margin-top: 1px;
+    margin-bottom: 2px;
+}
+
 .convPreview,
 .userEmail {
     font-size: 12px;

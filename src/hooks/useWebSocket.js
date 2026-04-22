@@ -9,6 +9,7 @@ import {
     updateConversationList,
     moveConversationToTop,
     addConversation,
+    loadConversations,
 } from "@features/chat/chatSlice";
 import { orderStatusUpdated } from "@features/order/orderSlice";
 import { toast } from "react-toastify";
@@ -241,39 +242,20 @@ const useWebSocket = () => {
             }
         });
 
+        socket.on("new_conversation", (conversation) => {
+            console.log("🆕 New conversation received via WebSocket:", conversation);
+            dispatch(addConversation(conversation));
+            dispatch(moveConversationToTop(conversation.conversationId));
+        });
+
         socket.on("conversation:deleted", ({ conversationId }) => {
             // Handle conversation deletion
             console.log("Conversation deleted:", conversationId);
         });
 
-        // ========== ORDER TRACKING ==========
-        socket.on("order_updated", (data) => {
-            const { order_id, status, brand } = data;
-            
-            console.log("📦 Order status updated:", { orderId: order_id, status, brand });
-            
-            // 1. Update Redux State
-            dispatch(orderStatusUpdated(data));
-
-            // 2. Show Toast Notification
-            const statusMessages = {
-                pending: "đang chờ xử lý",
-                confirmed: "đã được xác nhận",
-                delivering: "đang trên đường giao đến bạn",
-                delivered: "đã được giao thành công. Chúc bạn ngon miệng!",
-                cancelled: "đã bị hủy",
-            };
-
-            const msg = statusMessages[status?.toLowerCase()] || `chuyển sang trạng thái ${status}`;
-            const toastRef = `Đơn hàng ${brand || "Eatsy"} (${order_id.slice(-6).toUpperCase()})`;
-            
-            if (status === "delivered") {
-                toast.success(`${toastRef} ${msg}`);
-            } else if (status === "cancelled") {
-                toast.error(`${toastRef} ${msg}`);
-            } else {
-                toast.info(`${toastRef} ${msg}`);
-            }
+        socket.on("member_added_to_new_group", (data) => {
+            console.log("📍 Added to a new group conversation:", data.conversationId);
+            dispatch(loadConversations());
         });
 
         socketInstance = socket;
