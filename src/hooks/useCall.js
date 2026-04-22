@@ -309,7 +309,16 @@ const useCall = (socket) => {
         remoteUserIdRef.current = null;
         callIdRef.current = null;
         recipientIdRef.current = null;
-        callStartTimeRef.current = null; // ← Reset call start time
+        callStartTimeRef.current = null;
+        callConversationIdRef.current = null;
+        callTypeRef.current = null;
+
+        // Reset WebRTC signal state for next call
+        pendingSignalsRef.current = [];
+        peerReadyRef.current = false;
+        signalsProcessedRef.current = { offers: 0, answers: 0, iceCandidates: 0 };
+        answerRetryCountRef.current = 0;
+        console.log("📵 [endCall] Signal state reset for next call");
 
         if (callTimerRef.current) {
             clearInterval(callTimerRef.current);
@@ -1024,6 +1033,11 @@ const useCall = (socket) => {
                 });
 
                 peer.on("error", (error) => {
+                    // CRITICAL FIX: Ignore events from replaced/old peers
+                    if (peerRef.current !== peer) {
+                        console.warn("❌ [peer.on.error] Ignoring error from old/replaced peer - preventing new call teardown");
+                        return;
+                    }
                     console.error("❌ [peer.on.error] WebRTC peer error:", error);
                     try {
                         setCallState((prev) => ({
@@ -1036,6 +1050,14 @@ const useCall = (socket) => {
                 });
 
                 peer.on("close", () => {
+                    // CRITICAL FIX: Ignore close events from old/replaced peers.
+                    // When makeCall destroys the previous peer and immediately creates a new one,
+                    // the old peer fires 'close' asynchronously AFTER peerRef.current already points
+                    // to the new peer. Without this check, endCall() would destroy the new connection.
+                    if (peerRef.current !== peer) {
+                        console.warn("🔌 [peer.on.close] Ignoring close from old/replaced peer - this is expected on second+ calls");
+                        return;
+                    }
                     console.log("🔌 [peer.on.close] Peer connection closed");
                     // Only call endCall if we're not already cleaning up, to prevent recursion
                     if (!isCleaningUpRef.current) {
@@ -1201,11 +1223,17 @@ const useCall = (socket) => {
                     if (peerRef.current) {
                         try {
                             console.log("🔗 [makeCall] Destroying existing peer connection...");
-                            peerRef.current.destroy?.();
+                            // CRITICAL FIX: Set peerRef to null BEFORE calling destroy().
+                            // This prevents the old peer's async 'close' event from seeing itself
+                            // as the current peer and calling endCall(), which would destroy
+                            // the new connection we are about to create.
+                            const oldPeer = peerRef.current;
+                            peerRef.current = null;
+                            oldPeer.destroy?.();
                         } catch (destroyError) {
                             console.error("⚠️ [makeCall] Error destroying existing peer:", destroyError);
+                            peerRef.current = null;
                         }
-                        // Don't set to null yet - let async cleanup happen
                     }
 
                     const peer = await createPeerConnection(stream, true, callId, recipientId);
@@ -1236,12 +1264,15 @@ const useCall = (socket) => {
     const acceptCall = useCallback(
         async (callType = "voice") => {
             try {
-                // Reset peer readiness and pending signals for new call
+                // CRITICAL FIX: Do NOT clear pendingSignalsRef here.
+                // The offer from the caller may have already arrived (via socket.on('offer'))
+                // BEFORE the user pressed Accept. Clearing it would lose that offer and
+                // prevent the WebRTC handshake from completing on subsequent calls.
+                // endCall() is responsible for clearing signal state between calls.
                 peerReadyRef.current = false;
-                pendingSignalsRef.current = [];
                 answerRetryCountRef.current = 0;
                 signalsProcessedRef.current = { offers: 0, answers: 0, iceCandidates: 0 };
-                console.log("🔄 [acceptCall] Reset peer state - ready to receive new signals");
+                console.log("🔄 [acceptCall] Reset peer state - preserving any pre-queued signals:", pendingSignalsRef.current.length);
 
                 console.log(`✅ [acceptCall] START - callType: ${callType}`);
                 console.log(`   incomingCall:`, callState.incomingCall);
