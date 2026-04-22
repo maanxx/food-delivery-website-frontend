@@ -529,6 +529,59 @@ const MessageBubble = ({ message, isOwn, showAvatar, showTimestamp, onDelete, co
                     </div>
                 );
 
+            case "call":
+            case "system_call": {
+                const callData = message.callData || message.metadata || message.call_data || {};
+                const status = callData.status || callData.callStatus || "";
+                const isMissed = status === "missed";
+                const isRejected = status === "rejected" || status === "declined";
+                const isCancelled = status === "cancelled";
+                const isNegative = isMissed || isRejected || isCancelled;
+                const isVideo = (callData.callType || callData.type) === "video";
+
+                const formatDuration = (seconds) => {
+                    if (!seconds || seconds <= 0) return null;
+                    const mins = Math.floor(seconds / 60);
+                    const secs = seconds % 60;
+                    if (mins > 0) {
+                        return `${mins}m ${secs}s`;
+                    }
+                    return `${secs}s`;
+                };
+
+                const durationVal = callData.duration || callData.durationSeconds || 0;
+                const durationStr = formatDuration(durationVal);
+
+                return (
+                    <div style={{ display: "flex", alignItems: "center", gap: "12px", padding: "4px" }}>
+                        <div
+                            style={{
+                                width: "40px",
+                                height: "40px",
+                                borderRadius: "50%",
+                                backgroundColor: isNegative ? "#fff1f0" : "#e6f7ff",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontSize: "20px",
+                                flexShrink: 0,
+                            }}
+                        >
+                            {isVideo ? "📹" : "📞"}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                            <div style={{ fontWeight: "600", color: isNegative ? "#f5222d" : "inherit" }}>
+                                {isVideo ? "Video Call" : "Voice Call"}
+                                {isMissed ? " (Missed)" : isCancelled ? " (Cancelled)" : isRejected ? " (Rejected)" : ""}
+                            </div>
+                            <div style={{ fontSize: "12px", opacity: 0.7 }}>
+                                {durationStr ? `Duration: ${durationStr}` : isMissed ? "You missed a call" : "No answer"}
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
+
             default:
                 return null;
         }

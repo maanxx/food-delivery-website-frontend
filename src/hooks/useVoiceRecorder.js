@@ -63,9 +63,21 @@ const useVoiceRecorder = () => {
             mediaRecorderRef.current.stop();
             setIsRecording(false);
 
-            // Stop all tracks
+            // Stop all tracks - safe check for native MediaStream API
             if (streamRef.current) {
-                streamRef.current.getTracks().forEach((track) => track.stop());
+                try {
+                    if (typeof streamRef.current.getTracks === "function") {
+                        streamRef.current.getTracks().forEach((track) => {
+                            try {
+                                track.stop();
+                            } catch (e) {
+                                console.warn("Error stopping track:", e);
+                            }
+                        });
+                    }
+                } catch (e) {
+                    console.warn("Error accessing tracks:", e);
+                }
             }
 
             clearInterval(timerRef.current);
@@ -79,9 +91,21 @@ const useVoiceRecorder = () => {
             setRecordedBlob(null);
             setRecordingTime(0);
 
-            // Stop all tracks
+            // Stop all tracks - safe check for native MediaStream API
             if (streamRef.current) {
-                streamRef.current.getTracks().forEach((track) => track.stop());
+                try {
+                    if (typeof streamRef.current.getTracks === "function") {
+                        streamRef.current.getTracks().forEach((track) => {
+                            try {
+                                track.stop();
+                            } catch (e) {
+                                console.warn("Error stopping track:", e);
+                            }
+                        });
+                    }
+                } catch (e) {
+                    console.warn("Error accessing tracks:", e);
+                }
             }
 
             clearInterval(timerRef.current);

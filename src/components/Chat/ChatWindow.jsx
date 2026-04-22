@@ -11,17 +11,16 @@ import MessageInput from "./MessageInput";
 import TypingIndicator from "./TypingIndicator";
 import EmptyChat from "./EmptyChat";
 import CallWindow from "./CallWindow";
-import CallModal from "./CallModal";
 import ChatSidebar from "./ChatSidebar";
 import { loadMessages, selectMessages, markMessagesAsRead } from "@features/chat/chatSlice";
 import useWebSocket from "@hooks/useWebSocket";
-import useCall from "@hooks/useCall";
+import { useCallContext } from "@contexts/CallContext";
 
 const ChatWindow = () => {
     const { conversationId } = useParams();
     const dispatch = useDispatch();
     const { socket, isConnected, markAsRead } = useWebSocket();
-    const { callState, makeCall, acceptCall, rejectCall, endCall } = useCall(socket);
+    const { callState, makeCall, acceptCall, rejectCall, endCall, toggleAudio, toggleVideo } = useCallContext();
 
     const messages = useSelector(selectMessages(conversationId));
     const conversation = useSelector((state) => state.chat.conversations.byId[conversationId]);
@@ -33,7 +32,6 @@ const ChatWindow = () => {
 
     const [isLoadingMessages, setIsLoadingMessages] = useState(false);
     const [loadError, setLoadError] = useState(null);
-    const [showCallModal, setShowCallModal] = useState(false);
     const [isInitiatingCall, setIsInitiatingCall] = useState(false);
     const [showSidebar, setShowSidebar] = useState(false);
     const messagesEndRef = useRef(null);
@@ -42,6 +40,8 @@ const ChatWindow = () => {
     // Get recipient ID for 1-on-1 conversations
     const getRecipientId = () => {
         console.log("🔍 Getting recipient ID for conversation:", conversationId);
+        console.log("📋 Full conversation object:", conversation);
+        console.log("📋 Current user ID:", currentUserId);
 
         // Check for group conversations first
         if (conversation?.type === "group" || conversation?.conversationType === "group") {
@@ -60,6 +60,16 @@ const ChatWindow = () => {
         if (directRecipientId && directRecipientId !== currentUserId) {
             console.log("✅ Found recipient ID from direct field:", directRecipientId);
             return directRecipientId;
+        }
+
+        // Try to find recipient from members array (alternative name)
+        if (conversation?.members && Array.isArray(conversation.members)) {
+            const recipient = conversation.members.find((m) => (m.id || m.userId || m.user_id) !== currentUserId);
+            if (recipient) {
+                const recipientId = recipient.id || recipient.userId || recipient.user_id;
+                console.log("✅ Found recipient from members array:", recipientId);
+                return recipientId;
+            }
         }
 
         // Try to find recipient from participants array
@@ -89,9 +99,12 @@ const ChatWindow = () => {
 
         console.error("❌ Unable to determine recipient. Conversation structure:", {
             type: conversation?.type,
+            conversationType: conversation?.conversationType,
             hasRecipientFields: !!(conversation?.recipientId || conversation?.recipient_id || conversation?.memberId),
             hasParticipants: !!conversation?.participants,
+            hasMembers: !!conversation?.members,
             messageCount: messages?.length || 0,
+            conversationKeys: Object.keys(conversation || {}),
         });
         message.error("Unable to determine recipient. Please refresh the conversation.");
         return null;
@@ -152,24 +165,45 @@ const ChatWindow = () => {
         }
     }, [messages, conversationId, currentUserId, isConnected, dispatch, markAsRead]);
 
+    // Show error notifications when call state has errors
+    useEffect(() => {
+        if (callState.error) {
+            message.error({
+                content: `Call Error: ${callState.error}`,
+                duration: 5,
+                style: {
+                    marginTop: "20px",
+                },
+            });
+        }
+    }, [callState.error]);
+
     if (!conversation) {
         return <EmptyChat />;
     }
 
     const handleInitiateVoiceCall = async () => {
         try {
+            console.log("🎤 [handleInitiateVoiceCall] Voice call button clicked");
             setIsInitiatingCall(true);
             const recipientId = getRecipientId();
 
             if (!recipientId) {
+                console.warn("⚠️ [handleInitiateVoiceCall] No recipientId found");
                 return;
             }
 
-            console.log("🎤 Initiating voice call with:", recipientId);
-            await makeCall(recipientId, conversationId, "voice");
-            setShowCallModal(false);
+            console.log("🎤 [handleInitiateVoiceCall] Initiating voice call with:", recipientId);
+            console.log("🎤 [handleInitiateVoiceCall] About to call makeCall function");
+            await makeCall(
+                recipientId,
+                conversationId,
+                "voice",
+                conversation?.name || conversation?.senderName || "User",
+            );
+            console.log("🎤 [handleInitiateVoiceCall] makeCall returned");
         } catch (error) {
-            console.error("❌ Failed to initiate voice call:", error);
+            console.error("❌ [handleInitiateVoiceCall] Failed to initiate voice call:", error);
             message.error("Failed to initiate voice call: " + error.message);
         } finally {
             setIsInitiatingCall(false);
@@ -178,19 +212,56 @@ const ChatWindow = () => {
 
     const handleInitiateVideoCall = async () => {
         try {
+            console.log("📹 [handleInitiateVideoCall] Video call button clicked");
             setIsInitiatingCall(true);
             const recipientId = getRecipientId();
 
             if (!recipientId) {
-                return; // Error message already shown by getRecipientId
+                console.warn("⚠️ [handleInitiateVideoCall] No recipientId found");
+                return;
             }
 
-            console.log("📹 Initiating video call with:", recipientId);
-            await makeCall(recipientId, conversationId, "video");
-            setShowCallModal(false);
+            console.log("📹 [handleInitiateVideoCall] Initiating video call with:", recipientId);
+            console.log("📹 [handleInitiateVideoCall] About to call makeCall function");
+            await makeCall(
+                recipientId,
+                conversationId,
+                "video",
+                conversation?.name || conversation?.senderName || "User",
+            );
+            console.log("📹 [handleInitiateVideoCall] makeCall returned");
         } catch (error) {
-            console.error("❌ Failed to initiate video call:", error);
+            console.error("❌ [handleInitiateVideoCall] Failed to initiate video call:", error);
             message.error("Failed to initiate video call: " + error.message);
+        } finally {
+            setIsInitiatingCall(false);
+        }
+    };
+
+    // Retry failed call
+    const handleRetryCall = async () => {
+        try {
+            setIsInitiatingCall(true);
+            const recipientId = getRecipientId();
+
+            if (!recipientId) {
+                return;
+            }
+
+            console.log(`🔄 Retrying ${callState.callType} call with:`, recipientId);
+            // First end the failed call
+            await endCall();
+
+            // Then retry
+            await makeCall(
+                recipientId,
+                conversationId,
+                callState.callType || "voice",
+                conversation?.name || conversation?.senderName || "User",
+            );
+        } catch (error) {
+            console.error("❌ Failed to retry call:", error);
+            message.error("Failed to retry call: " + error.message);
         } finally {
             setIsInitiatingCall(false);
         }
@@ -198,6 +269,7 @@ const ChatWindow = () => {
 
     // Render call window if there's active call or incoming call
     if (callState.inCall || callState.outgoingCallId || callState.incomingCall) {
+       
         return (
             <CallWindow
                 callState={callState}
@@ -206,19 +278,44 @@ const ChatWindow = () => {
                 onAcceptVO={() => acceptCall("voice")}
                 onAcceptVideo={() => acceptCall("video")}
                 onReject={rejectCall}
+                onRetry={handleRetryCall}
+                onToggleAudio={toggleAudio}
+                onToggleVideo={toggleVideo}
             />
         );
     }
 
-    console.log("🔌 ChatWindow rendered:", {
-        isConnected,
-        conversationId,
-        currentUserId,
-        hasCallActive: callState?.outgoingCallId || callState?.incomingCall ? true : false,
-    });
+
+    // DEBUG: Show call state for troubleshooting
+    const showDebugInfo = !!callState?.outgoingCallId && !callState?.inCall;
 
     return (
         <div className={styles.chatWindowContainer}>
+            {/* DEBUG PANEL - Show call state status */}
+            {showDebugInfo && (
+                <div
+                    style={{
+                        position: "fixed",
+                        bottom: "20px",
+                        right: "20px",
+                        background: "#333",
+                        color: "#0f0",
+                        padding: "10px",
+                        borderRadius: "5px",
+                        fontSize: "12px",
+                        fontFamily: "monospace",
+                        zIndex: 9999,
+                        maxWidth: "300px",
+                    }}
+                >
+                    <div>📞 CALL STATE DEBUG</div>
+                    <div>outgoingCallId: {callState.outgoingCallId}</div>
+                    <div>callType: {callState.callType}</div>
+                    <div>remoteUserId: {callState.remoteUserId}</div>
+                    <div>error: {callState.error || "none"}</div>
+                </div>
+            )}
+
             <div className={styles.chatWindow}>
                 {/* Header */}
                 <div className={styles.header}>
@@ -254,11 +351,21 @@ const ChatWindow = () => {
                         </button>
                         <button
                             className={styles.actionBtn}
-                            title="Call"
-                            onClick={() => setShowCallModal(true)}
-                            disabled={conversation?.conversationType === "group"}
+                            title="Voice Call"
+                            onClick={handleInitiateVoiceCall}
+                            disabled={conversation?.conversationType === "group" || isInitiatingCall}
+                            loading={isInitiatingCall}
                         >
                             <PhoneOutlined />
+                        </button>
+                        <button
+                            className={styles.actionBtn}
+                            title="Video Call"
+                            onClick={handleInitiateVideoCall}
+                            disabled={conversation?.conversationType === "group" || isInitiatingCall}
+                            loading={isInitiatingCall}
+                        >
+                            <VideoCameraOutlined />
                         </button>
                         <button className={styles.actionBtn} title="Info" onClick={() => setShowSidebar(!showSidebar)}>
                             <InfoCircleOutlined />
@@ -318,18 +425,6 @@ const ChatWindow = () => {
 
                 {/* Input */}
                 <MessageInput conversationId={conversationId} />
-
-                {/* Call Modal */}
-                <CallModal
-                    visible={showCallModal}
-                    loading={isInitiatingCall}
-                    error={callState.error}
-                    onVoiceCall={handleInitiateVoiceCall}
-                    onVideoCall={handleInitiateVideoCall}
-                    onCancel={() => {
-                        setShowCallModal(false);
-                    }}
-                />
             </div>
 
             {/* Sidebar */}
