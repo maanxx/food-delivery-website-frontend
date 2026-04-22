@@ -5,12 +5,11 @@ import { DarkMode, Search, Login, ShoppingCart, LightMode } from "@mui/icons-mat
 import { Box, Container } from "@mui/material";
 import { Avatar } from "antd";
 
+import { useSelector } from "react-redux";
 import styles from "./Header.module.css";
 import useAuth from "@hooks/useAuth";
 import useWebSocket from "@hooks/useWebSocket";
 import { getFirstLetterOfEachWord } from "@helpers/stringHelper";
-import { getUserInfo } from "@helpers/cookieHelper";
-import { clearCookie } from "@features/auth/authSlice";
 import { authLogout } from "@services/authService";
 
 const cx = classNames.bind(styles);
@@ -20,11 +19,20 @@ function Header() {
     const [activeKey, setActiveKey] = useState("1");
     const [darkMode, setDarkmode] = useState(false);
     const [bannerBackgroundColor, setBannerBackgroundColor] = useState("var(--whiteColor)");
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, logout } = useAuth();
     const { disconnect } = useWebSocket();
     const [showProfileNav, setShowProfileNav] = useState(false);
-    const user = getUserInfo();
-    const { logout } = useAuth();
+    const user = useSelector((state) => state.auth.user);
+    const cartTotalQuantity = useSelector((state) => state.cart.totalQuantity);
+    const [isCartBumped, setIsCartBumped] = useState(false);
+
+    // Animation Effect when cart items change
+    useEffect(() => {
+        if (cartTotalQuantity === 0) return;
+        setIsCartBumped(true);
+        const timer = setTimeout(() => setIsCartBumped(false), 300);
+        return () => clearTimeout(timer);
+    }, [cartTotalQuantity]);
 
     const handleChangeModeBtnClick = () => {
         setDarkmode((prevMode) => !prevMode);
@@ -129,10 +137,12 @@ function Header() {
                                 <Search />
                             </Link>
                         </button>
-                        <button className={cx("cart-btn")}>
+                        <button className={cx("cart-btn", { bump: isCartBumped })}>
                             <Link to={"/cart"}>
                                 <ShoppingCart />
-                                <span className={cx("cart-badge")}>0</span>
+                                {isAuthenticated && cartTotalQuantity > 0 && (
+                                    <span className={cx("cart-badge")}>{cartTotalQuantity}</span>
+                                )}
                             </Link>
                         </button>
                         {isAuthenticated ? (
@@ -163,7 +173,6 @@ function Header() {
                                                     console.log("🚪 Logging out...");
                                                     await authLogout();
                                                     logout();
-                                                    clearCookie();
                                                     // Disconnect socket before reload
                                                     disconnect?.();
                                                     console.log("🔌 Socket disconnected");

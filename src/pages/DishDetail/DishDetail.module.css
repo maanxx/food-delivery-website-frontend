@@ -1,5 +1,4 @@
 .detailPage {
-  padding-top: 120px;
   max-width: 1200px;
 }
 
@@ -9,7 +8,6 @@
   border-radius: 12px;
   padding: 8px 16px;
   color: #333;
-
   background: #f5f5f5;
   transition: all 0.25s ease;
 }

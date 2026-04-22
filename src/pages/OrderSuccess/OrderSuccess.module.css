@@ -1,0 +1,158 @@
+.wrapper {
+  background-color: #f8f9fa;
+  min-height: calc(100vh - var(--headerHeight));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+.successCard {
+  background: white;
+  max-width: 600px;
+  width: 100%;
+  padding: 60px 40px;
+  border-radius: 24px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+  text-align: center;
+  border: 1px solid #eee;
+}
+
+.iconWrapper {
+  width: 80px;
+  height: 80px;
+  background: #f0fdf4;
+  color: #22c55e;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 32px;
+  font-size: 40px;
+  animation: scaleIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes scaleIn {
+  from { transform: scale(0); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.title {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #333;
+  margin-bottom: 12px;
+}
+
+.description {
+  color: #666;
+  font-size: 1.1rem;
+  margin-bottom: 40px;
+}
+
+.orderDetailGrid {
+  background: #fcfcfc;
+  border: 1px dashed #ddd;
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 40px;
+  text-align: left;
+  display: grid;
+  gap: 16px;
+}
+
+.detailRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.detailLabel {
+  color: #888;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.detailValue {
+  color: #333;
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.orderId {
+  font-family: monospace;
+  background: #eee;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.statusTag {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.itemList {
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: 1px solid #eee;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+.actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+}
+
+.viewOrdersBtn {
+  background: var(--primaryColor);
+  color: white;
+  border: none;
+  padding: 14px 28px;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transitionNormal);
+  flex: 1;
+}
+
+.viewOrdersBtn:hover {
+  opacity: 0.9;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(255, 145, 77, 0.3);
+}
+
+.homeBtn {
+  background: white;
+  color: #333;
+  border: 1px solid #eee;
+  padding: 14px 28px;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transitionNormal);
+  flex: 1;
+}
+
+.homeBtn:hover {
+  background: #f8f9fa;
+  border-color: #ddd;
+}
+
+@media (max-width: 576px) {
+  .actions {
+    flex-direction: column;
+  }
+}

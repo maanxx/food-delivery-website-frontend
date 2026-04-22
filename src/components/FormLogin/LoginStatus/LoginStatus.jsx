@@ -17,9 +17,12 @@ function LoginStatus() {
         });
 
         if (res.data.success) {
+          const { accessToken, refreshToken, user } = res.data;
+          localStorage.setItem("access_token", accessToken);
+          if (refreshToken) localStorage.setItem("refresh_token", refreshToken);
           loginChannel.postMessage({ success: true });
           setLogged(true);
-          login();
+          login({ token: accessToken, refreshToken, user });
         } else {
           loginChannel.postMessage({ success: false });
           setLogged(false);

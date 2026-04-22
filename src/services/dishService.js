@@ -4,7 +4,7 @@ import axiosInstance from "@config/axiosInstance";
 const getAllDishes = async () => {
     try {
         const res = await axiosInstance({
-            url: "/dish",
+            url: "/api/dish",
             method: "get",
         });
         return res.data;
@@ -17,7 +17,7 @@ const getAllDishes = async () => {
 const getDishById = async (id) => {
     try {
         const res = await axiosInstance({
-            url: `/dish/${id}`,
+            url: `/api/dish/${id}`,
             method: "get",
         });
         return res.data;

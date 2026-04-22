@@ -1,21 +1,39 @@
 import React from 'react';
 import styles from './AddressCard.module.css';
-import { EditOutlined, DeleteOutlined, PushpinOutlined } from '@ant-design/icons';
+import { EditOutlined, DeleteOutlined, EnvironmentOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import { Button, Tag } from 'antd';
 
-const AddressCard = ({ address, onEdit, onDelete, onSetDefault, isDefault }) => {
+// UPDATED
+// UPDATED
+const AddressCard = ({ 
+  address, 
+  onEdit, 
+  onDelete, 
+  onSetDefault, 
+  isDefault,
+  isDeleting,
+  isSettingDefault 
+}) => {
+  const line1 = [address.street, address.ward].filter(Boolean).join(', ');
+  const line2 = address.city;
+
   return (
     <div className={`${styles.card} ${isDefault ? styles.defaultCard : ''}`}>
       <div className={styles.header}>
-        <h4>{address.label || 'Home'}</h4>
-        {isDefault && <Tag color="blue"><PushpinOutlined /> Default</Tag>}
+        <div className={styles.labelSection}>
+          <EnvironmentOutlined className={styles.icon} />
+          <span className={styles.label}>{address.label || 'Home'}</span>
+          {isDefault && <Tag color="#ff914c" className={styles.defaultBadge}>Default</Tag>}
+        </div>
         <div className={styles.actions}>
           {!isDefault && (
             <Button 
               type="text" 
-              icon={<PushpinOutlined />} 
+              icon={<CheckCircleOutlined />} 
               onClick={() => onSetDefault(address.address_id)}
-              size="small"
+              className={styles.actionBtn}
+              loading={isSettingDefault}
+              disabled={isDeleting}
             >
               Set Default
             </Button>
@@ -24,21 +42,23 @@ const AddressCard = ({ address, onEdit, onDelete, onSetDefault, isDefault }) => 
             type="text" 
             icon={<EditOutlined />} 
             onClick={() => onEdit(address)}
-            size="small"
+            className={styles.actionBtn}
+            disabled={isDeleting || isSettingDefault}
           />
           <Button 
             type="text" 
             danger 
             icon={<DeleteOutlined />} 
             onClick={() => onDelete(address.address_id)}
-            size="small"
+            className={styles.actionBtn}
+            loading={isDeleting}
+            disabled={isSettingDefault}
           />
         </div>
       </div>
       <div className={styles.details}>
-        <p>{address.street}</p>
-        <p>{address.city}, {address.state ? `${address.state}, ` : ''}{address.zip_code}</p>
-        <p>{address.country}</p>
+        <div className={styles.mainAddress}>{line1}</div>
+        <div className={styles.subAddress}>{line2}</div>
       </div>
     </div>
   );

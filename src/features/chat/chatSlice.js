@@ -1,16 +1,16 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { chatAPI } from "./chatAPI";
-import { getUserInfo } from "@helpers/cookieHelper";
 
 export const loadConversations = createAsyncThunk(
     "chat/loadConversations",
-    async ({ limit = 20, cursor } = {}, { rejectWithValue }) => {
+    async ({ limit = 20, cursor } = {}, { getState, rejectWithValue }) => {
         try {
-            const userInfo = getUserInfo();
-            const userId = userInfo?.sub || userInfo?.user_id || userInfo?.userId || userInfo?.id;
+            const state = getState();
+            const user = state.auth.user;
+            const userId = user?.sub || user?.user_id || user?.userId || user?.id;
 
             if (!userId) {
-                return rejectWithValue("User ID not found in token");
+                return rejectWithValue("User ID not found. Please log in.");
             }
 
             const response = await chatAPI.getConversationByQuery(userId, limit, cursor);

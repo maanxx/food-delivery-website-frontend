@@ -1,0 +1,77 @@
+/* AddressForm.module.css */
+.formContainer {
+  padding: 8px 0;
+}
+
+.fieldGroup {
+  margin-bottom: 20px;
+}
+
+.label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+.input {
+  height: 44px !important;
+  border-radius: 12px !important;
+  border: 1px solid #e5e7eb !important;
+  font-size: 15px !important;
+  transition: all 0.2s ease !important;
+}
+
+.input:focus, .input:hover {
+  border-color: #ff914c !important;
+  box-shadow: 0 0 0 2px rgba(255, 145, 76, 0.1) !important;
+}
+
+.inputError {
+  border-color: #ef4444 !important;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.errorMessage {
+  color: #ef4444;
+  font-size: 12px;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.footer {
+  display: flex;
+  gap: 16px;
+  padding-top: 16px;
+}
+
+.submitBtn {
+  flex: 1;
+  height: 48px !important;
+  background-color: #ff914c !important;
+  border-color: #ff914c !important;
+  border-radius: 14px !important;
+  font-weight: 700 !important;
+  font-size: 16px !important;
+  box-shadow: 0 4px 12px rgba(255, 145, 76, 0.2) !important;
+}
+
+.submitBtn:hover {
+  background-color: #e8823d !important;
+  transform: translateY(-2px);
+}
+
+.cancelBtn {
+  flex: 1;
+  height: 48px !important;
+  border-radius: 14px !important;
+  font-weight: 600 !important;
+  font-size: 16px !important;
+  color: #6b7280 !important;
+}

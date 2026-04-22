@@ -27,7 +27,6 @@ import {
     deleteConversation,
 } from "@features/chat/chatSlice";
 import useWebSocket from "@hooks/useWebSocket";
-import { getCookie } from "@helpers/cookieHelper";
 import { getFirstLetterOfEachWord } from "@helpers/stringHelper";
 
 const Sidebar = () => {

@@ -7,8 +7,6 @@ import { Container } from "@mui/material";
 import styles from "./Login.module.css";
 import axiosInstance from "@config/axiosInstance";
 import useAuth from "@hooks/useAuth";
-import { getCookie } from "@helpers/cookieHelper";
-
 const cx = classNames.bind(styles);
 
 function Login() {
@@ -22,33 +20,30 @@ function Login() {
 
         loginChannel.addEventListener("message", (e) => {
             if (e.data.success) {
-                login();
+                // Pass data from event if available, otherwise login reducer will handle safely
+                login(e.data);
                 navigate("/");
-                window.close();
             } else {
-                navigate("/api/login");
                 logout();
             }
-            window.location.reload();
         });
 
         return () => {
             loginChannel.close();
         };
-    }, []);
+    }, [login, logout, navigate]);
 
     useEffect(() => {
         const authenticate = async () => {
             try {
-                if (getCookie("token")) {
+                const token = localStorage.getItem("access_token");
+                if (token) {
                     const res = await axiosInstance({
                         url: "/api/auth",
                         method: "get",
                     });
                     if (res.data.success && isAuthenticated) {
                         navigate("/");
-                    } else {
-                        navigate("/login");
                     }
                 }
             } catch (error) {
@@ -57,7 +52,7 @@ function Login() {
         };
 
         authenticate();
-    }, []);
+    }, [isAuthenticated, navigate]);
 
     return (
         <>

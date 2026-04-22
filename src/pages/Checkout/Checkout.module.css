@@ -1,0 +1,261 @@
+.wrapper {
+  background-color: #f8f9fa;
+  min-height: calc(100vh - var(--headerHeight));
+}
+
+.title {
+  background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url(src/assets/images/banner/breadcrumb.jpg);
+  background-position: center;
+  background-size: cover;
+  width: 100%;
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--whiteColor);
+  text-transform: uppercase;
+  font-weight: 800;
+  font-size: 2rem;
+  letter-spacing: 2px;
+}
+
+.checkoutGrid {
+  display: grid;
+  grid-template-columns: 1fr 400px;
+  gap: 32px;
+  padding: 40px 0;
+  align-items: start;
+}
+
+.mainContent {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.section {
+  background: white;
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+  border: 1px solid #eee;
+}
+
+.sectionTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.addressList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.addressCard {
+  border: 1px solid #eee;
+  border-radius: 12px;
+  padding: 20px;
+  cursor: pointer;
+  transition: all var(--transitionNormal);
+  position: relative;
+}
+
+.addressCard:hover {
+  border-color: var(--primaryColor);
+  background: #fff9f5;
+}
+
+.addressCardActive {
+  border-color: var(--primaryColor);
+  background: #fff9f5;
+  box-shadow: 0 4px 12px rgba(255, 145, 77, 0.1);
+}
+
+.addressHeader {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.addressLabel {
+  display: inline-block;
+  padding: 4px 12px;
+  background: #eee;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.defaultBadge {
+  color: var(--primaryColor);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.addressContent {
+  color: #666;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.paymentMethods {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.paymentOption {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.paymentOptionActive {
+  border-color: var(--primaryColor);
+  background: #fff9f5;
+}
+
+.notesArea {
+  width: 100%;
+  min-height: 100px;
+  padding: 16px;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  font-size: 14px;
+  resize: vertical;
+}
+
+.notesArea:focus {
+  border-color: var(--primaryColor);
+  outline: none;
+}
+
+.sidebar {
+  position: sticky;
+  top: var(--headerHeight);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.summaryCard {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid #eee;
+}
+
+.summaryList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.summaryItem {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.itemImage {
+  width: 50px;
+  height: 50px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.itemInfo {
+  flex: 1;
+}
+
+.itemName {
+  font-size: 14px;
+  font-weight: 600;
+  color: #333;
+  display: block;
+}
+
+.itemMeta {
+  font-size: 12px;
+  color: #999;
+}
+
+.itemPrice {
+  font-size: 14px;
+  font-weight: 700;
+  color: #333;
+}
+
+.totalSection {
+  border-top: 2px solid #f5f5f5;
+  padding-top: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.summaryRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  color: #666;
+}
+
+.totalRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 18px;
+  font-weight: 800;
+  color: #333;
+  margin-top: 8px;
+}
+
+.placeOrderBtn {
+  width: 100%;
+  padding: 16px;
+  background: var(--primaryColor);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all var(--transitionNormal);
+  margin-top: 16px;
+}
+
+.placeOrderBtn:hover:not(:disabled) {
+  opacity: 0.9;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(255, 145, 77, 0.3);
+}
+
+.placeOrderBtn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+@media (max-width: 992px) {
+  .checkoutGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .sidebar {
+    position: static;
+  }
+}
