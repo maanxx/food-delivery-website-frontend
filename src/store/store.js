@@ -5,15 +5,26 @@ import { thunk } from "redux-thunk";
 
 import authReducer from "@features/auth/authSlice";
 import chatReducer from "@features/chat/chatSlice";
+import orderReducer from "@features/order/orderSlice";
+import cartReducer from "@features/cart/cartSlice";
+import voucherReducer from "@features/voucher/voucherSlice";
+import addressReducer from "@features/address/addressSlice";
+import userReducer from "@features/user/userSlice";
 
 const persistConfig = {
     key: "root",
     storage,
+    blacklist: ["order", "voucher", "address"], 
 };
 
 const rootReducer = combineReducers({
     auth: authReducer,
     chat: chatReducer,
+    order: orderReducer,
+    cart: cartReducer,
+    voucher: voucherReducer,
+    address: addressReducer,
+    user: userReducer,
 });
 
 const middlewares = [thunk];
@@ -30,3 +41,4 @@ const store = configureStore({
 const persistor = persistStore(store);
 
 export { store, persistor };
+

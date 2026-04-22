@@ -18,6 +18,22 @@ const config = {
     output: {
         path: path.resolve(__dirname, "dist"),
     },
+    resolve: {
+        extensions: [".js", ".jsx", ".json", ".css"],
+        alias: {
+            src: path.resolve(__dirname, "src"),
+            "@components": path.resolve(__dirname, "src/components"),
+            "@hooks": path.resolve(__dirname, "src/hooks"),
+            "@services": path.resolve(__dirname, "src/services"),
+            "@config": path.resolve(__dirname, "src/config"),
+            "@helpers": path.resolve(__dirname, "src/helpers"),
+            "@features": path.resolve(__dirname, "src/features"),
+            "@store": path.resolve(__dirname, "src/store"),
+            "@assets": path.resolve(__dirname, "src/assets"),
+            "@utils": path.resolve(__dirname, "src/utils"),
+            "@pages": path.resolve(__dirname, "src/pages"),
+        },
+    },
     devServer: {
         open: true,
         host: "localhost",
@@ -77,17 +93,15 @@ const config = {
                 use: [stylesHandler, "css-loader", "postcss-loader"],
             },
             {
-                test: /\.(eot|svg|ttf|woff|woff2|png|jpg|gif)$/i,
+                test: /\.(eot|svg|ttf|woff|woff2|png|jpg|gif|webp)$/i,
                 type: "asset",
             },
             {
-                test: /\.(?:js|mjs|cjs)$/,
+                test: /\.(?:js|mjs|cjs|jsx)$/,
                 exclude: /node_modules/,
                 use: {
                     loader: "babel-loader",
-                    options: {
-                        presets: [["@babel/preset-env", { targets: "defaults" }]],
-                    },
+                    // Rely on project .babelrc for presets/plugins (React and Alias support)
                 },
             },
         ],

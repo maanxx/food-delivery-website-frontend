@@ -1,0 +1,44 @@
+.layout {
+  display: flex;
+  margin: 0 auto;
+  max-width: 1200px;
+  gap: 2rem;
+  padding: 1rem;
+}
+
+.sidebarWrapper {
+  width: 250px;
+  flex-shrink: 0;
+}
+
+.contentWrapper {
+  flex-grow: 1;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  padding: 2rem;
+  min-height: 500px;
+}
+
+.hamburgerBtn {
+  display: none;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 768px) {
+  .layout {
+    flex-direction: column;
+    margin: 1rem auto;
+  }
+  .sidebarWrapper {
+    display: none; /* Hidden on mobile by default, handled by Drawer */
+  }
+  .hamburgerBtn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .contentWrapper {
+    padding: 1rem;
+  }
+}

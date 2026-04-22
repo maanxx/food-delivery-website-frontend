@@ -4,7 +4,7 @@ import callService from "@services/callService";
 import { getSimplePeer } from "@utils/SimplePeerShim";
 
 const useCall = (socket) => {
-    const userInfo = getUserInfo();
+    const userInfo = useSelector((state) => state.auth.user);
     const userId = userInfo?.sub || userInfo?.user_id || userInfo?.userId || userInfo?.id;
 
     const [callState, setCallState] = useState({

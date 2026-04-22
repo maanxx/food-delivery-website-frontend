@@ -6,7 +6,6 @@ module.exports = [
     pluginJs.configs.recommended,
     {
         files: ["**/*.js", "**/*.jsx"],
-        ignores: ["**/*.test.js"],
         plugins: {
             react: reactPlugin,
         },
@@ -14,6 +13,7 @@ module.exports = [
             globals: {
                 ...globals.browser,
                 ...globals.node,
+                ...globals.jest,
             },
             parserOptions: {
                 ecmaFeatures: {

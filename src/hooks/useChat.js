@@ -43,14 +43,10 @@ const useChat = () => {
     };
 
     const send = async (conversationId, content, type = "text", files = []) => {
-        try {
-            await dispatch(sendMessage({ conversationId, content, type, files })).unwrap();
-            // ✅ WebSocket conversation_updated event will handle real-time updates
-            // Do NOT call loadConversations here - it clears Redux state on .pending
-            return true;
-        } catch (error) {
-            throw error;
-        }
+        await dispatch(sendMessage({ conversationId, content, type, files })).unwrap();
+        // ✅ WebSocket conversation_updated event will handle real-time updates
+        // Do NOT call loadConversations here - it clears Redux state on .pending
+        return true;
     };
 
     const createNewConversation = async (participantId) => {

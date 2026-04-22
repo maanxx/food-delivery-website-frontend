@@ -7,7 +7,6 @@ import { Container } from "@mui/material";
 import styles from "./ForgotPassword.module.css";
 import axiosInstance from "@config/axiosInstance";
 import useAuth from "@hooks/useAuth";
-import { getCookie } from "@helpers/cookieHelper";
 import { Divider } from "antd";
 import { regexEmail, regexVietnamPhoneNumber } from "@constants/constants";
 import useLoading from "@hooks/useLoading";
@@ -22,15 +21,14 @@ function ForgotPassword() {
     useEffect(() => {
         const authenticate = async () => {
             try {
-                if (getCookie("token")) {
+                const token = localStorage.getItem("access_token");
+                if (token) {
                     const res = await axiosInstance({
                         url: "/api/auth",
                         method: "get",
                     });
                     if (res.data.success && isAuthenticated) {
                         navigate("/");
-                    } else {
-                        navigate("/api/login");
                     }
                 }
             } catch (error) {
@@ -39,7 +37,7 @@ function ForgotPassword() {
         };
 
         authenticate();
-    }, []);
+    }, [isAuthenticated, navigate]);
 
     return (
         <>

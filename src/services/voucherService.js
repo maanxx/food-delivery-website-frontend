@@ -3,7 +3,7 @@ import axiosInstance from "@config/axiosInstance";
 const checkVoucher = async (voucherCode) => {
     try {
         const res = await axiosInstance({
-            url: "/voucher/check-voucher",
+            url: "/api/voucher/check-voucher",
             method: "post",
             data: {
                 voucherCode,
@@ -16,4 +16,12 @@ const checkVoucher = async (voucherCode) => {
     }
 };
 
-export { checkVoucher };
+const getVouchers = () => axiosInstance.get('/api/voucher');
+
+const voucherService = {
+  checkVoucher,
+  getVouchers,
+};
+
+export { checkVoucher, getVouchers };
+export default voucherService;
