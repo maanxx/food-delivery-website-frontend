@@ -24,7 +24,7 @@ const ChatWindow = () => {
     const { socket, isConnected, markAsRead } = useWebSocket();
     const { callState, makeCall, acceptCall, rejectCall, endCall } = useCall(socket);
 
-    useCallNotification(callState.incomingCall);
+    useCallNotification(callState.incomingCall, callState.outgoingCallId);
 
     const messages = useSelector(selectMessages(conversationId));
     const conversation = useSelector((state) => state.chat.conversations.byId[conversationId]);

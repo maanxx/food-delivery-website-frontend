@@ -156,13 +156,16 @@ const useCall = (socket) => {
             return `${icon} ${callTypeText} - Cancelled`;
         } else if (status === "missed") {
             return `${icon} ${callTypeText} - Missed`;
+        } else if (status === "rejected") {
+            return `${icon} ${callTypeText} - Rejected`;
         }
         return `${icon} ${callTypeText}`;
     };
 
     // End call function - defined early to avoid temporal dead zone
-    const endCall = useCallback(() => {
-        console.log("📵 Ending call...");
+    const endCall = useCallback((options = {}) => {
+        const { skipMessage = false } = options;
+        console.log("📵 Ending call...", options);
 
         // Prevent recursive cleanup
         if (isCleaningUpRef.current) {
@@ -271,7 +274,7 @@ const useCall = (socket) => {
                 }
 
                 // Determine call status and save message
-                if (conversationId && callType) {
+                if (conversationId && callType && !skipMessage) {
                     const duration = wasInCall ? prev.callDuration : 0; // Only count duration if call was active
                     const status = wasInCall ? "ended" : "cancelled"; // "cancelled" if never entered active call
 
@@ -373,7 +376,9 @@ const useCall = (socket) => {
         );
 
         socket.on("incoming_call", (data) => {
-            console.log("📞 Incoming call received:", data);
+            console.log("📞 [useCall] Incoming call event received from socket:", data);
+            console.log("   Call ID:", data.callId || data.id);
+            console.log("   From:", data.callerName || data.caller_name);
             // Normalize field names from backend (callerId → fromUserId, callerName → fromUserName)
             setCallState((prev) => ({
                 ...prev,
@@ -451,7 +456,7 @@ const useCall = (socket) => {
             console.log("❌ [socket.call_rejected] Cleaning up call resources");
 
             // Immediately stop media and peer connection
-            endCall();
+            endCall({ skipMessage: true });
 
             // Show error message briefly
             setCallState((prev) => ({
@@ -1395,13 +1400,13 @@ const useCall = (socket) => {
                 setTimeout(() => {
                     socket.emit("save_call_message", {
                         conversationId,
-                        content: formatCallMessage(callType, 0, "missed"),
+                        content: formatCallMessage(callType, 0, "rejected"),
                         type: "system_call",
                         callData: {
                             callId: callIdToReject,
                             callType,
                             duration: 0,
-                            status: "missed",
+                            status: "rejected",
                         },
                     });
                     console.log("✅ [rejectCall] Missed call message emitted");

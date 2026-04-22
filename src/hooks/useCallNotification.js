@@ -42,6 +42,7 @@ if (typeof window !== "undefined") {
 }
 
 const RINGTONE_URL = "/sounds/ringtone.mp3";
+const RINGBACK_URL = "/sounds/ringback.mp3"; // Optional: sound for outgoing calls
 
 const loadRingtoneBuffer = async () => {
     if (_audioBufferCache) return _audioBufferCache;
@@ -50,10 +51,13 @@ const loadRingtoneBuffer = async () => {
     if (!ctx) return null;
 
     try {
-        console.log("🔔 [Ringtone] Fetching ringtone file:", RINGTONE_URL);
-        const response = await fetch(RINGTONE_URL);
+        // Use absolute URL to avoid issues with nested routes
+        const absoluteRingtoneUrl = new URL(RINGTONE_URL, window.location.origin).href;
+        console.log("🔔 [Ringtone] Fetching ringtone file:", absoluteRingtoneUrl);
+        
+        const response = await fetch(absoluteRingtoneUrl);
         if (!response.ok) {
-            throw new Error(`HTTP ${response.status} — file not found at ${RINGTONE_URL}`);
+            throw new Error(`HTTP ${response.status} — file not found at ${absoluteRingtoneUrl}`);
         }
         const arrayBuffer = await response.arrayBuffer();
         _audioBufferCache = await ctx.decodeAudioData(arrayBuffer);
@@ -98,10 +102,19 @@ const createFileRingtoneEngine = (ctx, buffer) => {
     };
 
     const start = () => {
+        console.log("🔔 [Ringtone] Engine starting... Context state:", ctx.state);
         if (ctx.state === "running") {
             playOnce();
         } else {
-            ctx.resume().then(() => { if (!stopped) playOnce(); });
+            console.log("🔔 [Ringtone] Context suspended, attempting to resume...");
+            ctx.resume().then(() => { 
+                console.log("🔔 [Ringtone] Context resumed, state:", ctx.state);
+                if (!stopped) playOnce(); 
+            }).catch(e => {
+                console.warn("🔔 [Ringtone] Failed to resume context:", e.message);
+                // Try playing anyway as a last resort
+                if (!stopped) playOnce();
+            });
         }
     };
 
@@ -203,19 +216,52 @@ const createOscillatorRingtoneEngine = (ctx) => {
 
 // ─── Create engine: prefer file, fall back to oscillator ─────────────────────
 const createRingtoneEngine = async (ctx) => {
-    const buffer = await loadRingtoneBuffer();
-    if (buffer) {
-        console.log("🔔 [Ringtone] Using custom file:", RINGTONE_URL);
-        return createFileRingtoneEngine(ctx, buffer);
+    try {
+        const buffer = await loadRingtoneBuffer();
+        if (buffer) {
+            console.log("🔔 [Ringtone] Using custom file via Web Audio API:", RINGTONE_URL);
+            return createFileRingtoneEngine(ctx, buffer);
+        }
+    } catch (e) {
+        console.warn("🔔 [Ringtone] Web Audio engine failed, will try fallback if possible", e.message);
     }
+    
     console.log("🔔 [Ringtone] Using built-in oscillator tone");
     return createOscillatorRingtoneEngine(ctx);
 };
 
+// ─── Fallback Audio Element Engine ──────────────────────────────────────────
+const createAudioElementEngine = (url) => {
+    console.log("🔔 [Ringtone] Using fallback Audio element for:", url);
+    const audio = new Audio(url);
+    audio.loop = true;
+    
+    const play = async () => {
+        try {
+            await audio.play();
+            console.log("🔔 [Ringtone] Fallback Audio element playing ✅");
+        } catch (err) {
+            console.warn("🔔 [Ringtone] Fallback Audio element failed:", err.message);
+        }
+    };
+    
+    play();
+    
+    return {
+        stop: () => {
+            console.log("🔕 [Ringtone] Stopping fallback Audio element");
+            audio.pause();
+            audio.src = "";
+            audio.load();
+        }
+    };
+};
+
 // ─── Hook ─────────────────────────────────────────────────────────────────────
-const useCallNotification = (incomingCall) => {
+const useCallNotification = (incomingCall, outgoingCallId) => {
     const [notificationRef, setNotificationRef] = useState(null);
     const engineRef = useRef(null);
+    const fallbackEngineRef = useRef(null);
 
     // Request browser notification permission on first mount
     useEffect(() => {
@@ -224,43 +270,65 @@ const useCallNotification = (incomingCall) => {
         }
     }, []);
 
-    // ── Ringtone ──────────────────────────────────────────────────────────────
+    // ── Ringtone & Ringback ──────────────────────────────────────────────────
     useEffect(() => {
-        if (!incomingCall) return;
+        const isIncoming = !!incomingCall;
+        const isOutgoing = !!outgoingCallId && !incomingCall; // Only ringback if not an incoming call
 
-        console.log("🔔 [Ringtone] Incoming call — starting ringtone");
+        if (!isIncoming && !isOutgoing) return;
+
+        console.log(`🔔 [Ringtone] ${isIncoming ? "Incoming" : "Outgoing"} call — starting sound`);
         let active = true;
 
-        const ctx = getAudioCtx();
-        if (!ctx) {
-            console.warn("🔔 [Ringtone] Web Audio API not available");
-            return;
-        }
-
-        // Stop any leftover engine
-        if (engineRef.current) {
-            engineRef.current.stop();
-            engineRef.current = null;
-        }
-
-        // createRingtoneEngine is async (may need to fetch file)
-        createRingtoneEngine(ctx).then((engine) => {
-            if (!active) {
-                engine.stop(); // Call was already dismissed while loading
-                return;
-            }
-            engineRef.current = engine;
-        });
-
-        return () => {
-            active = false;
-            console.log("🔕 [Ringtone] Stopping ringtone");
+        // Stop any leftover engines
+        const stopEngines = () => {
             if (engineRef.current) {
                 engineRef.current.stop();
                 engineRef.current = null;
             }
+            if (fallbackEngineRef.current) {
+                fallbackEngineRef.current.stop();
+                fallbackEngineRef.current = null;
+            }
         };
-    }, [incomingCall]);
+
+        stopEngines();
+
+        const ctx = getAudioCtx();
+        if (ctx) {
+            if (ctx.state === "suspended") {
+                ctx.resume().catch(() => {});
+            }
+
+            const getEngine = async () => {
+                if (isIncoming) return createRingtoneEngine(ctx);
+                return createOscillatorRingtoneEngine(ctx);
+            };
+
+            getEngine().then((engine) => {
+                if (!active) {
+                    engine.stop();
+                    return;
+                }
+                engineRef.current = engine;
+            }).catch(err => {
+                console.error("🔔 [Ringtone] Web Audio engine failed:", err);
+            });
+        }
+
+        // Always start a fallback Audio element as well (browser will often allow one even if the other is blocked)
+        // Or as a backup if Web Audio fails to load
+        if (isIncoming) {
+            const absoluteUrl = new URL(RINGTONE_URL, window.location.origin).href;
+            fallbackEngineRef.current = createAudioElementEngine(absoluteUrl);
+        }
+
+        return () => {
+            active = false;
+            console.log("🔕 [Ringtone] Stopping sounds");
+            stopEngines();
+        };
+    }, [incomingCall, outgoingCallId]);
 
     // ── Browser Notification ──────────────────────────────────────────────────
     useEffect(() => {
