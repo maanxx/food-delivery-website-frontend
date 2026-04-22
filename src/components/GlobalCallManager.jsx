@@ -1,7 +1,5 @@
 import React from "react";
-import useWebSocket from "@hooks/useWebSocket";
-import useCall from "@hooks/useCall";
-import useCallNotification from "@hooks/useCallNotification";
+import { useCallContext } from "@contexts/CallContext";
 import CallWindow from "./Chat/CallWindow";
 
 /**
@@ -10,11 +8,7 @@ import CallWindow from "./Chat/CallWindow";
  * It also displays the CallWindow when a call is in progress.
  */
 const GlobalCallManager = () => {
-    const { socket } = useWebSocket();
-    const { callState, acceptCall, rejectCall, endCall, makeCall } = useCall(socket);
-
-    // This hook handles the audible ringtone and browser notifications
-    useCallNotification(callState.incomingCall, callState.outgoingCallId);
+    const { callState, acceptCall, rejectCall, endCall, toggleAudio, toggleVideo } = useCallContext();
 
     if (!callState.inCall && !callState.incomingCall && !callState.outgoingCallId) {
         return null;
@@ -28,6 +22,8 @@ const GlobalCallManager = () => {
             onAcceptVO={() => acceptCall("voice")}
             onAcceptVideo={() => acceptCall("video")}
             onReject={rejectCall}
+            onToggleAudio={toggleAudio}
+            onToggleVideo={toggleVideo}
             // onRetry logic is slightly complex here as we don't have the original parameters
             // but for global management, the basic end/accept/reject is most important
         />

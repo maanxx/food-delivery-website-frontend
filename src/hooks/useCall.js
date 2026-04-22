@@ -19,6 +19,8 @@ const useCall = (socket) => {
         peer: null,
         localStream: null,
         remoteStream: null,
+        isMuted: false,
+        isCameraOff: false,
         error: null,
     });
 
@@ -719,6 +721,33 @@ const useCall = (socket) => {
             }));
             return stream;
         } catch (error) {
+            console.error(`❌ Media stream error (${type}):`, error);
+
+            // Special handling for video fallback
+            if (type === "video") {
+                console.warn("📹 Video failed, attempting audio-only fallback...");
+                try {
+                    const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    streamRef.current = audioStream;
+                    
+                    setCallState((prev) => ({
+                        ...prev,
+                        localStream: audioStream,
+                        callType: "voice", // Downgrade to voice call
+                        error: `Camera issue: ${error.name === "NotReadableError" ? "Already in use" : "Not found"}. Switched to voice call.`,
+                    }));
+                    
+                    // Clear error after 5 seconds but keep the voice call going
+                    setTimeout(() => {
+                        setCallState(prev => ({ ...prev, error: null }));
+                    }, 5000);
+                    
+                    return audioStream;
+                } catch (audioError) {
+                    console.error("❌ Audio fallback also failed:", audioError);
+                }
+            }
+
             let userFriendlyError = error.message;
 
             // Handle specific permission errors
@@ -732,7 +761,6 @@ const useCall = (socket) => {
                 userFriendlyError = "Your browser does not support voice/video calls";
             }
 
-            console.error(`❌ Media stream error (${type}):`, error);
             setCallState((prev) => ({
                 ...prev,
                 error: userFriendlyError,
@@ -1522,12 +1550,44 @@ const useCall = (socket) => {
         return () => clearInterval(interval);
     }, [callState.inCall, callState.callId, callState.remoteStream]);
 
+    // Toggle audio (mute/unmute)
+    const toggleAudio = useCallback(() => {
+        if (streamRef.current) {
+            const audioTracks = streamRef.current.getAudioTracks();
+            if (audioTracks.length > 0) {
+                const newState = !callState.isMuted;
+                audioTracks.forEach((track) => {
+                    track.enabled = !newState;
+                });
+                setCallState((prev) => ({ ...prev, isMuted: newState }));
+                console.log(`🎙️ Audio ${newState ? "muted" : "unmuted"}`);
+            }
+        }
+    }, [callState.isMuted]);
+
+    // Toggle video (on/off)
+    const toggleVideo = useCallback(() => {
+        if (streamRef.current) {
+            const videoTracks = streamRef.current.getVideoTracks();
+            if (videoTracks.length > 0) {
+                const newState = !callState.isCameraOff;
+                videoTracks.forEach((track) => {
+                    track.enabled = !newState;
+                });
+                setCallState((prev) => ({ ...prev, isCameraOff: newState }));
+                console.log(`📹 Video ${newState ? "turned off" : "turned on"}`);
+            }
+        }
+    }, [callState.isCameraOff]);
+
     return {
         callState,
         makeCall,
         acceptCall,
         rejectCall,
         endCall,
+        toggleAudio,
+        toggleVideo,
     };
 };
 

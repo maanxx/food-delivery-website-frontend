@@ -15,16 +15,13 @@ import CallWindow from "./CallWindow";
 import ChatSidebar from "./ChatSidebar";
 import { loadMessages, selectMessages, markMessagesAsRead } from "@features/chat/chatSlice";
 import useWebSocket from "@hooks/useWebSocket";
-import useCall from "@hooks/useCall";
-import useCallNotification from "@hooks/useCallNotification";
+import { useCallContext } from "@contexts/CallContext";
 
 const ChatWindow = () => {
     const { conversationId } = useParams();
     const dispatch = useDispatch();
     const { socket, isConnected, markAsRead } = useWebSocket();
-    const { callState, makeCall, acceptCall, rejectCall, endCall } = useCall(socket);
-
-    useCallNotification(callState.incomingCall, callState.outgoingCallId);
+    const { callState, makeCall, acceptCall, rejectCall, endCall, toggleAudio, toggleVideo } = useCallContext();
 
     const messages = useSelector(selectMessages(conversationId));
     const conversation = useSelector((state) => state.chat.conversations.byId[conversationId]);
@@ -283,6 +280,8 @@ const ChatWindow = () => {
                 onAcceptVideo={() => acceptCall("video")}
                 onReject={rejectCall}
                 onRetry={handleRetryCall}
+                onToggleAudio={toggleAudio}
+                onToggleVideo={toggleVideo}
             />
         );
     }

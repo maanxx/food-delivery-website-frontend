@@ -1,9 +1,18 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { Button, Avatar, Space, Tooltip, Alert } from "antd";
-import { PhoneOutlined, VideoCameraOutlined, PhoneOutlined as HangupIcon } from "@ant-design/icons";
+import { 
+    PhoneOutlined, 
+    VideoCameraOutlined, 
+    AudioOutlined, 
+    AudioMutedOutlined,
+    EyeInvisibleOutlined,
+    SyncOutlined,
+    FullscreenOutlined
+} from "@ant-design/icons";
 import styles from "./CallWindow.module.css";
 import useAudioLevel from "@hooks/useAudioLevel";
 import MicrophoneReaction from "./MicrophoneReaction";
+import { getUserInfo } from "@helpers/cookieHelper";
 
 const formatDuration = (seconds) => {
     const hrs = Math.floor(seconds / 3600);
@@ -72,12 +81,24 @@ const AudioVisualization = ({ stream }) => {
     return <canvas ref={canvasRef} className={styles.audioVisualization} width={300} height={100} />;
 };
 
-const CallWindow = ({ callState, onEndCall, isIncomingMode = false, onAcceptVO, onAcceptVideo, onReject, onRetry }) => {
+const CallWindow = ({ 
+    callState, 
+    onEndCall, 
+    isIncomingMode = false, 
+    onAcceptVO, 
+    onAcceptVideo, 
+    onReject, 
+    onRetry,
+    onToggleAudio,
+    onToggleVideo
+}) => {
     const localVideoRef = useRef(null);
     const remoteVideoRef = useRef(null);
     const remoteAudioRef = useRef(null);
     const [audioError, setAudioError] = useState(null);
     const [isAudioBlocked, setIsAudioBlocked] = useState(false);
+    
+    const userInfo = getUserInfo();
 
     // Phát hiện mức âm thanh từ local stream
     const localAudioLevel = useAudioLevel(callState?.localStream, 50);
@@ -102,15 +123,15 @@ const CallWindow = ({ callState, onEndCall, isIncomingMode = false, onAcceptVO, 
 
     // Display local stream
     useEffect(() => {
-        if (localVideoRef.current && callState.localStream) {
-            localVideoRef.current.srcObject = callState.localStream;
+        if (localVideoRef.current) {
+            localVideoRef.current.srcObject = callState.localStream || null;
         }
     }, [callState.localStream]);
 
     // Display remote stream
     useEffect(() => {
-        if (remoteVideoRef.current && callState.remoteStream) {
-            remoteVideoRef.current.srcObject = callState.remoteStream;
+        if (remoteVideoRef.current) {
+            remoteVideoRef.current.srcObject = callState.remoteStream || null;
         }
     }, [callState.remoteStream]);
 
@@ -230,6 +251,7 @@ const CallWindow = ({ callState, onEndCall, isIncomingMode = false, onAcceptVO, 
                                 type="primary"
                                 shape="circle"
                                 size="large"
+                                className={styles.acceptBtn}
                                 icon={
                                     callState.incomingCall.callType === "video" ? (
                                         <VideoCameraOutlined />
@@ -238,21 +260,23 @@ const CallWindow = ({ callState, onEndCall, isIncomingMode = false, onAcceptVO, 
                                     )
                                 }
                                 onClick={() => {
-                                    console.clear();
-                                    console.log("   callType:", callState.incomingCall.callType);
                                     if (callState.incomingCall.callType === "video") {
-                                        console.log("   -> Calling onAcceptVideo()");
                                         onAcceptVideo();
                                     } else {
-                                        console.log("   -> Calling onAcceptVO()");
                                         onAcceptVO();
                                     }
                                 }}
-                                style={{ backgroundColor: "#52c41a", borderColor: "#52c41a" }}
                             />
                         </Tooltip>
                         <Tooltip title="Reject">
-                            <Button danger shape="circle" size="large" icon={<HangupIcon />} onClick={onReject} />
+                            <Button 
+                                danger 
+                                shape="circle" 
+                                size="large" 
+                                icon={<PhoneOutlined rotate={135} />} 
+                                onClick={onReject}
+                                className={styles.rejectBtn}
+                            />
                         </Tooltip>
                     </Space>
                 </div>
@@ -313,29 +337,73 @@ const CallWindow = ({ callState, onEndCall, isIncomingMode = false, onAcceptVO, 
                 {/* Local video/display */}
                 {callState.callType === "video" && (
                     <div className={styles.localVideoContainer}>
-                        <video ref={localVideoRef} autoPlay playsInline muted className={styles.localVideo} />
+                        {callState.isCameraOff ? (
+                            <div className={styles.cameraOffPlaceholder}>
+                                <Avatar size={48} style={{ backgroundColor: "#8c8c8c" }}>
+                                    {userInfo?.name?.charAt(0).toUpperCase() || "U"}
+                                </Avatar>
+                            </div>
+                        ) : (
+                            <video ref={localVideoRef} autoPlay playsInline muted className={styles.localVideo} />
+                        )}
                         {/* Microphone reaction for video calls */}
-                        <MicrophoneReaction audioLevel={localAudioLevel} isActive={callState.inCall} size="small" />
+                        <div className={styles.localMicReaction}>
+                            <MicrophoneReaction audioLevel={localAudioLevel} isActive={callState.inCall} size="small" />
+                        </div>
                     </div>
                 )}
 
                 {/* Call controls */}
                 <div className={styles.callControls}>
-                    <span className={styles.callInfo}>
-                        {callState.callType === "video" ? "📹 Video Call" : "📞 Voice Call"} •{" "}
-                        {formatDuration(callState.callDuration)}
-                    </span>
-                    <Tooltip title="End Call">
-                        <Button
-                            danger
-                            type="primary"
-                            shape="circle"
-                            size="large"
-                            icon={<HangupIcon />}
-                            onClick={onEndCall}
-                            className={styles.endCallBtn}
-                        />
-                    </Tooltip>
+                    <div className={styles.callInfoGroup}>
+                        <span className={styles.callStatusIndicator}></span>
+                        <span className={styles.callInfo}>
+                            {callState.callType === "video" ? "📹 Video Call" : "📞 Voice Call"} •{" "}
+                            {formatDuration(callState.callDuration)}
+                        </span>
+                    </div>
+
+                    <div className={styles.mainControls}>
+                        <Tooltip title={callState.isMuted ? "Unmute" : "Mute"}>
+                            <Button
+                                shape="circle"
+                                size="large"
+                                icon={callState.isMuted ? <AudioMutedOutlined /> : <AudioOutlined />}
+                                onClick={onToggleAudio}
+                                className={`${styles.controlBtn} ${callState.isMuted ? styles.active : ""}`}
+                            />
+                        </Tooltip>
+
+                        {callState.callType === "video" && (
+                            <Tooltip title={callState.isCameraOff ? "Turn Camera On" : "Turn Camera Off"}>
+                                <Button
+                                    shape="circle"
+                                    size="large"
+                                    icon={callState.isCameraOff ? <EyeInvisibleOutlined /> : <VideoCameraOutlined />}
+                                    onClick={onToggleVideo}
+                                    className={`${styles.controlBtn} ${callState.isCameraOff ? styles.active : ""}`}
+                                />
+                            </Tooltip>
+                        )}
+
+                        <Tooltip title="End Call">
+                            <Button
+                                danger
+                                type="primary"
+                                shape="circle"
+                                size="large"
+                                icon={<PhoneOutlined rotate={135} />}
+                                onClick={onEndCall}
+                                className={styles.endCallBtn}
+                            />
+                        </Tooltip>
+                    </div>
+
+                    <div className={styles.extraControls}>
+                        <Tooltip title="Fullscreen">
+                            <Button shape="circle" icon={<FullscreenOutlined />} className={styles.ghostBtn} />
+                        </Tooltip>
+                    </div>
                 </div>
             </div>
         );
@@ -345,6 +413,13 @@ const CallWindow = ({ callState, onEndCall, isIncomingMode = false, onAcceptVO, 
     if (callState.outgoingCallId && !callState.inCall) {
         return (
             <div className={styles.outgoingCallContainer}>
+                {/* For video calls, show local preview even before connection */}
+                {callState.callType === "video" && callState.localStream && (
+                    <div className={styles.previewBackground}>
+                        <video ref={localVideoRef} autoPlay playsInline muted className={styles.fullPreview} />
+                    </div>
+                )}
+
                 <div className={styles.outgoingCallContent}>
                     {/* Show error alert if there's an error */}
                     {callState.error && (
@@ -353,14 +428,18 @@ const CallWindow = ({ callState, onEndCall, isIncomingMode = false, onAcceptVO, 
                             description={callState.error}
                             type="error"
                             showIcon
-                            style={{ marginBottom: "20px", width: "100%" }}
+                            style={{ marginBottom: "20px", width: "100%", borderRadius: "12px" }}
                         />
                     )}
 
-                    <Avatar size={80} style={{ marginBottom: "20px", backgroundColor: "#1890ff" }}>
-                        {getDisplayName(callState.remoteUserName)?.charAt(0).toUpperCase() || "U"}
-                    </Avatar>
-                    <h2>
+                    <div className={styles.userProfile}>
+                        <Avatar size={100} className={styles.profileAvatar}>
+                            {getDisplayName(callState.remoteUserName)?.charAt(0).toUpperCase() || "U"}
+                        </Avatar>
+                        <div className={styles.ringRipple}></div>
+                    </div>
+
+                    <h2 className={styles.userName}>
                         {callState.error ? "Call Failed" : `Calling ${getDisplayName(callState.remoteUserName)}...`}
                     </h2>
                     <p className={styles.callTypeLabel}>
@@ -375,12 +454,41 @@ const CallWindow = ({ callState, onEndCall, isIncomingMode = false, onAcceptVO, 
                         </div>
                     )}
 
-                    <Space style={{ marginTop: "30px" }} size="middle">
-                        <Button danger onClick={onEndCall}>
-                            {callState.error ? "Close" : "Cancel"}
-                        </Button>
+                    <Space style={{ marginTop: "40px" }} size="middle">
+                        {callState.callType === "video" && (
+                             <Tooltip title={callState.isCameraOff ? "Turn Camera On" : "Turn Camera Off"}>
+                                <Button
+                                    shape="circle"
+                                    size="large"
+                                    icon={callState.isCameraOff ? <EyeInvisibleOutlined /> : <VideoCameraOutlined />}
+                                    onClick={onToggleVideo}
+                                    className={`${styles.controlBtn} ${callState.isCameraOff ? styles.active : ""}`}
+                                />
+                            </Tooltip>
+                        )}
+                        <Tooltip title={callState.isMuted ? "Unmute" : "Mute"}>
+                            <Button
+                                shape="circle"
+                                size="large"
+                                icon={callState.isMuted ? <AudioMutedOutlined /> : <AudioOutlined />}
+                                onClick={onToggleAudio}
+                                className={`${styles.controlBtn} ${callState.isMuted ? styles.active : ""}`}
+                            />
+                        </Tooltip>
+                        <Tooltip title="Cancel">
+                            <Button 
+                                danger 
+                                type="primary" 
+                                shape="circle" 
+                                size="large" 
+                                icon={<PhoneOutlined rotate={135} />} 
+                                onClick={onEndCall} 
+                                className={styles.endCallBtn}
+                            />
+                        </Tooltip>
+                        
                         {callState.error && onRetry && (
-                            <Button type="primary" onClick={onRetry}>
+                            <Button type="primary" onClick={onRetry} className={styles.retryBtn}>
                                 Retry Call
                             </Button>
                         )}

@@ -258,7 +258,7 @@ const createAudioElementEngine = (url) => {
 };
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
-const useCallNotification = (incomingCall, outgoingCallId) => {
+const useCallNotification = (incomingCall, outgoingCallId, inCall) => {
     const [notificationRef, setNotificationRef] = useState(null);
     const engineRef = useRef(null);
     const fallbackEngineRef = useRef(null);
@@ -272,10 +272,13 @@ const useCallNotification = (incomingCall, outgoingCallId) => {
 
     // ── Ringtone & Ringback ──────────────────────────────────────────────────
     useEffect(() => {
-        const isIncoming = !!incomingCall;
-        const isOutgoing = !!outgoingCallId && !incomingCall; // Only ringback if not an incoming call
+        const isIncoming = !!incomingCall && !inCall;
+        const isOutgoing = !!outgoingCallId && !incomingCall && !inCall;
 
-        if (!isIncoming && !isOutgoing) return;
+        if (!isIncoming && !isOutgoing) {
+            console.log("🔕 [Ringtone] No active call or call already connected — ensuring sounds are stopped");
+            return;
+        }
 
         console.log(`🔔 [Ringtone] ${isIncoming ? "Incoming" : "Outgoing"} call — starting sound`);
         let active = true;
@@ -328,7 +331,7 @@ const useCallNotification = (incomingCall, outgoingCallId) => {
             console.log("🔕 [Ringtone] Stopping sounds");
             stopEngines();
         };
-    }, [incomingCall, outgoingCallId]);
+    }, [incomingCall, outgoingCallId, inCall]);
 
     // ── Browser Notification ──────────────────────────────────────────────────
     useEffect(() => {

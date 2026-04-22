@@ -10,6 +10,7 @@ import { PersistGate } from "redux-persist/integration/react";
 import App from "./App.jsx";
 import { GlobalStyles } from "@components/index.js";
 import { LoadingProvider } from "@contexts/loading.js";
+import { CallProvider } from "@contexts/CallContext.js";
 import { persistor, store } from "@store/store";
 
 // Polyfill for Node.js modules used by simple-peer and other libraries
@@ -51,7 +52,9 @@ root.render(
             <PersistGate persistor={persistor}>
                 <GlobalStyles>
                     <LoadingProvider>
-                        <App />
+                        <CallProvider>
+                            <App />
+                        </CallProvider>
                     </LoadingProvider>
                 </GlobalStyles>
             </PersistGate>
