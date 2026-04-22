@@ -35,60 +35,95 @@ const useCall = (socket) => {
     const peerReadyRef = useRef(false); // Track if peer is ready to receive signals
     const pendingSignalsRef = useRef([]); // Queue signals if peer not ready
     const answerRetryCountRef = useRef(0); // Track answer retry attempts
+    const signalsProcessedRef = useRef({ offers: 0, answers: 0, iceCandidates: 0 }); // Track signal counts
 
     // Process queued signals when peer is ready
     const processPendingSignals = useCallback(() => {
-        if (!peerRef.current || !peerReadyRef.current || isCleaningUpRef.current) {
+        console.log(
+            `🔄 [processPendingSignals] CALLED - peer: ${!!peerRef.current}, ready: ${peerReadyRef.current}, cleaning: ${isCleaningUpRef.current}, pending: ${pendingSignalsRef.current.length}`,
+        );
+
+        if (!peerRef.current) {
+            console.warn("   ❌ No peer yet!");
+            return;
+        }
+        if (!peerReadyRef.current) {
+            console.warn("   ❌ Peer not ready yet!");
+            return;
+        }
+        if (isCleaningUpRef.current) {
+            console.warn("   ❌ Cleanup in progress!");
             return;
         }
 
+        console.log(`   ✅ Processing ${pendingSignalsRef.current.length} pending signals...`);
+
         while (pendingSignalsRef.current.length > 0) {
             const signal = pendingSignalsRef.current.shift();
-            console.log(`📤 [processPendingSignals] Processing queued ${signal.type} signal`);
+            console.log(`   📤 Processing: ${signal.type} (received ${Date.now() - signal.receivedAt}ms ago)`);
 
             try {
                 if (signal.type === "offer") {
-                    console.log("   Signaling OFFER to peer...");
+                    console.log("      Signaling OFFER to peer...");
                     if (!signal.data || !signal.data.sdp) {
-                        console.error("   ❌ OFFER missing SDP!");
+                        console.error("      ❌ OFFER missing SDP!");
                         continue;
                     }
+                    console.log(
+                        `      ✅ About to call peer.signal(offer) - offer SDP length: ${signal.data.sdp.length}`,
+                    );
+                    console.log(`         Peer exists: ${!!peerRef.current}`);
+                    console.log(`         Peer.signal type: ${typeof peerRef.current?.signal}`);
+
+                    // CRITICAL: This should trigger peer.on('signal') with answer for non-initiator
                     peerRef.current.signal(signal.data);
-                    console.log("   ✅ OFFER signaled successfully");
+
+                    signalsProcessedRef.current.offers++;
+                    console.log(`      ✅ OFFER signaled successfully!`);
+                    console.log(`         ⏳ Waiting for SimplePeer to generate answer...`);
                 } else if (signal.type === "answer") {
-                    console.log("   Signaling ANSWER to peer...");
+                    console.log("      Signaling ANSWER to peer...");
                     if (!signal.data || !signal.data.sdp) {
-                        console.error("   ❌ ANSWER missing SDP!");
+                        console.error("      ❌ ANSWER missing SDP!");
                         continue;
                     }
                     peerRef.current.signal(signal.data);
+                    signalsProcessedRef.current.answers++;
                     answerRetryCountRef.current = 0;
-                    console.log("   ✅ ANSWER signaled successfully");
+                    console.log("      ✅ ANSWER signaled successfully");
                 } else if (signal.type === "ice") {
-                    console.log("   Signaling ICE candidate to peer...");
+                    console.log("      Signaling ICE candidate to peer...");
                     if (!signal.data || !signal.data.candidate) {
-                        console.error("   ❌ ICE candidate missing data!");
+                        console.error("      ❌ ICE candidate missing data!");
                         continue;
                     }
                     peerRef.current.signal(signal.data);
-                    console.log("   ✅ ICE candidate signaled successfully");
+                    signalsProcessedRef.current.iceCandidates++;
+                    console.log("      ✅ ICE candidate signaled successfully");
                 } else {
                     // Generic signal handling
-                    console.log("   Signaling generic signal...");
+                    console.log("      Signaling generic signal...");
                     peerRef.current.signal(signal.data);
-                    console.log("   ✅ Generic signal processed");
+                    console.log("      ✅ Generic signal processed");
                 }
             } catch (error) {
-                console.error(`   ❌ Failed to process ${signal.type} signal:`, error.message);
+                console.error(`      ❌ Error signaling ${signal.type}:`, error.message);
+                console.error(`      Stack: ${error.stack}`);
                 // Re-queue for retry (only for important signals)
                 if ((signal.type === "answer" || signal.type === "offer") && answerRetryCountRef.current < 3) {
                     answerRetryCountRef.current++;
                     pendingSignalsRef.current.unshift(signal);
-                    console.warn(`   📋 Re-queuing ${signal.type} for retry (attempt ${answerRetryCountRef.current})`);
+                    console.warn(
+                        `      📋 Re-queuing ${signal.type} for retry (attempt ${answerRetryCountRef.current})`,
+                    );
                     break; // Stop processing, try again later
                 }
             }
         }
+
+        console.log(
+            `🔄 [processPendingSignals] DONE - signals: ${signalsProcessedRef.current.offers} offers, ${signalsProcessedRef.current.answers} answers`,
+        );
     }, []);
 
     // Helper to format call message content
@@ -487,7 +522,8 @@ const useCall = (socket) => {
         });
 
         socket.on("offer", (data) => {
-            console.log("📞 [socket.on.offer] RECEIVED OFFER from backend");
+            console.log("� [socket.on.offer] *** OFFER EVENT TRIGGERED *** ");
+            console.log("�📞 [socket.on.offer] RECEIVED OFFER from backend");
             console.log("   Offer data:", data);
 
             if (!isCleaningUpRef.current && data.offer) {
@@ -511,21 +547,38 @@ const useCall = (socket) => {
         });
 
         socket.on("answer", (data) => {
-            console.log("📞 [socket.on.answer] RECEIVED ANSWER from backend");
-            console.log("   Answer data:", data);
+            console.log("📞 [socket.on.answer] 🎉 RECEIVED ANSWER from backend!");
+            console.log("   Answer data received:", {
+                callId: data?.callId,
+                hasAnswerSdp: !!data?.answer?.sdp,
+                answerSdpLength: data?.answer?.sdp?.length,
+                fromUserId: data?.fromUserId,
+                timestamp: new Date().toISOString(),
+            });
+            console.log("   📊 Signal counts before processing:", signalsProcessedRef.current);
 
             // Queue the signal instead of signaling immediately
             if (!isCleaningUpRef.current) {
-                pendingSignalsRef.current.push({
-                    data: data.answer,
-                    type: "answer",
-                    receivedAt: Date.now(),
-                });
-                console.log(`   📋 Answer queued (pending signals: ${pendingSignalsRef.current.length})`);
+                if (data.answer) {
+                    pendingSignalsRef.current.push({
+                        data: data.answer,
+                        type: "answer",
+                        receivedAt: Date.now(),
+                    });
+                    console.log(`   📋 Answer queued (pending signals: ${pendingSignalsRef.current.length})`);
+                    console.log(
+                        `   ✅ Answer will be processed when peer is ready (peerReady: ${peerReadyRef.current})`,
+                    );
+                } else {
+                    console.error("   ❌ Answer payload is missing! data.answer is:", data.answer);
+                }
 
                 // Try to process pending signals
                 if (peerReadyRef.current && peerRef.current) {
+                    console.log("   🔄 Peer already ready - processing answer immediately...");
                     processPendingSignals();
+                } else {
+                    console.log("   ⏳ Peer not ready yet - answer will be processed when peer.on('connect') fires");
                 }
             } else if (isCleaningUpRef.current) {
                 console.warn("⚠️ Ignoring answer: cleanup in progress");
@@ -559,6 +612,7 @@ const useCall = (socket) => {
             }
         });
 
+
         return () => {
             console.log("🧹 Cleaning up call listeners");
             socket.off("incoming_call");
@@ -570,8 +624,11 @@ const useCall = (socket) => {
             socket.off("ice_candidate");
             socket.off("offer");
             socket.off("answer");
+            console.log("🧹 All listeners cleaned up");
         };
     }, [socket, endCall]);
+
+    console.log("📊 [useCall] Hook initialized - socket:", !!socket, "endCall:", !!endCall);
 
     // Get user media (audio/video)
     const getMediaStream = useCallback(async (type = "voice") => {
@@ -842,20 +899,33 @@ const useCall = (socket) => {
                     const signalCallId = capturedCallId || callIdRef.current;
                     const signalRecipientId = capturedRecipientId || recipientIdRef.current;
 
-                    console.log(
-                        `📤 [peer.on.signal] SENDING WebRTC signal: ${data.type}, callId: ${signalCallId}, recipientId: ${signalRecipientId}`,
-                    );
-                    console.log("   Signal data:", data);
+                    // CRITICAL: Log signal generation
+                    if (data.type === "answer") {
+                        console.log(
+                            `📤 [peer.on.signal] 🎉 ANSWER GENERATED by SimplePeer (initiator=${initiator}, callId: ${signalCallId})`,
+                        );
+                        console.log("   ⭐ CRITICAL - SimplePeer created an answer from received offer!");
+                    } else {
+                        console.log(
+                            `📤 [peer.on.signal] ${data.type === "offer" ? "📞" : "❄️"} Signal: ${data.type}, callId: ${signalCallId}`,
+                        );
+                    }
 
                     try {
                         if (!socket || !socket.connected) {
-                            console.warn("⚠️ [peer.on.signal] Socket not connected, skipping signal emit");
+                            console.error("❌ [peer.on.signal] Socket NOT connected!");
+                            console.error("   Socket exists:", !!socket);
+                            console.error("   Socket.connected:", socket?.connected);
+                            if (data.type === "answer") {
+                                console.error(
+                                    "   ❌ CRITICAL: Answer generated but socket disconnected - cannot send!",
+                                );
+                            }
                             return;
                         }
 
                         if (data.type === "offer") {
                             console.log("   Emitting 'offer' event to backend...");
-                            // Check if offer contains audio
                             if (data.sdp && data.sdp.includes("m=audio")) {
                                 console.log("   ✅ Offer SDP contains audio media");
                             } else {
@@ -866,21 +936,27 @@ const useCall = (socket) => {
                                 offer: data,
                                 toUserId: signalRecipientId,
                             });
-                            console.log("   ✅ 'offer' emitted");
+                            console.log("   ✅ 'offer' emitted to backend");
                         } else if (data.type === "answer") {
-                            console.log("   Emitting 'answer' event to backend...");
-                            // Check if answer contains audio
+                            console.log("   🎉 Emitting 'answer' event to backend...");
                             if (data.sdp && data.sdp.includes("m=audio")) {
                                 console.log("   ✅ Answer SDP contains audio media");
                             } else {
                                 console.warn("   ⚠️ Answer SDP does NOT contain audio!");
                             }
+                            console.log("   📦 Answer payload being sent:", {
+                                callId: signalCallId,
+                                toUserId: signalRecipientId,
+                                answerSdpLength: data.sdp?.length || 0,
+                            });
                             socket.emit("answer", {
                                 callId: signalCallId,
                                 answer: data,
                                 toUserId: signalRecipientId,
                             });
-                            console.log("   ✅ 'answer' emitted");
+                            console.log(
+                                "   ✅ 'answer' emitted to backend - waiting for backend to forward to initiator",
+                            );
                         } else if (data.candidate) {
                             console.log("   Emitting 'ice_candidate' event to backend...");
                             socket.emit("ice_candidate", {
@@ -985,7 +1061,15 @@ const useCall = (socket) => {
                 setTimeout(() => {
                     if (!isCleaningUpRef.current && peerRef.current === peer) {
                         peerReadyRef.current = true;
-                        console.log("✅ [createPeerConnection] Peer marked as ready, processing pending signals...");
+                        console.log(
+                            `✅ [createPeerConnection] Peer ready! Processing ${pendingSignalsRef.current.length} pending signals...`,
+                        );
+                        if (pendingSignalsRef.current.length > 0) {
+                            console.log(
+                                "   Pending signals to process:",
+                                pendingSignalsRef.current.map((s) => s.type).join(", "),
+                            );
+                        }
                         processPendingSignals();
                     }
                 }, 100);
@@ -1014,6 +1098,7 @@ const useCall = (socket) => {
                 peerReadyRef.current = false;
                 pendingSignalsRef.current = [];
                 answerRetryCountRef.current = 0;
+                signalsProcessedRef.current = { offers: 0, answers: 0, iceCandidates: 0 };
                 console.log("🔄 [makeCall] Reset peer state - ready to receive new signals");
 
                 // ⭐ CRITICAL: Set outgoing state IMMEDIATELY before any async operations
@@ -1155,6 +1240,7 @@ const useCall = (socket) => {
                 peerReadyRef.current = false;
                 pendingSignalsRef.current = [];
                 answerRetryCountRef.current = 0;
+                signalsProcessedRef.current = { offers: 0, answers: 0, iceCandidates: 0 };
                 console.log("🔄 [acceptCall] Reset peer state - ready to receive new signals");
 
                 console.log(`✅ [acceptCall] START - callType: ${callType}`);
@@ -1311,10 +1397,18 @@ const useCall = (socket) => {
             recipientIdRef: recipientIdRef.current,
             peerReady: peerReadyRef.current,
             pendingSignals: pendingSignalsRef.current.length,
+            signalsProcessed: signalsProcessedRef.current,
         });
+
+        // Force process any pending signals that might be queued
+        if (peerReadyRef.current && peerRef.current && pendingSignalsRef.current.length > 0) {
+            console.log("🔄 [Diagnostic] Forcing pending signal processing...");
+            processPendingSignals();
+        }
 
         // Wait 15 seconds for remote stream to arrive (increased from 5 seconds)
         const timeoutId = setTimeout(() => {
+            // Re-check conditions at timeout time to avoid stale closures
             if (!callState.remoteStream && callState.inCall) {
                 console.error("❌ [Timeout] Remote stream not received after 15 seconds!");
                 console.error("   This means the WebRTC handshake did NOT complete successfully");
@@ -1322,17 +1416,24 @@ const useCall = (socket) => {
                 console.error("   - Peer ready:", peerReadyRef.current);
                 console.error("   - Pending signals:", pendingSignalsRef.current.length);
                 console.error("   - Peer instance:", !!peerRef.current);
+                console.error("   - Signals processed:", signalsProcessedRef.current);
 
                 console.error("   Possible causes:");
-                console.error("   1. ❓ No ANSWER received from remote peer");
-                console.error("   2. ❓ ICE candidates not exchanged properly");
-                console.error("   3. ❓ Network connectivity issues between peers");
+                if (signalsProcessedRef.current?.answers === 0) {
+                    console.error("   1. ❌ NO ANSWER received from remote peer - connection incomplete");
+                } else if (signalsProcessedRef.current?.offers === 0) {
+                    console.error("   1. ❌ NO OFFER sent - initiator might not have started call properly");
+                } else if (signalsProcessedRef.current?.iceCandidates === 0) {
+                    console.error("   2. ❌ ICE candidates not exchanged properly - NAT/firewall issues");
+                } else {
+                    console.error("   3. ❓ Signals exchanged but stream still not arriving - media might be muted");
+                }
                 console.error("   4. ❓ Backend not forwarding WebRTC signals");
                 console.error("   ");
                 console.error("   Troubleshooting steps:");
                 console.error("   1. Check that both users are online");
-                console.error("   2. Check browser console for errors");
-                console.error("   3. Check network connectivity");
+                console.error("   2. Check browser console for errors on BOTH sides");
+                console.error("   3. Check microphone permissions on BOTH sides");
                 console.error("   4. Try refreshing the page and calling again");
 
                 setCallState((prev) => ({
@@ -1345,19 +1446,34 @@ const useCall = (socket) => {
         return () => clearTimeout(timeoutId);
     }, [callState.inCall, callState.remoteStream, processPendingSignals]);
 
-    // Monitor callState changes - with minimal logging for production
+    // Monitor signal flow for debugging
     useEffect(() => {
-        // Only log important state changes
-        if (callState.inCall) {
-            console.log("✅ Call active");
-        }
-        if (callState.outgoingCallId && !callState.inCall) {
-            console.log("📞 Outgoing call: " + callState.outgoingCallId);
-        }
-        if (callState.incomingCall) {
-            console.log("📞 Incoming call from: " + callState.incomingCall.fromUserName);
-        }
-    }, [callState]);
+        if (!callState.inCall) return;
+
+        const interval = setInterval(() => {
+            const diagnostics = {
+                callId: callState.callId,
+                isInitiator: callState.callId && callIdRef.current === callState.callId,
+                signalsProcessed: signalsProcessedRef.current,
+                pendingSignals: pendingSignalsRef.current.length,
+                peerReady: peerReadyRef.current,
+                hasPeer: !!peerRef.current,
+                hasRemoteStream: !!callState.remoteStream,
+                timestamp: new Date().toLocaleTimeString(),
+            };
+
+            // Only log if we're waiting for signals (not yet connected)
+            if (
+                !callState.remoteStream &&
+                diagnostics.signalsProcessed.answers === 0 &&
+                diagnostics.signalsProcessed.offers > 0
+            ) {
+                console.log("📊 [Signal Flow Monitor] Waiting for answer from recipient...", diagnostics);
+            }
+        }, 3000); // Every 3 seconds
+
+        return () => clearInterval(interval);
+    }, [callState.inCall, callState.callId, callState.remoteStream]);
 
     return {
         callState,
