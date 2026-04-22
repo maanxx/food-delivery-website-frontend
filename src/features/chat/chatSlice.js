@@ -535,6 +535,15 @@ const chatSlice = createSlice({
             }
         },
 
+        markAsKicked: (state, action) => {
+            const conversationId = action.payload;
+            if (state.conversations.byId[conversationId]) {
+                state.conversations.byId[conversationId].wasKicked = true;
+                state.conversations.byId[conversationId].is_active = false;
+                state.conversations.byId[conversationId].isActive = false;
+            }
+        },
+
         resetChatState: () => initialState,
     },
 
@@ -890,7 +899,9 @@ const chatSlice = createSlice({
             }
             const conv = state.messages.byConversation[conversationId];
             conv.byId[message.messageId] = message;
-            conv.allIds.push(message.messageId);
+            if (!conv.allIds.includes(message.messageId)) {
+                conv.allIds.push(message.messageId);
+            }
 
             // Update last message in conversation list
             if (state.conversations.byId[conversationId]) {
@@ -925,6 +936,7 @@ export const {
     clearError,
     clearConversations,
     markGroupAsDisbanded,
+    markAsKicked,
     resetChatState,
 } = chatSlice.actions;
 

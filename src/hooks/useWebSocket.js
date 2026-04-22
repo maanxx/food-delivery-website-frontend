@@ -9,6 +9,7 @@ import {
     updateConversationList,
     moveConversationToTop,
     addConversation,
+    loadConversations,
 } from "@features/chat/chatSlice";
 import { getCookie, getUserInfo } from "@helpers/cookieHelper";
 
@@ -249,6 +250,11 @@ const useWebSocket = () => {
         socket.on("conversation:deleted", ({ conversationId }) => {
             // Handle conversation deletion
             console.log("Conversation deleted:", conversationId);
+        });
+
+        socket.on("member_added_to_new_group", (data) => {
+            console.log("📍 Added to a new group conversation:", data.conversationId);
+            dispatch(loadConversations());
         });
 
         socketInstance = socket;

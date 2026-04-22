@@ -16,14 +16,14 @@ import {
 } from "@ant-design/icons";
 import { useDispatch } from "react-redux";
 import styles from "./ChatSidebar.module.css";
-import { removeMemberFromGroup, disbandGroup } from "@features/chat/chatSlice";
+import { removeMemberFromGroup, disbandGroup, addMessage } from "@features/chat/chatSlice";
 import { getFirstLetterOfEachWord } from "@helpers/stringHelper";
 import GroupAvatar from "./GroupAvatar";
 
-const ChatSidebar = ({ conversation, currentUserId, onClose, onOpenGroupSettings }) => {
+const ChatSidebar = ({ conversation, currentUserId, onClose, onOpenGroupSettings, onOpenAddMembersModal }) => {
     const dispatch = useDispatch();
     const isGroup = conversation?.type === "group" || conversation?.conversationType === "group";
-    
+
     // Default expanded sections based on chat type
     const [expandedSection, setExpandedSection] = useState(isGroup ? "members" : "info");
 
@@ -32,7 +32,8 @@ const ChatSidebar = ({ conversation, currentUserId, onClose, onOpenGroupSettings
     };
 
     const participants = conversation?.participants || [];
-    const isAdmin = participants.find(p => (p.userId === currentUserId || p.user_id === currentUserId))?.role === "admin";
+    const isAdmin =
+        participants.find((p) => p.userId === currentUserId || p.user_id === currentUserId)?.role === "admin";
 
     const handleRemoveMember = (memberId, memberName) => {
         Modal.confirm({
@@ -43,8 +44,12 @@ const ChatSidebar = ({ conversation, currentUserId, onClose, onOpenGroupSettings
             cancelText: "Cancel",
             async onOk() {
                 try {
-                    await dispatch(removeMemberFromGroup({ conversationId: conversation.conversationId, memberId })).unwrap();
+                    await dispatch(
+                        removeMemberFromGroup({ conversationId: conversation.conversationId, memberId }),
+                    ).unwrap();
                     message.success(`Removed ${memberName} successfully`);
+
+                    // The backend will broadcast the system message
                 } catch (error) {
                     message.error(error || "Failed to remove member");
                 }
@@ -55,7 +60,8 @@ const ChatSidebar = ({ conversation, currentUserId, onClose, onOpenGroupSettings
     const handleDisbandGroup = () => {
         Modal.confirm({
             title: "Disband Group",
-            content: "Are you sure you want to DISBAND this group? All members will be removed and the chat will become read-only. This action cannot be undone.",
+            content:
+                "Are you sure you want to DISBAND this group? All members will be removed and the chat will become read-only. This action cannot be undone.",
             okText: "Disband",
             okType: "danger",
             cancelText: "Cancel",
@@ -95,7 +101,7 @@ const ChatSidebar = ({ conversation, currentUserId, onClose, onOpenGroupSettings
             content: (
                 <div className={styles.sectionContent}>
                     {isAdmin && !conversation.isDisbanded && conversation.is_active !== false && (
-                        <button className={styles.addMemberBtn} onClick={onOpenGroupSettings}>
+                        <button className={styles.addMemberBtn} onClick={onOpenAddMembersModal}>
                             <PlusOutlined /> Add Member
                         </button>
                     )}
@@ -103,13 +109,15 @@ const ChatSidebar = ({ conversation, currentUserId, onClose, onOpenGroupSettings
                         {participants.map((member) => (
                             <div key={member.userId || member.user_id} className={styles.memberItem}>
                                 <div className={styles.memberInfo}>
-                                    <Avatar 
-                                        size={32} 
+                                    <Avatar
+                                        size={32}
                                         src={member.avatarPath || member.avatar_path}
                                         style={{ backgroundColor: "#1890ff" }}
                                     >
-                                        {(!member.avatarPath && !member.avatar_path) ? 
-                                            getFirstLetterOfEachWord(member.fullname || member.username || "U").children : null}
+                                        {!member.avatarPath && !member.avatar_path
+                                            ? getFirstLetterOfEachWord(member.fullname || member.username || "U")
+                                                  .children
+                                            : null}
                                     </Avatar>
                                     <div className={styles.memberNameContainer}>
                                         <span className={styles.memberName}>{member.fullname || member.username}</span>
@@ -120,14 +128,23 @@ const ChatSidebar = ({ conversation, currentUserId, onClose, onOpenGroupSettings
                                         )}
                                     </div>
                                 </div>
-                                {isAdmin && member.role !== "admin" && !conversation.isDisbanded && conversation.is_active !== false && conversation.isActive !== false && (
-                                    <button 
-                                        className={styles.removeBtn}
-                                        onClick={() => handleRemoveMember(member.userId || member.user_id, member.fullname || member.username)}
-                                    >
-                                        <UserDeleteOutlined />
-                                    </button>
-                                )}
+                                {isAdmin &&
+                                    member.role !== "admin" &&
+                                    !conversation.isDisbanded &&
+                                    conversation.is_active !== false &&
+                                    conversation.isActive !== false && (
+                                        <button
+                                            className={styles.removeBtn}
+                                            onClick={() =>
+                                                handleRemoveMember(
+                                                    member.userId || member.user_id,
+                                                    member.fullname || member.username,
+                                                )
+                                            }
+                                        >
+                                            <UserDeleteOutlined />
+                                        </button>
+                                    )}
                             </div>
                         ))}
                     </div>
@@ -143,17 +160,27 @@ const ChatSidebar = ({ conversation, currentUserId, onClose, onOpenGroupSettings
                     <button className={styles.customizeBtn}>🔔 Mute Group Notifications</button>
                     <button className={styles.customizeBtn}>🎨 Change Group Theme</button>
                     <button className={styles.customizeBtn} onClick={onOpenGroupSettings}>
-                        {conversation.isDisbanded || conversation.is_active === false || conversation.isActive === false ? "👁️ View Group Info" : "⚙️ Edit Group Info & Roles"}
+                        {conversation.isDisbanded || conversation.is_active === false || conversation.isActive === false
+                            ? "👁️ View Group Info"
+                            : "⚙️ Edit Group Info & Roles"}
                     </button>
-                    {isAdmin && !conversation.isDisbanded && conversation.is_active !== false && conversation.isActive !== false && (
-                        <button 
-                            className={styles.customizeBtn} 
-                            style={{ color: "#ff4d4f", marginTop: "12px", borderTop: "1px solid #f0f0f0", paddingTop: "12px" }}
-                            onClick={handleDisbandGroup}
-                        >
-                            🚩 Disband Group
-                        </button>
-                    )}
+                    {isAdmin &&
+                        !conversation.isDisbanded &&
+                        conversation.is_active !== false &&
+                        conversation.isActive !== false && (
+                            <button
+                                className={styles.customizeBtn}
+                                style={{
+                                    color: "#ff4d4f",
+                                    marginTop: "12px",
+                                    borderTop: "1px solid #f0f0f0",
+                                    paddingTop: "12px",
+                                }}
+                                onClick={handleDisbandGroup}
+                            >
+                                🚩 Disband Group
+                            </button>
+                        )}
                 </div>
             ),
         },
@@ -198,8 +225,12 @@ const ChatSidebar = ({ conversation, currentUserId, onClose, onOpenGroupSettings
             icon: <BellOutlined />,
             content: (
                 <div className={styles.sectionContent}>
-                    <button className={styles.customizeBtn} style={{ color: "#ff4d4f" }}>🚫 Block User</button>
-                    <button className={styles.customizeBtn} style={{ color: "#ff4d4f" }}>🗑️ Delete Chat History</button>
+                    <button className={styles.customizeBtn} style={{ color: "#ff4d4f" }}>
+                        🚫 Block User
+                    </button>
+                    <button className={styles.customizeBtn} style={{ color: "#ff4d4f" }}>
+                        🗑️ Delete Chat History
+                    </button>
                     <button className={styles.customizeBtn}>⚠️ Report User</button>
                 </div>
             ),
@@ -210,7 +241,9 @@ const ChatSidebar = ({ conversation, currentUserId, onClose, onOpenGroupSettings
 
     return (
         <div className={styles.sidebar}>
-            <button className={styles.closeBtn} onClick={onClose}>×</button>
+            <button className={styles.closeBtn} onClick={onClose}>
+                ×
+            </button>
 
             <div className={styles.profileSection}>
                 {isGroup ? (

@@ -239,6 +239,7 @@ const MessageList = ({ messages, conversationId, currentUserId, onForward }) => 
                                     conversationId={conversationId}
                                     onDelete={handleDeleteMessage}
                                     onForward={onForward}
+                                    currentUserId={currentUserId}
                                 />
                             ))}
                         </div>

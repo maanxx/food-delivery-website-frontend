@@ -15,6 +15,7 @@ import CallWindow from "./CallWindow";
 import ChatSidebar from "./ChatSidebar";
 import ForwardModal from "./ForwardModal";
 import GroupSettingsModal from "./GroupSettingsModal";
+import AddMembersModal from "./AddMembersModal";
 import GroupAvatar from "./GroupAvatar";
 import {
     loadMessages,
@@ -24,7 +25,9 @@ import {
     updateMemberInConversation,
     removeMemberFromConversation,
     markGroupAsDisbanded,
+    markAsKicked,
     loadConversations,
+    addMessage,
 } from "@features/chat/chatSlice";
 import useWebSocket from "@hooks/useWebSocket";
 import { useCallContext } from "@contexts/CallContext";
@@ -49,6 +52,7 @@ const ChatWindow = () => {
     const [showSidebar, setShowSidebar] = useState(false);
     const [showForwardModal, setShowForwardModal] = useState(false);
     const [showGroupSettings, setShowGroupSettings] = useState(false);
+    const [showAddMembersModal, setShowAddMembersModal] = useState(false);
     const [messageToForward, setMessageToForward] = useState(null);
 
     const messagesEndRef = useRef(null);
@@ -200,7 +204,7 @@ const ChatWindow = () => {
                         conversationId,
                         memberId: data.memberId,
                         updates: { role: data.role },
-                    })
+                    }),
                 );
                 if (data.memberId === currentUserId) {
                     message.info(`Your role in this group has been updated to ${data.role}`);
@@ -210,19 +214,24 @@ const ChatWindow = () => {
 
         const handleMemberAdded = (data) => {
             if (data.conversationId === conversationId) {
-                // If the backend sends the full updated participant list, use it
-                // Otherwise we might need to add just the new member
-                // For now, let's assume we update the conversation
-                dispatch(loadConversations()); // Refresh list to be sure
+                // Refresh conversation list to update participant count
+                dispatch(loadConversations());
             }
         };
 
         const handleMemberRemoved = (data) => {
             if (data.conversationId === conversationId) {
-                dispatch(removeMemberFromConversation({
-                    conversationId,
-                    memberId: data.memberId
-                }));
+                if (data.memberId === currentUserId) {
+                    message.error("You have been removed from this group.");
+                    dispatch(markAsKicked(conversationId));
+                } else {
+                    dispatch(
+                        removeMemberFromConversation({
+                            conversationId,
+                            memberId: data.memberId,
+                        }),
+                    );
+                }
             }
         };
 
@@ -348,7 +357,6 @@ const ChatWindow = () => {
 
     // Render call window if there's active call or incoming call
     if (callState.inCall || callState.outgoingCallId || callState.incomingCall) {
-       
         return (
             <CallWindow
                 callState={callState}
@@ -363,7 +371,6 @@ const ChatWindow = () => {
             />
         );
     }
-
 
     // DEBUG: Show call state for troubleshooting
     const showDebugInfo = !!callState?.outgoingCallId && !callState?.inCall;
@@ -470,11 +477,16 @@ const ChatWindow = () => {
                             textAlign: "center",
                         }}
                     >
-                        <div style={{ fontSize: "64px", marginBottom: "20px" }}>🚫</div>
-                        <h2 style={{ color: "#262626", marginBottom: "8px" }}>Group Disbanded</h2>
+                        <div style={{ fontSize: "64px", marginBottom: "20px" }}>
+                            {conversation.wasKicked ? "👋" : "🚫"}
+                        </div>
+                        <h2 style={{ color: "#262626", marginBottom: "8px" }}>
+                            {conversation.wasKicked ? "You Were Removed from Group" : "Group Disbanded"}
+                        </h2>
                         <p style={{ color: "#8c8c8c", maxWidth: "400px" }}>
-                            This group has been disbanded by the administrator. You can no longer send or receive
-                            messages in this conversation.
+                            {conversation.wasKicked
+                                ? "You have been removed from this group by the administrator. You can no longer send or receive messages in this conversation."
+                                : "This group has been disbanded by the administrator. You can no longer send or receive messages in this conversation."}
                         </p>
                     </div>
                 ) : (
@@ -542,6 +554,7 @@ const ChatWindow = () => {
                     currentUserId={currentUserId}
                     onClose={() => setShowSidebar(false)}
                     onOpenGroupSettings={() => setShowGroupSettings(true)}
+                    onOpenAddMembersModal={() => setShowAddMembersModal(true)}
                 />
             )}
 
@@ -556,6 +569,14 @@ const ChatWindow = () => {
                 visible={showGroupSettings}
                 onClose={() => setShowGroupSettings(false)}
                 conversation={conversation}
+            />
+
+            <AddMembersModal
+                visible={showAddMembersModal}
+                onClose={() => setShowAddMembersModal(false)}
+                conversation={conversation}
+                participants={conversation?.participants || []}
+                onMembersAdded={() => dispatch(loadConversations())}
             />
         </div>
     );

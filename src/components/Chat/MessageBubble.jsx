@@ -19,7 +19,7 @@ const animationStyles = `
   }
 `;
 
-const MessageBubble = ({ message, isOwn, showAvatar, showTimestamp, onDelete, onForward, conversationId }) => {
+const MessageBubble = ({ message, isOwn, showAvatar, showTimestamp, onDelete, onForward, conversationId, currentUserId }) => {
     const [showMenu, setShowMenu] = useState(false);
     const [isHovering, setIsHovering] = useState(false);
     const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
@@ -88,7 +88,36 @@ const MessageBubble = ({ message, isOwn, showAvatar, showTimestamp, onDelete, on
                         maxWidth: "80%",
                     }}
                 >
-                    {message.content}
+                    {(() => {
+                        const metadata = message.metadata || {};
+                        if (metadata.action === "member_removed") {
+                            const isKicked = metadata.removedMemberId === currentUserId;
+                            const isKicker = metadata.adminId === currentUserId;
+
+                            const adminName = metadata.adminName || "Admin";
+                            const removedName = metadata.removedMemberName || "a member";
+
+                            if (isKicker) {
+                                return `You removed ${removedName} from the group`;
+                            }
+                            if (isKicked) {
+                                return `You have been removed from the group by ${adminName}`;
+                            }
+                            return `${adminName} removed ${removedName} from the group`;
+                        }
+                        if (metadata.action === "member_added") {
+                            const adderName = metadata.adminName || "Admin";
+                            const addedName = metadata.addedMemberName || "a member";
+                            return `${adderName} added ${addedName} to the group`;
+                        }
+                        if (metadata.action === "group_disbanded") {
+                            if (isOwn) {
+                                return `You have disbanded the group`;
+                            }
+                            return `${metadata.adminName} has disbanded the group`;
+                        }
+                        return message.content;
+                    })()}
                 </div>
             </div>
         );
@@ -132,6 +161,26 @@ const MessageBubble = ({ message, isOwn, showAvatar, showTimestamp, onDelete, on
             return <p className={styles.messageText}>{message?.content || "Message"}</p>;
         }
 
+        let effectiveType = message.type;
+        if (effectiveType === "forward") {
+            if (Array.isArray(message.attachments) && message.attachments.length > 0) {
+                const firstAtt = message.attachments[0];
+                if (isAudioFile(firstAtt?.fileUrl, firstAtt?.fileName)) {
+                    effectiveType = "voice";
+                } else if (
+                    firstAtt?.fileUrl?.match(/\.(jpeg|jpg|gif|png|webp|heic)$/i) || 
+                    firstAtt?.fileName?.match(/\.(jpeg|jpg|gif|png|webp|heic)$/i) ||
+                    firstAtt?.type?.startsWith("image")
+                ) {
+                    effectiveType = "image";
+                } else {
+                    effectiveType = "file";
+                }
+            } else {
+                effectiveType = "text";
+            }
+        }
+
         // Check if this should be treated as voice even if type is 'file'
         const hasVoiceAttachment =
             Array.isArray(message.attachments) &&
@@ -139,7 +188,7 @@ const MessageBubble = ({ message, isOwn, showAvatar, showTimestamp, onDelete, on
             isAudioFile(message.attachments[0].fileUrl, message.attachments[0].fileName);
 
         // If type is file but it's audio, treat as voice
-        if (message.type === "file" && hasVoiceAttachment) {
+        if ((effectiveType === "file" || message.type === "file") && hasVoiceAttachment) {
             const formatAudioTime = (seconds) => {
                 if (!seconds || isNaN(seconds)) return "0:00";
                 const mins = Math.floor(seconds / 60);
@@ -300,7 +349,7 @@ const MessageBubble = ({ message, isOwn, showAvatar, showTimestamp, onDelete, on
             );
         }
 
-        switch (message.type) {
+        switch (effectiveType) {
             case "text":
                 return <p className={styles.messageText}>{message.content || ""}</p>;
 
