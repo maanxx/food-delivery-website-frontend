@@ -1,304 +1,392 @@
-import React from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
-    Card,
-    Table,
-    Button,
-    Space,
-    Tag,
-    Avatar,
-    Input,
-    Select,
-    Tooltip,
-    Popconfirm,
-    message,
-    Row,
-    Col,
-    Statistic,
+    Table, Button, Input, Select, Avatar, Tooltip,
+    Popconfirm, Modal, Form, message, Row, Col, Spin, Dropdown,
 } from "antd";
 import {
-    PlusOutlined,
-    EditOutlined,
-    DeleteOutlined,
-    UserOutlined,
-    SearchOutlined,
-    TeamOutlined,
-    CheckCircleOutlined,
-    ClockCircleOutlined,
+    EditOutlined, DeleteOutlined, SearchOutlined,
+    TeamOutlined, CheckCircleOutlined, UserAddOutlined,
+    ReloadOutlined, FileExcelOutlined, FilePdfOutlined,
+    DownloadOutlined, FilterOutlined,
 } from "@ant-design/icons";
+import adminService from "@services/adminService";
 import styles from "./Employees.module.css";
 
+const POSITIONS = [
+    { label: "Delivery Staff", value: "Delivery Staff" },
+    { label: "Chef", value: "Chef" },
+    { label: "Manager", value: "Manager" },
+    { label: "Cashier", value: "Cashier" },
+];
+
+const POSITION_COLORS = {
+    "Delivery Staff": { bg: "#e8f4fd", color: "#1a73e8", border: "#c5dff8" },
+    "Chef":           { bg: "#fef3e2", color: "#e8830a", border: "#fcd99a" },
+    "Manager":        { bg: "#f0ebff", color: "#7c3aed", border: "#d4c5fa" },
+    "Cashier":        { bg: "#e6faf2", color: "#0f9058", border: "#b3e8d0" },
+};
+
+const getInitials = (name = "") =>
+    name.split(" ").slice(-2).map((w) => w[0]?.toUpperCase() || "").join("");
+
+const AVATAR_COLORS = ["#ff914d","#3b82f6","#8b5cf6","#10b981","#f59e0b","#ef4444","#06b6d4","#ec4899"];
+const pickAvatarColor = (name = "") => {
+    let h = 0;
+    for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) & 0xffffffff;
+    return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length];
+};
+
+
 const Employees = () => {
-    const [searchText, setSearchText] = React.useState("");
-    const [statusFilter, setStatusFilter] = React.useState("");
-    const [positionFilter, setPositionFilter] = React.useState("");
-    const [filteredData, setFilteredData] = React.useState([]);
+    const [employees, setEmployees] = useState([]);
+    const [total, setTotal]         = useState(0);
+    const [loading, setLoading]     = useState(false);
+    const [page, setPage]           = useState(1);
+    const [pageSize, setPageSize]   = useState(10);
 
-    // Mock data
-    const employeesData = [
-        {
-            id: 1,
-            name: "Nguyễn Văn A",
-            email: "nguyenvana@example.com",
-            position: "Delivery Staff",
-            phone: "0901234567",
-            status: "active",
-            joinDate: "2023-01-15",
-            avatar: "NA",
-        },
-        {
-            id: 2,
-            name: "Trần Thị B",
-            email: "tranthib@example.com",
-            position: "Chef",
-            phone: "0912345678",
-            status: "active",
-            joinDate: "2023-02-20",
-            avatar: "TB",
-        },
-        {
-            id: 3,
-            name: "Lê Văn C",
-            email: "levanc@example.com",
-            position: "Manager",
-            phone: "0923456789",
-            status: "inactive",
-            joinDate: "2022-11-10",
-            avatar: "LC",
-        },
-        {
-            id: 4,
-            name: "Phạm Thị D",
-            email: "phamthid@example.com",
-            position: "Cashier",
-            phone: "0934567890",
-            status: "active",
-            joinDate: "2023-03-05",
-            avatar: "PD",
-        },
-        {
-            id: 5,
-            name: "Hoàng Văn E",
-            email: "hoangvane@example.com",
-            position: "Chef",
-            phone: "0945678901",
-            status: "active",
-            joinDate: "2023-05-12",
-            avatar: "HE",
-        },
+    const [search, setSearch]               = useState("");
+    const [positionFilter, setPositionFilter] = useState("");
+    const [statusFilter, setStatusFilter]   = useState("");
+
+    const [modalOpen, setModalOpen]           = useState(false);
+    const [editingEmployee, setEditingEmployee] = useState(null);
+    const [submitting, setSubmitting]         = useState(false);
+
+    const [form] = Form.useForm();
+
+    const fetchEmployees = useCallback(async () => {
+        setLoading(true);
+        try {
+            const res = await adminService.getEmployees({ search, position: positionFilter, status: statusFilter, page, limit: pageSize });
+            if (res.success) { setEmployees(res.data.employees); setTotal(res.data.total); }
+        } catch { message.error("Không thể tải danh sách nhân viên"); }
+        finally { setLoading(false); }
+    }, [search, positionFilter, statusFilter, page, pageSize]);
+
+    useEffect(() => { fetchEmployees(); }, [fetchEmployees]);
+
+    const activeCount   = employees.filter((e) => e.isOnline).length;
+    const inactiveCount = employees.filter((e) => !e.isOnline).length;
+
+    const openAdd = () => {
+        setEditingEmployee(null);
+        form.resetFields();
+        form.setFieldsValue({ isOnline: true, countryCode: "+84" });
+        setModalOpen(true);
+    };
+    const openEdit = (record) => {
+        setEditingEmployee(record);
+        form.setFieldsValue({ fullname: record.fullname, email: record.email, phoneNumber: record.phoneNumber, position: record.position, isOnline: record.isOnline });
+        setModalOpen(true);
+    };
+    const handleSubmit = async () => {
+        try {
+            const values = await form.validateFields();
+            setSubmitting(true);
+            if (editingEmployee) {
+                await adminService.updateEmployee(editingEmployee.userId, values);
+                message.success("Cập nhật nhân viên thành công");
+            } else {
+                await adminService.addEmployee(values);
+                message.success("Thêm nhân viên thành công");
+            }
+            setModalOpen(false);
+            fetchEmployees();
+        } catch (err) {
+            if (err?.errorFields) return;
+            message.error(err?.response?.data?.message || "Có lỗi xảy ra");
+        } finally { setSubmitting(false); }
+    };
+    const handleDelete = async (id) => {
+        try {
+            await adminService.deleteEmployee(id);
+            message.success("Xóa nhân viên thành công");
+            fetchEmployees();
+        } catch (err) { message.error(err?.response?.data?.message || "Xóa thất bại"); }
+    };
+
+    const exportItems = [
+        { key: "excel", label: <span><FileExcelOutlined style={{ color: "#22a06b", marginRight: 8 }} />Xuất Excel (.xlsx)</span>, onClick: () => message.info("Tính năng đang phát triển") },
+        { key: "pdf",   label: <span><FilePdfOutlined  style={{ color: "#e53935", marginRight: 8 }} />Xuất PDF (.pdf)</span>,   onClick: () => message.info("Tính năng đang phát triển") },
     ];
-
-    React.useEffect(() => {
-        let filtered = employeesData;
-
-        if (searchText) {
-            filtered = filtered.filter(
-                (item) =>
-                    item.name.toLowerCase().includes(searchText.toLowerCase()) ||
-                    item.email.toLowerCase().includes(searchText.toLowerCase()) ||
-                    item.phone.includes(searchText),
-            );
-        }
-
-        if (statusFilter) {
-            filtered = filtered.filter((item) => item.status === statusFilter);
-        }
-
-        if (positionFilter) {
-            filtered = filtered.filter((item) => item.position === positionFilter);
-        }
-
-        setFilteredData(filtered);
-    }, [searchText, statusFilter, positionFilter]);
-
-    const activeCount = employeesData.filter((e) => e.status === "active").length;
-    const inactiveCount = employeesData.filter((e) => e.status === "inactive").length;
 
     const columns = [
         {
-            title: "Name",
-            dataIndex: "name",
-            key: "name",
-            width: "18%",
-            sorter: (a, b) => a.name.localeCompare(b.name),
+            title: "Nhân viên",
+            dataIndex: "fullname",
+            key: "fullname",
+            width: "26%",
+            sorter: (a, b) => (a.fullname || "").localeCompare(b.fullname || ""),
             render: (text, record) => (
                 <div className={styles.nameCell}>
-                    <Avatar style={{ backgroundColor: "#667eea" }}>{record.avatar}</Avatar>
-                    <span className={styles.nameText}>{text}</span>
+                    <Avatar src={record.avatarPath || null} size={40}
+                        style={{ backgroundColor: pickAvatarColor(text || ""), flexShrink: 0, fontWeight: 700, fontSize: 14 }}>
+                        {!record.avatarPath && getInitials(text)}
+                    </Avatar>
+                    <div className={styles.nameInfo}>
+                        <span className={styles.nameText}>{text || "—"}</span>
+                        <span className={styles.emailText}>{record.email}</span>
+                    </div>
                 </div>
             ),
         },
         {
-            title: "Email",
-            dataIndex: "email",
-            key: "email",
-            width: "18%",
-        },
-        {
-            title: "Position",
+            title: "Chức vụ",
             dataIndex: "position",
             key: "position",
+            width: "16%",
+            render: (pos) => {
+                const c = POSITION_COLORS[pos];
+                return pos
+                    ? <span className={styles.posBadge} style={{ background: c?.bg, color: c?.color, border: `1px solid ${c?.border}` }}>{pos}</span>
+                    : <span className={styles.noPosition}>—</span>;
+            },
+        },
+        {
+            title: "Số điện thoại",
+            dataIndex: "phoneNumber",
+            key: "phoneNumber",
             width: "15%",
-            render: (text) => <span style={{ fontWeight: 500, color: "#667eea" }}>{text}</span>,
+            render: (v) => <span className={styles.phone}>{v || "—"}</span>,
         },
         {
-            title: "Phone",
-            dataIndex: "phone",
-            key: "phone",
+            title: "Ngày vào làm",
+            dataIndex: "createdAt",
+            key: "createdAt",
+            width: "15%",
+            sorter: (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
+            render: (date) => date
+                ? <span className={styles.dateText}>{new Date(date).toLocaleDateString("vi-VN")}</span>
+                : "—",
+        },
+        {
+            title: "Trạng thái",
+            dataIndex: "isOnline",
+            key: "isOnline",
             width: "13%",
-        },
-        {
-            title: "Join Date",
-            dataIndex: "joinDate",
-            key: "joinDate",
-            width: "13%",
-            sorter: (a, b) => new Date(a.joinDate) - new Date(b.joinDate),
-        },
-        {
-            title: "Status",
-            dataIndex: "status",
-            key: "status",
-            width: "11%",
-            render: (status) => (
-                <Tag
-                    icon={status === "active" ? <CheckCircleOutlined /> : <ClockCircleOutlined />}
-                    style={{
-                        backgroundColor: status === "active" ? "#f6ffed" : "#fff1f0",
-                        color: status === "active" ? "#52c41a" : "#ff4d4f",
-                        border: `1px solid ${status === "active" ? "#52c41a" : "#ff4d4f"}`,
-                        borderRadius: "20px",
-                        padding: "4px 12px",
-                        fontWeight: 500,
-                    }}
-                >
-                    {status === "active" ? "Active" : "Inactive"}
-                </Tag>
+            render: (isOnline) => (
+                <span className={isOnline ? styles.badgeActive : styles.badgeInactive}>
+                    <span className={isOnline ? styles.dot : styles.dotGray} />
+                    {isOnline ? "Đang làm" : "Nghỉ việc"}
+                </span>
             ),
         },
         {
-            title: "Actions",
+            title: "Hành động",
             key: "actions",
-            width: "12%",
+            width: "10%",
+            align: "center",
             render: (_, record) => (
-                <div className={styles.actionButtons}>
-                    <Tooltip title="Chỉnh sửa">
-                        <Button
-                            icon={<EditOutlined />}
-                            size="small"
-                            onClick={() => message.info(`Chỉnh sửa ${record.name}`)}
-                        />
+                <div className={styles.actions}>
+                    <Tooltip title="Chỉnh sửa" placement="top">
+                        <button className={styles.iconBtnEdit} onClick={() => openEdit(record)}>
+                            <EditOutlined />
+                        </button>
                     </Tooltip>
-                    <Tooltip title="Xóa">
-                        <Popconfirm
-                            title="Xóa nhân viên?"
-                            description="Bạn có chắc chắn muốn xóa nhân viên này không?"
-                            onConfirm={() => message.success("Xóa thành công")}
-                            okText="Xóa"
-                            cancelText="Hủy"
-                        >
-                            <Button icon={<DeleteOutlined />} danger size="small" />
-                        </Popconfirm>
-                    </Tooltip>
+                    <Popconfirm
+                        title="Xoá nhân viên này?"
+                        description={`"${record.fullname}" sẽ bị xoá vĩnh viễn.`}
+                        onConfirm={() => handleDelete(record.userId)}
+                        okText="Xoá" cancelText="Huỷ"
+                        okButtonProps={{ danger: true }}
+                        placement="topRight"
+                    >
+                        <Tooltip title="Xoá" placement="top">
+                            <button className={styles.iconBtnDelete}><DeleteOutlined /></button>
+                        </Tooltip>
+                    </Popconfirm>
                 </div>
             ),
         },
     ];
 
     return (
-        <div className={styles.employeesPage}>
-            <div className={styles.header}>
-                <h1 className={styles.headerTitle}>👥 Quản lý nhân viên</h1>
-                <Button type="primary" icon={<PlusOutlined />} size="large" style={{ borderRadius: "6px" }}>
-                    Thêm nhân viên
-                </Button>
+        <div className={styles.page}>
+
+            {/* ── Page header ── */}
+            <div className={styles.pageHeader}>
+                <div>
+                    <h1 className={styles.pageTitle}>Quản lý nhân viên</h1>
+                    <p className={styles.pageSub}>Quản lý toàn bộ nhân viên trong hệ thống nhà hàng</p>
+                </div>
+                <div className={styles.headerActions}>
+                    <Dropdown menu={{ items: exportItems }} trigger={["click"]} placement="bottomRight">
+                        <Button icon={<DownloadOutlined />} className={styles.exportBtn}>
+                            Xuất báo cáo
+                        </Button>
+                    </Dropdown>
+                    <Button type="primary" icon={<UserAddOutlined />} className={styles.addBtn} onClick={openAdd}>
+                        Thêm nhân viên
+                    </Button>
+                </div>
             </div>
 
-            <Row gutter={[16, 16]} className={styles.statsGrid}>
-                <Col xs={12} sm={12} md={8}>
-                    <Card className={styles.statCard}>
-                        <TeamOutlined style={{ fontSize: 24, color: "#667eea" }} />
-                        <div className={styles.statValue} style={{ color: "#667eea" }}>
-                            {employeesData.length}
+            {/* ── Stats ── */}
+            <Row gutter={[16, 16]} className={styles.statsRow}>
+                <Col xs={24} sm={8}>
+                    <div className={`${styles.statCard} ${styles.statOrange}`}>
+                        <div className={styles.statIconBox} style={{ background: "#fff3e8" }}>
+                            <TeamOutlined style={{ color: "#ff914d", fontSize: 20 }} />
                         </div>
-                        <div className={styles.statLabel}>Tổng nhân viên</div>
-                    </Card>
+                        <div className={styles.statBody}>
+                            <span className={styles.statNum}>{total}</span>
+                            <span className={styles.statLbl}>Tổng nhân viên</span>
+                        </div>
+                    </div>
                 </Col>
-                <Col xs={12} sm={12} md={8}>
-                    <Card className={styles.statCard}>
-                        <CheckCircleOutlined style={{ fontSize: 24, color: "#52c41a" }} />
-                        <div className={styles.statValue} style={{ color: "#52c41a" }}>
-                            {activeCount}
+                <Col xs={24} sm={8}>
+                    <div className={`${styles.statCard} ${styles.statGreen}`}>
+                        <div className={styles.statIconBox} style={{ background: "#e8faf0" }}>
+                            <CheckCircleOutlined style={{ color: "#22a06b", fontSize: 20 }} />
                         </div>
-                        <div className={styles.statLabel}>Đang làm việc</div>
-                    </Card>
+                        <div className={styles.statBody}>
+                            <span className={styles.statNum} style={{ color: "#22a06b" }}>{activeCount}</span>
+                            <span className={styles.statLbl}>Đang làm việc</span>
+                        </div>
+                    </div>
                 </Col>
-                <Col xs={12} sm={12} md={8}>
-                    <Card className={styles.statCard}>
-                        <ClockCircleOutlined style={{ fontSize: 24, color: "#ff4d4f" }} />
-                        <div className={styles.statValue} style={{ color: "#ff4d4f" }}>
-                            {inactiveCount}
+                <Col xs={24} sm={8}>
+                    <div className={`${styles.statCard} ${styles.statRed}`}>
+                        <div className={styles.statIconBox} style={{ background: "#fff0f0" }}>
+                            <UserAddOutlined style={{ color: "#e53935", fontSize: 20, transform: "scaleX(-1)" }} />
                         </div>
-                        <div className={styles.statLabel}>Không hoạt động</div>
-                    </Card>
+                        <div className={styles.statBody}>
+                            <span className={styles.statNum} style={{ color: "#e53935" }}>{inactiveCount}</span>
+                            <span className={styles.statLbl}>Nghỉ việc</span>
+                        </div>
+                    </div>
                 </Col>
             </Row>
 
-            <Card className={styles.tableCard}>
+            {/* ── Table card ── */}
+            <div className={styles.card}>
+
+                {/* Toolbar */}
                 <div className={styles.toolbar}>
-                    <Input
-                        placeholder="Tìm kiếm theo tên, email hoặc SĐT..."
-                        prefix={<SearchOutlined />}
-                        value={searchText}
-                        onChange={(e) => setSearchText(e.target.value)}
-                        className={styles.searchInput}
-                        allowClear
-                        size="large"
-                    />
-                    <Select
-                        placeholder="Tất cả chức vị"
-                        style={{ width: "180px" }}
-                        value={positionFilter || undefined}
-                        onChange={(value) => setPositionFilter(value)}
-                        allowClear
-                        size="large"
-                        options={[
-                            { label: "Delivery Staff", value: "Delivery Staff" },
-                            { label: "Chef", value: "Chef" },
-                            { label: "Manager", value: "Manager" },
-                            { label: "Cashier", value: "Cashier" },
-                        ]}
-                    />
-                    <Select
-                        placeholder="Tất cả trạng thái"
-                        style={{ width: "150px" }}
-                        value={statusFilter || undefined}
-                        onChange={(value) => setStatusFilter(value)}
-                        allowClear
-                        size="large"
-                        options={[
-                            { label: "Active", value: "active" },
-                            { label: "Inactive", value: "inactive" },
-                        ]}
-                    />
+                    <div className={styles.toolbarLeft}>
+                        <Input
+                            prefix={<SearchOutlined style={{ color: "#bbb" }} />}
+                            placeholder="Tìm theo tên, email, số điện thoại..."
+                            value={search}
+                            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+                            allowClear className={styles.searchInput}
+                        />
+                        <Select
+                            placeholder={<span><FilterOutlined style={{ marginRight: 5 }} />Chức vụ</span>}
+                            style={{ width: 160 }}
+                            value={positionFilter || undefined}
+                            onChange={(v) => { setPositionFilter(v || ""); setPage(1); }}
+                            allowClear options={POSITIONS}
+                            className={styles.filterSelect}
+                        />
+                        <Select
+                            placeholder={<span><FilterOutlined style={{ marginRight: 5 }} />Trạng thái</span>}
+                            style={{ width: 150 }}
+                            value={statusFilter || undefined}
+                            onChange={(v) => { setStatusFilter(v || ""); setPage(1); }}
+                            allowClear
+                            options={[{ label: "Đang làm", value: "active" }, { label: "Nghỉ việc", value: "inactive" }]}
+                            className={styles.filterSelect}
+                        />
+                    </div>
+                    <Tooltip title="Làm mới dữ liệu">
+                        <Button icon={<ReloadOutlined />} onClick={fetchEmployees} className={styles.reloadBtn} />
+                    </Tooltip>
                 </div>
 
-                <Table
-                    columns={columns}
-                    dataSource={filteredData.map((item) => ({ ...item, key: item.id }))}
-                    pagination={{
-                        pageSize: 10,
-                        showSizeChanger: true,
-                        showTotal: (total) => `Tổng ${total} nhân viên`,
-                    }}
-                    className={styles.table}
-                    locale={{
-                        emptyText: (
-                            <div style={{ textAlign: "center", padding: "40px", color: "#999" }}>
-                                No employees found{searchText && ` for "${searchText}"`}
-                            </div>
-                        ),
-                    }}
-                />
-            </Card>
+                {/* Table */}
+                <Spin spinning={loading}>
+                    <Table
+                        columns={columns}
+                        dataSource={employees.map((e) => ({ ...e, key: e.userId }))}
+                        className={styles.table}
+                        pagination={{
+                            current: page, pageSize, total,
+                            showSizeChanger: true,
+                            showTotal: (t) => `Hiển thị ${employees.length} / ${t} nhân viên`,
+                            onChange: (p, ps) => { setPage(p); setPageSize(ps); },
+                            pageSizeOptions: ["5", "10", "20", "50"],
+                        }}
+                        locale={{
+                            emptyText: (
+                                <div className={styles.empty}>
+                                    <TeamOutlined style={{ fontSize: 44, color: "#e0e0e0" }} />
+                                    <p>Chưa có nhân viên nào</p>
+                                </div>
+                            ),
+                        }}
+                    />
+                </Spin>
+            </div>
+
+            {/* ── Modal ── */}
+            <Modal
+                title={
+                    <div className={styles.modalHead}>
+                        <div className={styles.modalHeadIcon}>
+                            {editingEmployee ? <EditOutlined /> : <UserAddOutlined />}
+                        </div>
+                        <div>
+                            <div className={styles.modalHeadTitle}>{editingEmployee ? "Chỉnh sửa nhân viên" : "Thêm nhân viên mới"}</div>
+                            <div className={styles.modalHeadSub}>{editingEmployee ? "Cập nhật thông tin nhân viên" : "Điền đầy đủ thông tin bên dưới"}</div>
+                        </div>
+                    </div>
+                }
+                open={modalOpen}
+                onCancel={() => setModalOpen(false)}
+                onOk={handleSubmit}
+                okText={editingEmployee ? "Lưu thay đổi" : "Thêm nhân viên"}
+                cancelText="Huỷ"
+                confirmLoading={submitting}
+                okButtonProps={{ className: styles.modalOkBtn }}
+                width={540}
+                destroyOnClose
+            >
+                <Form form={form} layout="vertical" className={styles.modalForm}>
+                    <Form.Item label="Họ và tên" name="fullname" rules={[{ required: true, message: "Vui lòng nhập họ tên" }]}>
+                        <Input placeholder="Nguyễn Văn A" size="large" />
+                    </Form.Item>
+                    <Row gutter={14}>
+                        <Col span={12}>
+                            <Form.Item label="Email" name="email"
+                                rules={[{ required: true, message: "Nhập email" }, { type: "email", message: "Email không hợp lệ" }]}>
+                                <Input placeholder="example@email.com" size="large" />
+                            </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                            <Form.Item label="Số điện thoại" name="phoneNumber" rules={[{ required: true, message: "Nhập SĐT" }]}>
+                                <Input placeholder="09xxxxxxxx" size="large" />
+                            </Form.Item>
+                        </Col>
+                    </Row>
+                    <Row gutter={14}>
+                        <Col span={12}>
+                            <Form.Item label="Chức vụ" name="position">
+                                <Select placeholder="Chọn chức vụ" size="large" allowClear options={POSITIONS} />
+                            </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                            <Form.Item label="Trạng thái" name="isOnline">
+                                <Select size="large" options={[{ label: "Đang làm việc", value: true }, { label: "Nghỉ việc", value: false }]} />
+                            </Form.Item>
+                        </Col>
+                    </Row>
+                    {!editingEmployee && (
+                        <Row gutter={14}>
+                            <Col span={6}>
+                                <Form.Item label="Mã QG" name="countryCode" initialValue="+84">
+                                    <Input size="large" />
+                                </Form.Item>
+                            </Col>
+                            <Col span={18}>
+                                <Form.Item label="Mật khẩu" name="password" extra="Mặc định: Employee@123">
+                                    <Input.Password placeholder="Tuỳ chọn" size="large" />
+                                </Form.Item>
+                            </Col>
+                        </Row>
+                    )}
+                </Form>
+            </Modal>
         </div>
     );
 };
