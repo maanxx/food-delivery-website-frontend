@@ -1,4 +1,3 @@
-// NEW
 import { useDispatch, useSelector } from "react-redux";
 import { useCallback } from "react";
 import { 
@@ -11,10 +10,15 @@ import {
 
 export const useAddress = () => {
     const dispatch = useDispatch();
-    const { addresses, loading, error, loadingMap } = useSelector((state) => state.address);
+    
+    // CRITICAL: Always read from Redux store, never use local state
+    const addresses = useSelector((state) => state.address?.addresses) || [];
+    const loading = useSelector((state) => state.address?.loading) || false;
+    const error = useSelector((state) => state.address?.error) || null;
+    const loadingMap = useSelector((state) => state.address?.loadingMap) || {};
 
     const handleFetch = useCallback(() => {
-        dispatch(fetchAddresses());
+        return dispatch(fetchAddresses());
     }, [dispatch]);
 
     const handleAdd = useCallback((data) => {
@@ -44,6 +48,7 @@ export const useAddress = () => {
             return;
         }
         if (loadingMap[id]?.settingDefault) return;
+        console.log("📌 [useAddress] handleSetDefault dispatching for:", id);
         return dispatch(setDefaultAddress(id));
     }, [dispatch, loadingMap]);
 

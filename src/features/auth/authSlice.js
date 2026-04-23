@@ -1,5 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import profileService from "@services/profileService";
+import { fetchAddresses } from "@features/address/addressSlice";
 
 export const initializeAuth = createAsyncThunk(
     "auth/initialize",
@@ -12,6 +13,8 @@ export const initializeAuth = createAsyncThunk(
         try {
             const response = await profileService.getProfile();
             if (response.data && response.data.success) {
+                // Ensure fresh addresses are loaded after successful auth sync
+                dispatch(fetchAddresses());
                 // Return payload in a structure the reducer expects
                 return { user: response.data.data, token };
             }
