@@ -14,6 +14,7 @@ const AddressCard = ({
   isDeleting,
   isSettingDefault 
 }) => {
+  const addrId = address.address_id || address.addressId;
   const line1 = [address.street, address.ward].filter(Boolean).join(', ');
   const line2 = address.city;
 
@@ -30,10 +31,10 @@ const AddressCard = ({
             <Button 
               type="text" 
               icon={<CheckCircleOutlined />} 
-              onClick={() => onSetDefault(address.address_id)}
+              onClick={() => onSetDefault(addrId)}
               className={styles.actionBtn}
               loading={isSettingDefault}
-              disabled={isDeleting}
+              disabled={isDeleting || isSettingDefault}
             >
               Set Default
             </Button>
@@ -49,10 +50,10 @@ const AddressCard = ({
             type="text" 
             danger 
             icon={<DeleteOutlined />} 
-            onClick={() => onDelete(address.address_id)}
+            onClick={() => onDelete(addrId)}
             className={styles.actionBtn}
             loading={isDeleting}
-            disabled={isSettingDefault}
+            disabled={isDeleting || isSettingDefault}
           />
         </div>
       </div>
