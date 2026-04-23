@@ -22,15 +22,27 @@ export const useAddress = () => {
     }, [dispatch]);
 
     const handleUpdate = useCallback((id, data) => {
+        if (!id || id === "undefined") {
+            console.error("❌ [useAddress] handleUpdate called with invalid ID:", id);
+            return;
+        }
         return dispatch(updateAddress({ id, data }));
     }, [dispatch]);
 
     const handleDelete = useCallback((id) => {
+        if (!id || id === "undefined") {
+            console.error("❌ [useAddress] handleDelete called with invalid ID:", id);
+            return;
+        }
         if (loadingMap[id]?.deleting) return;
         return dispatch(deleteAddress(id));
     }, [dispatch, loadingMap]);
 
     const handleSetDefault = useCallback((id) => {
+        if (!id || id === "undefined") {
+            console.error("❌ [useAddress] handleSetDefault called with invalid ID:", id);
+            return;
+        }
         if (loadingMap[id]?.settingDefault) return;
         return dispatch(setDefaultAddress(id));
     }, [dispatch, loadingMap]);

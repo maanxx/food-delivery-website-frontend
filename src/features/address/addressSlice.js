@@ -122,8 +122,8 @@ const addressSlice = createSlice({
                 state.previousAddresses = [...state.addresses];
                 state.loadingMap[id] = { ...state.loadingMap[id], deleting: true };
                 
-                const deletedAddress = state.addresses.find(a => a.address_id === id);
-                state.addresses = state.addresses.filter(a => a.address_id !== id);
+                const deletedAddress = state.addresses.find(a => (a.address_id || a.addressId) === id);
+                state.addresses = state.addresses.filter(a => (a.address_id || a.addressId) !== id);
 
                 // Edge case: if deleted was default, set first available as new default (optimistically)
                 if (deletedAddress?.is_default && state.addresses.length > 0) {
@@ -150,7 +150,7 @@ const addressSlice = createSlice({
 
                 state.addresses = state.addresses.map(addr => ({
                     ...addr,
-                    is_default: addr.address_id === id
+                    is_default: (addr.address_id || addr.addressId) === id
                 }));
             })
             .addCase(setDefaultAddress.fulfilled, (state, action) => {

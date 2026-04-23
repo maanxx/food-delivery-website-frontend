@@ -35,7 +35,8 @@ const ProfileAddresses = () => {
     try {
       let result;
       if (editingAddress) {
-        result = await updateAddress(editingAddress.address_id, values);
+        const addrId = editingAddress.address_id || editingAddress.addressId;
+        result = await updateAddress(addrId, values);
       } else {
         result = await addAddress(values);
       }
