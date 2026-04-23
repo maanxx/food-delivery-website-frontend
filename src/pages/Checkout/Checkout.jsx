@@ -53,12 +53,12 @@ function Checkout() {
       const data = res.data.data || [];
       setAddresses(data);
       
-      // Auto select default address
-      const defaultAddr = data.find(addr => addr.is_default);
+      // Auto select default address (camelCase from backend)
+      const defaultAddr = data.find(addr => addr.isDefault);
       if (defaultAddr) {
-        setSelectedAddressId(defaultAddr.address_id);
+        setSelectedAddressId(defaultAddr.addressId);
       } else if (data.length > 0) {
-        setSelectedAddressId(data[0].address_id);
+        setSelectedAddressId(data[0].addressId);
       }
     } catch (error) {
       message.error("Lỗi khi tải địa chỉ");
@@ -146,13 +146,13 @@ function Checkout() {
                 <div className={styles.addressList}>
                   {addresses.map((addr) => (
                     <div 
-                      key={addr.address_id}
-                      className={`${styles.addressCard} ${selectedAddressId === addr.address_id ? styles.addressCardActive : ""}`}
-                      onClick={() => setSelectedAddressId(addr.address_id)}
+                      key={addr.addressId}
+                      className={`${styles.addressCard} ${selectedAddressId === addr.addressId ? styles.addressCardActive : ""}`}
+                      onClick={() => setSelectedAddressId(addr.addressId)}
                     >
                       <div className={styles.addressHeader}>
                         <span className={styles.addressLabel}>{addr.label || "Home"}</span>
-                        {addr.is_default && <span className={styles.defaultBadge}>Mặc định</span>}
+                        {addr.isDefault && <span className={styles.defaultBadge}>Mặc định</span>}
                       </div>
                       <div className={styles.addressContent}>
                         {addr.street}, {addr.ward}, {addr.district}, {addr.city}

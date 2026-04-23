@@ -1,18 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { Button, Modal } from 'antd';
+import { Button, Modal, Skeleton } from 'antd';
 import { EnvironmentOutlined, PlusOutlined } from '@ant-design/icons';
 import { useAddress } from '@hooks/useAddress';
-import { Skeleton } from 'antd';
 
 import AddressCard from '../AddressCard/AddressCard';
 import AddressForm from '../AddressForm/AddressForm';
 import ProfileEmptyState from '../ProfileEmptyState/ProfileEmptyState';
 import styles from './ProfileAddresses.module.css';
 
-// UPDATED
 const ProfileAddresses = () => {
   const { 
-    addresses, 
+    addresses,
     loading, 
     loadingMap, 
     fetchAddresses, 
@@ -35,13 +33,10 @@ const ProfileAddresses = () => {
     try {
       let result;
       if (editingAddress) {
-        const addrId = editingAddress.address_id || editingAddress.addressId;
-        result = await updateAddress(addrId, values);
+        result = await updateAddress(editingAddress.addressId, values);
       } else {
         result = await addAddress(values);
       }
-
-      // Only close and reset if the action was successful
       if (result.meta?.requestStatus === 'fulfilled') {
         setFormVisible(false);
         setEditingAddress(null);
@@ -51,20 +46,23 @@ const ProfileAddresses = () => {
     }
   };
 
+  // DEBUG: Log addresses on every render
+  console.log("RENDER ADDRESSES:", addresses);
+
   if (loading && addresses.length === 0) {
     return (
       <div className={styles.container}>
-         <div className={styles.header}>
-            <Skeleton.Button active size="large" style={{ width: 200 }} />
-            <Skeleton.Button active size="large" style={{ width: 150 }} />
-         </div>
-         <div className={styles.list}>
-            {[1, 2, 3].map(i => (
-              <div key={i} style={{ padding: '20px', border: '1px solid #f0f0f0', borderRadius: '16px' }}>
-                <Skeleton active avatar={{ size: 'small', shape: 'circle' }} paragraph={{ rows: 2 }} />
-              </div>
-            ))}
-         </div>
+        <div className={styles.header}>
+          <div style={{ width: 200, height: 40, background: '#f5f5f5', borderRadius: 8 }} />
+          <div style={{ width: 120, height: 40, background: '#f5f5f5', borderRadius: 8 }} />
+        </div>
+        <div className={styles.list}>
+          {[1, 2, 3].map(i => (
+            <div key={i} style={{ padding: '20px', border: '1px solid #f0f0f0', borderRadius: '16px', marginBottom: 16 }}>
+              <Skeleton active avatar paragraph={{ rows: 2 }} />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -96,11 +94,10 @@ const ProfileAddresses = () => {
         ) : (
           addresses.map(addr => (
             <AddressCard 
-              key={addr.address_id}
+              key={addr.addressId}
               address={addr}
-              isDefault={addr.is_default}
-              isDeleting={loadingMap[addr.address_id]?.deleting}
-              isSettingDefault={loadingMap[addr.address_id]?.settingDefault}
+              isDeleting={loadingMap[addr.addressId]?.deleting}
+              isSettingDefault={loadingMap[addr.addressId]?.settingDefault}
               onEdit={(a) => { setEditingAddress(a); setFormVisible(true); }}
               onDelete={deleteAddress}
               onSetDefault={setDefaultAddress}

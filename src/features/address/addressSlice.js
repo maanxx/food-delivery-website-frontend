@@ -1,14 +1,15 @@
-// NEW
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import addressService from "../../services/addressService";
 import { message } from "antd";
+
+// ─── Thunks ───────────────────────────────────────────────
 
 export const fetchAddresses = createAsyncThunk(
     "address/fetchAddresses",
     async (_, { rejectWithValue }) => {
         try {
             const res = await addressService.getAddresses();
-            return res.data.data;
+            return res.data?.data || [];
         } catch (error) {
             return rejectWithValue(error.response?.data?.message || "Failed to fetch addresses");
         }
@@ -21,7 +22,7 @@ export const addAddress = createAsyncThunk(
         try {
             const res = await addressService.createAddress(data);
             message.success("Address added successfully");
-            dispatch(fetchAddresses());
+            await dispatch(fetchAddresses());
             return res.data.data;
         } catch (error) {
             message.error("Failed to add address");
@@ -36,7 +37,7 @@ export const updateAddress = createAsyncThunk(
         try {
             const res = await addressService.updateAddress(id, data);
             message.success("Cập nhật địa chỉ thành công!");
-            dispatch(fetchAddresses());
+            await dispatch(fetchAddresses());
             return res.data.data;
         } catch (error) {
             message.error("Lỗi khi cập nhật địa chỉ!");
@@ -47,10 +48,11 @@ export const updateAddress = createAsyncThunk(
 
 export const deleteAddress = createAsyncThunk(
     "address/deleteAddress",
-    async (id, { rejectWithValue, getState }) => {
+    async (id, { rejectWithValue, dispatch }) => {
         try {
             await addressService.deleteAddress(id);
             message.success("Đã xóa địa chỉ!");
+            await dispatch(fetchAddresses());
             return id;
         } catch (error) {
             message.error("Không thể xóa địa chỉ!");
@@ -61,10 +63,11 @@ export const deleteAddress = createAsyncThunk(
 
 export const setDefaultAddress = createAsyncThunk(
     "address/setDefaultAddress",
-    async (id, { rejectWithValue }) => {
+    async (id, { rejectWithValue, dispatch }) => {
         try {
             await addressService.setDefaultAddress(id);
             message.success("Đã đặt làm địa chỉ mặc định!");
+            await dispatch(fetchAddresses());
             return id;
         } catch (error) {
             message.error("Lỗi khi thay đổi địa chỉ mặc định!");
@@ -73,95 +76,76 @@ export const setDefaultAddress = createAsyncThunk(
     }
 );
 
-const initialState = {
-    addresses: [],
-    loading: false,
-    error: null,
-    loadingMap: {}, // [id]: { deleting: bool, settingDefault: bool }
-    previousAddresses: null, // For rollbacks
-};
+// ─── Normalize ────────────────────────────────────────────
+
+function normalize(payload) {
+    return (payload || []).map(addr => ({
+        ...addr,
+        isDefault: !!(addr.isDefault ?? addr.is_default ?? false),
+    }));
+}
+
+// ─── Slice ────────────────────────────────────────────────
 
 const addressSlice = createSlice({
     name: "address",
-    initialState,
+    initialState: {
+        addresses: [],
+        loading: false,
+        error: null,
+        loadingMap: {},
+    },
     reducers: {
-        clearError: (state) => {
-            state.error = null;
-        }
+        clearError: (state) => { state.error = null; },
     },
     extraReducers: (builder) => {
         builder
-            // Fetch
+            // ── Fetch ──
             .addCase(fetchAddresses.pending, (state) => {
                 state.loading = true;
                 state.error = null;
             })
             .addCase(fetchAddresses.fulfilled, (state, action) => {
                 state.loading = false;
-                state.addresses = action.payload;
+                state.addresses = normalize(action.payload);
+                console.log("REDUX ADDRESSES:", state.addresses.map(a => ({ id: a.addressId, isDefault: a.isDefault })));
             })
             .addCase(fetchAddresses.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload;
             })
-            
-            // Add Address
-            .addCase(addAddress.fulfilled, (state, action) => {
-                const newAddress = action.payload;
-                if (newAddress) {
-                    if (state.addresses.length === 0) {
-                        newAddress.is_default = true;
-                    }
-                    state.addresses.push(newAddress);
-                }
-            })
 
-            // Delete
+            // ── Add ──
+            .addCase(addAddress.fulfilled, () => {})
+
+            // ── Delete ──
             .addCase(deleteAddress.pending, (state, action) => {
-                const id = action.meta.arg;
-                state.previousAddresses = [...state.addresses];
-                state.loadingMap[id] = { ...state.loadingMap[id], deleting: true };
-                
-                const deletedAddress = state.addresses.find(a => (a.address_id || a.addressId) === id);
-                state.addresses = state.addresses.filter(a => (a.address_id || a.addressId) !== id);
-
-                // Edge case: if deleted was default, set first available as new default (optimistically)
-                if (deletedAddress?.is_default && state.addresses.length > 0) {
-                    state.addresses[0].is_default = true;
-                }
+                state.loadingMap[action.meta.arg] = { ...state.loadingMap[action.meta.arg], deleting: true };
             })
             .addCase(deleteAddress.fulfilled, (state, action) => {
-                const id = action.payload;
-                delete state.loadingMap[id];
-                state.previousAddresses = null;
+                delete state.loadingMap[action.meta.arg];
             })
             .addCase(deleteAddress.rejected, (state, action) => {
-                const { id } = action.payload;
-                state.addresses = state.previousAddresses; // Rollback
-                state.previousAddresses = null;
-                delete state.loadingMap[id];
+                delete state.loadingMap[action.meta.arg];
             })
 
-            // Set Default
+            // ── Set Default (OPTIMISTIC + BACKEND SYNC) ──
             .addCase(setDefaultAddress.pending, (state, action) => {
-                const id = action.meta.arg;
-                state.previousAddresses = [...state.addresses];
-                state.loadingMap[id] = { ...state.loadingMap[id], settingDefault: true };
-
+                const selectedId = action.meta.arg;
+                state.loadingMap[selectedId] = { ...state.loadingMap[selectedId], settingDefault: true };
+                // INSTANT UI UPDATE
                 state.addresses = state.addresses.map(addr => ({
                     ...addr,
-                    is_default: (addr.address_id || addr.addressId) === id
+                    isDefault: addr.addressId === selectedId,
                 }));
             })
             .addCase(setDefaultAddress.fulfilled, (state, action) => {
-                const id = action.payload;
-                delete state.loadingMap[id];
-                state.previousAddresses = null;
+                delete state.loadingMap[action.meta.arg];
+                // fetchAddresses in thunk already replaced state.addresses
             })
-            .addCase(setDefaultAddress.rejected, (state) => {
-                state.addresses = state.previousAddresses; // Rollback
-                state.previousAddresses = null;
-                state.loadingMap = {}; // Reset loading map for safety on catastrophic failure
+            .addCase(setDefaultAddress.rejected, (state, action) => {
+                delete state.loadingMap[action.meta.arg];
+                // fetchAddresses in thunk handles recovery
             });
     },
 });
