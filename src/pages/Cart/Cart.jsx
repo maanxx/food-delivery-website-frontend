@@ -1,13 +1,13 @@
 import React, { useCallback, useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { Container, Checkbox } from "@mui/material";
+import { Container, Checkbox, Autocomplete, TextField } from "@mui/material";
 import { ShoppingBasketOutlined, DeleteSweepOutlined } from "@mui/icons-material";
 import { message } from "antd";
 
 import styles from "./Cart.module.css";
 import { fetchCartItems, removeItemFromCart, clearCart } from "@features/cart/cartSlice";
-import { checkVoucher } from "@services/voucherService";
+import { checkVoucher, getVouchers } from "@services/voucherService";
 import { CartItemCard, ProfileEmptyState } from "@components/index";
 
 const CART_TEXT = {
@@ -37,10 +37,32 @@ function Cart() {
   const [selectedItemIds, setSelectedItemIds] = useState([]);
   const [voucherCode, setVoucherCode] = useState("");
   const [discountInfo, setDiscountInfo] = useState(null);
+  const [savedVouchers, setSavedVouchers] = useState([]);
+  const [allVouchers, setAllVouchers] = useState([]);
 
   useEffect(() => {
     dispatch(fetchCartItems());
   }, [dispatch]);
+
+  // Load saved vouchers and fetch all vouchers
+  useEffect(() => {
+    const fetchData = async () => {
+      // Get saved voucher codes from localStorage
+      const saved = JSON.parse(localStorage.getItem('savedVouchers') || '[]');
+      setSavedVouchers(saved);
+
+      // Fetch all vouchers to get details
+      try {
+        const res = await getVouchers();
+        if (res.data.success) {
+          setAllVouchers(res.data.data || []);
+        }
+      } catch (error) {
+        console.error("Failed to fetch vouchers:", error);
+      }
+    };
+    fetchData();
+  }, []);
 
   // Handle auto-selection of all items by default
   useEffect(() => {
@@ -66,12 +88,39 @@ function Cart() {
     }, 0),
   [selectedItems]);
 
+  // Filter vouchers that user has saved and check if they're applicable
+  const savedVoucherOptions = useMemo(() => {
+    return allVouchers
+      .filter(v => savedVouchers.includes(v.code))
+      .map(v => {
+        const minPurchase = Number(v.min_purchase) || 0;
+        const isApplicable = selectedTotal >= minPurchase;
+        return {
+          label: `${v.code} - ${v.description}`,
+          value: v.code,
+          disabled: !isApplicable,
+          minPurchase: minPurchase,
+          voucher: v
+        };
+      });
+  }, [allVouchers, savedVouchers, selectedTotal]);
+
   const hasInvalidSelectedItems = useMemo(() => 
     selectedItems.some(item => !item.is_available || !item.has_stock),
   [selectedItems]);
 
   const discountAmount = useMemo(() => {
     if (!discountInfo || selectedTotal === 0) return 0;
+    
+    // Re-check min_purchase when selectedTotal changes
+    const minPurchase = Number(discountInfo.min_purchase) || 0;
+    if (selectedTotal < minPurchase) {
+      // Auto-remove voucher if total drops below min_purchase
+      setDiscountInfo(null);
+      message.warning(`Đơn hàng không đủ ${minPurchase.toLocaleString('vi-VN')}₫ để áp dụng voucher`);
+      return 0;
+    }
+    
     const { discount_type, discount_value } = discountInfo;
     if (discount_type === "Percentage") return (selectedTotal * discount_value);
     return Math.min(discount_value, selectedTotal);
@@ -108,20 +157,36 @@ function Cart() {
   }, [selectedItemIds, dispatch]);
 
   const handleApplyVoucher = useCallback(async () => {
-    if (!voucherCode) return;
+    if (!voucherCode) {
+      message.warning("Vui lòng nhập mã voucher");
+      return;
+    }
     try {
+      console.log("🎟️ Checking voucher:", voucherCode);
       const res = await checkVoucher(voucherCode);
-      if (res.status === "OK") {
+      console.log("🎟️ Voucher response:", res);
+      
+      if (res.success && res.status === "APPLIED") {
+        // Check min_purchase requirement
+        const minPurchase = Number(res.voucher.min_purchase) || 0;
+        if (selectedTotal < minPurchase) {
+          setDiscountInfo(null);
+          message.error(`Đơn hàng tối thiểu ${minPurchase.toLocaleString('vi-VN')}₫ để áp dụng mã này`);
+          return;
+        }
+        
         setDiscountInfo(res.voucher);
         message.success("Áp dụng mã thành công!");
       } else {
         setDiscountInfo(null);
-        message.error("Mã không hợp lệ hoặc đã hết hạn");
+        message.error(res.message || "Mã không hợp lệ hoặc đã hết hạn");
       }
     } catch (error) {
+      console.error("Voucher error:", error);
+      setDiscountInfo(null);
       message.error("Lỗi khi kiểm tra mã");
     }
-  }, [voucherCode]);
+  }, [voucherCode, selectedTotal]);
 
   const handleCheckout = useCallback(() => {
     if (selectedItemIds.length === 0) {
@@ -139,10 +204,11 @@ function Cart() {
         items: selectedItems,
         total: finalTotal,
         discount: discountAmount,
-        subtotal: selectedTotal
+        subtotal: selectedTotal,
+        voucher_code: discountInfo ? voucherCode : null
       } 
     });
-  }, [selectedItemIds.length, hasInvalidSelectedItems, finalTotal, navigate, selectedItems, discountAmount, selectedTotal]);
+  }, [selectedItemIds.length, hasInvalidSelectedItems, finalTotal, navigate, selectedItems, discountAmount, selectedTotal, discountInfo, voucherCode]);
 
   if (loading && cartItems.length === 0) {
     return (
@@ -225,12 +291,68 @@ function Cart() {
 
               <div className={styles.voucherSection}>
                 <div className={styles.voucherInputGroup}>
-                  <input 
-                    type="text" 
-                    className={styles.voucherInput}
-                    placeholder={CART_TEXT.VOUCHER_PLACEHOLDER}
+                  <Autocomplete
+                    freeSolo
+                    options={savedVoucherOptions}
                     value={voucherCode}
-                    onChange={(e) => setVoucherCode(e.target.value)}
+                    getOptionDisabled={(option) => option.disabled}
+                    onChange={(event, newValue) => {
+                      if (typeof newValue === 'string') {
+                        setVoucherCode(newValue);
+                      } else if (newValue && newValue.value) {
+                        setVoucherCode(newValue.value);
+                      } else {
+                        setVoucherCode('');
+                      }
+                    }}
+                    onInputChange={(event, newInputValue) => {
+                      setVoucherCode(newInputValue);
+                    }}
+                    renderOption={(props, option) => (
+                      <li {...props} style={{ 
+                        opacity: option.disabled ? 0.5 : 1,
+                        cursor: option.disabled ? 'not-allowed' : 'pointer',
+                        pointerEvents: option.disabled ? 'none' : 'auto'
+                      }}>
+                        <div style={{ width: '100%' }}>
+                          <div style={{ fontWeight: 600 }}>{option.value}</div>
+                          <div style={{ fontSize: '12px', color: '#666' }}>
+                            {option.voucher.description}
+                          </div>
+                          {option.disabled && (
+                            <div style={{ fontSize: '11px', color: '#ff4d4f', marginTop: '2px' }}>
+                              Đơn tối thiểu {option.minPurchase.toLocaleString('vi-VN')}₫
+                            </div>
+                          )}
+                        </div>
+                      </li>
+                    )}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        placeholder={CART_TEXT.VOUCHER_PLACEHOLDER}
+                        variant="outlined"
+                        size="small"
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            borderRadius: '8px',
+                            backgroundColor: 'white',
+                          }
+                        }}
+                      />
+                    )}
+                    sx={{ flex: 1 }}
+                    noOptionsText={savedVoucherOptions.length === 0 ? "Chưa có voucher đã lưu" : "Không tìm thấy"}
+                    slotProps={{
+                      popper: {
+                        disablePortal: true,
+                        sx: {
+                          '& .MuiPaper-root': {
+                            marginTop: '4px',
+                          }
+                        }
+                      }
+                    }}
                   />
                   <button className={styles.applyBtn} onClick={handleApplyVoucher}>
                     {CART_TEXT.APPLY}

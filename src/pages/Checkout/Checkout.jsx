@@ -82,6 +82,11 @@ function Checkout() {
         payment_method: "COD"
       };
 
+      // Add voucher_code if available
+      if (checkoutData.voucher_code) {
+        orderPayload.voucher_code = checkoutData.voucher_code;
+      }
+
       const resultAction = await dispatch(createOrder(orderPayload));
       
       if (createOrder.fulfilled.match(resultAction)) {
@@ -96,7 +101,7 @@ function Checkout() {
       console.error("Order error:", error);
       message.error("Lỗi hệ thống khi đặt hàng");
     }
-  }, [selectedAddressId, note, navigate, dispatch]);
+  }, [selectedAddressId, note, navigate, dispatch, checkoutData.voucher_code]);
 
   const orderSummaryList = useMemo(() => (
     <div className={styles.summaryList}>
@@ -215,10 +220,16 @@ function Checkout() {
                   <span>{checkoutData.subtotal?.toLocaleString("vi-VN")} ₫</span>
                 </div>
                 {checkoutData.discount > 0 && (
-                  <div className={styles.summaryRow} style={{ color: "#ff4d4f" }}>
-                    <span>Giảm giá</span>
-                    <span>-{checkoutData.discount.toLocaleString("vi-VN")} ₫</span>
-                  </div>
+                  <>
+                    <div className={styles.summaryRow} style={{ color: "#52c41a" }}>
+                      <span>Mã giảm giá: {checkoutData.voucher_code}</span>
+                      <span></span>
+                    </div>
+                    <div className={styles.summaryRow} style={{ color: "#ff4d4f" }}>
+                      <span>Giảm giá</span>
+                      <span>-{checkoutData.discount.toLocaleString("vi-VN")} ₫</span>
+                    </div>
+                  </>
                 )}
                 <div className={styles.totalRow}>
                   <span>Tổng cộng</span>
