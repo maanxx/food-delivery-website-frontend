@@ -1,163 +1,456 @@
-.ordersPage {
-    width: 100%;
-    padding: 0;
-}
+.page { width: 100%; }
 
-.header {
+/* ── Header ──────────────────────────────────────────── */
+.pageHeader {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    margin-bottom: 24px;
+    align-items: flex-start;
+    margin-bottom: 20px;
     flex-wrap: wrap;
     gap: 16px;
 }
 
-.headerTitle {
-    font-size: 28px;
-    font-weight: 700;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    margin: 0;
+.pageTitle {
+    font-size: 22px;
+    font-weight: 800;
+    color: #111827;
+    margin: 0 0 4px;
+    letter-spacing: -0.4px;
 }
 
-.toolbar {
+.pageSub { font-size: 13px; color: #6b7280; margin: 0; }
+
+.exportBtn {
+    height: 40px !important;
+    border-radius: 10px !important;
+    border: 1.5px solid #e5e7eb !important;
+    color: #374151 !important;
+    font-weight: 600 !important;
+    font-size: 13px !important;
+    background: #fff !important;
+    transition: all 0.2s !important;
+    padding: 0 16px !important;
+}
+.exportBtn:hover {
+    border-color: #ff914d !important;
+    color: #ff914d !important;
+    background: #fff8f3 !important;
+}
+
+/* ── Status pipeline ──────────────────────────────────── */
+.pipeline {
     display: flex;
-    gap: 12px;
     align-items: center;
-    flex-wrap: wrap;
+    gap: 0;
+    margin-bottom: 16px;
+    background: #fff;
+    border-radius: 16px;
+    border: 1px solid #f3f4f6;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.04);
+    padding: 16px 20px;
+    overflow-x: auto;
+}
+
+.pipelineItem {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 90px;
+    cursor: pointer;
+}
+
+.pipelineBox {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 10px 8px;
+    border-radius: 12px;
+    border: 1.5px solid transparent;
+    background: #f9fafb;
+    transition: all 0.2s;
+    min-width: 80px;
+}
+.pipelineBox:hover { background: #f3f4f6; }
+.pipelineActive {
+    border-color: #ff914d !important;
+    background: #fff8f3 !important;
+}
+
+.pipelineIcon {
+    font-size: 18px;
+    color: #9ca3af;
+    transition: color 0.2s;
+}
+
+.pipelineNum {
+    font-size: 22px;
+    font-weight: 800;
+    color: #111827;
+    line-height: 1;
+    transition: color 0.2s;
+}
+.pipelineActive .pipelineNum { color: #ff914d; }
+.pipelineActive .pipelineIcon { color: #ff914d; }
+
+.pipelineLbl {
+    font-size: 11px;
+    color: #6b7280;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    white-space: nowrap;
+    text-align: center;
+}
+
+.pipelineArrow {
+    font-size: 20px;
+    color: #d1d5db;
+    padding: 0 4px;
+    flex-shrink: 0;
+    line-height: 1;
+    user-select: none;
+}
+
+/* ── Revenue bar ─────────────────────────────────────── */
+.revenueBar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: linear-gradient(135deg, #fff8f3, #fff3e8);
+    border: 1.5px solid #fed7aa;
+    border-radius: 12px;
+    padding: 12px 20px;
     margin-bottom: 16px;
 }
 
-.searchInput {
-    width: 250px;
-}
+.revenueIcon { font-size: 18px; color: #ff914d; }
 
-.tableCard {
-    background: white;
-    border-radius: 12px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-    border: 1px solid #f0f0f0;
-    overflow: hidden;
-}
-
-.table {
-    background: white;
-}
-
-.table :global(.ant-table) {
-    border-radius: 12px;
-    overflow: hidden;
-    background: white;
-}
-
-.table :global(.ant-table-thead > tr > th) {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
+.revenueLbl {
+    font-size: 13px;
+    color: #92400e;
     font-weight: 600;
-    border: none;
-    padding: 10px 12px !important;
-    font-size: 12px !important;
 }
 
-.table :global(.ant-table-thead > tr > th .ant-table-sorter) {
-    color: rgba(255, 255, 255, 0.7);
+.revenueAmt {
+    font-size: 18px;
+    font-weight: 800;
+    color: #ff6b35;
+    font-variant-numeric: tabular-nums;
 }
 
-.table :global(.ant-table-tbody > tr) {
-    transition: all 0.3s ease;
+.revenueNote {
+    font-size: 12px;
+    color: #b45309;
+    margin-left: 2px;
 }
 
-.table :global(.ant-table-tbody > tr:hover) {
-    opacity: 0.95 !important;
+/* ── Card ────────────────────────────────────────────── */
+.card {
+    background: #fff;
+    border-radius: 16px;
+    border: 1px solid #f3f4f6;
+    box-shadow: 0 1px 8px rgba(0,0,0,0.05);
+    overflow: hidden;
 }
 
-.table :global(.ant-table-tbody > tr > td) {
-    padding: 14px 12px;
-    border-bottom: 1px solid #f0f0f0;
-    font-size: 14px;
+/* ── Toolbar ─────────────────────────────────────────── */
+.toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 20px;
+    border-bottom: 1px solid #f9fafb;
+    flex-wrap: wrap;
 }
 
-.table :global(.ant-table-row:last-child > td) {
-    border-bottom: none;
-}
-
-.actionButtons {
+.toolbarLeft {
     display: flex;
     gap: 8px;
+    align-items: center;
+    flex: 1;
+    flex-wrap: wrap;
 }
 
-.actionButtons :global(.ant-btn) {
-    padding: 6px 8px;
-    height: 32px;
-    border: 1px solid #e8e8e8;
-    border-radius: 6px;
-    transition: all 0.3s ease;
+.searchInput { flex: 1; min-width: 220px; }
+
+.searchInput :global(.ant-input-affix-wrapper) {
+    border-radius: 9px !important;
+    border: 1.5px solid #e5e7eb !important;
+    height: 38px !important;
+    background: #f9fafb !important;
+    font-size: 13px !important;
+    transition: all 0.2s !important;
+}
+.searchInput :global(.ant-input-affix-wrapper:hover) { border-color: #fbbf8a !important; background: #fff !important; }
+.searchInput :global(.ant-input-affix-wrapper-focused) {
+    border-color: #ff914d !important;
+    background: #fff !important;
+    box-shadow: 0 0 0 3px rgba(255,145,77,0.1) !important;
+}
+.searchInput :global(.ant-input) { background: transparent !important; font-size: 13px !important; }
+
+.filterSelect :global(.ant-select-selector) {
+    border-radius: 9px !important;
+    border: 1.5px solid #e5e7eb !important;
+    height: 38px !important;
+    background: #f9fafb !important;
+    font-size: 13px !important;
+    align-items: center !important;
+    transition: all 0.2s !important;
+}
+.filterSelect :global(.ant-select-focused .ant-select-selector) {
+    border-color: #ff914d !important;
+    box-shadow: 0 0 0 3px rgba(255,145,77,0.1) !important;
+    background: #fff !important;
 }
 
-.actionButtons :global(.ant-btn:hover:not(.ant-btn-danger)) {
-    color: #667eea;
-    border-color: #667eea;
-    background: #f0f1ff;
+.reloadBtn {
+    height: 38px !important; width: 38px !important;
+    border-radius: 9px !important;
+    border: 1.5px solid #e5e7eb !important;
+    color: #9ca3af !important;
+    background: #f9fafb !important;
+    display: flex !important; align-items: center !important; justify-content: center !important;
+    padding: 0 !important; flex-shrink: 0;
+    transition: all 0.25s !important;
+}
+.reloadBtn:hover {
+    color: #ff914d !important; border-color: #fbbf8a !important;
+    background: #fff8f3 !important; transform: rotate(90deg) !important;
 }
 
-.statusTag {
-    padding: 4px 12px;
+/* ── Table ───────────────────────────────────────────── */
+.table :global(.ant-table) { border-radius: 0 !important; }
+.table :global(.ant-table-thead > tr > th) {
+    background: #f9fafb !important;
+    color: #374151 !important;
+    font-weight: 700 !important;
+    font-size: 11px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.6px !important;
+    border-bottom: 1px solid #f3f4f6 !important;
+    padding: 12px 16px !important;
+}
+.table :global(.ant-table-thead > tr > th::before) { display: none !important; }
+.table :global(.ant-table-tbody > tr > td) {
+    padding: 13px 16px !important;
+    font-size: 13.5px !important;
+    border-bottom: 1px solid #f9fafb !important;
+    color: #374151;
+    transition: background 0.12s;
+}
+.table :global(.ant-table-tbody > tr:last-child > td) { border-bottom: none !important; }
+.table :global(.ant-table-tbody > tr:hover > td) { background: #fffaf7 !important; }
+.table :global(.ant-pagination) {
+    padding: 14px 20px !important; margin: 0 !important;
+    border-top: 1px solid #f3f4f6;
+}
+.table :global(.ant-pagination-item) { border-radius: 8px !important; font-size: 13px !important; }
+.table :global(.ant-pagination-item-active) { background: #ff914d !important; border-color: #ff914d !important; }
+.table :global(.ant-pagination-item-active a) { color: #fff !important; }
+.table :global(.ant-pagination-prev .ant-pagination-item-link),
+.table :global(.ant-pagination-next .ant-pagination-item-link) { border-radius: 8px !important; }
+
+/* ── Order ID ────────────────────────────────────────── */
+.orderId {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 8px;
+    background: #fff8f3;
+    color: #ff6b35;
+    font-weight: 700;
+    font-size: 12.5px;
+    letter-spacing: 0.5px;
+    border: 1px solid #fed7aa;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ── Customer cell ───────────────────────────────────── */
+.customerCell { display: flex; flex-direction: column; gap: 2px; }
+.customerName { font-weight: 700; font-size: 13.5px; color: #111827; }
+.customerPhone { font-size: 11.5px; color: #9ca3af; }
+
+/* ── Date cell ───────────────────────────────────────── */
+.dateCell { display: flex; flex-direction: column; gap: 1px; }
+.dateDay  { font-size: 13px; font-weight: 600; color: #374151; }
+.dateTime { font-size: 11px; color: #9ca3af; }
+
+/* ── Amount ──────────────────────────────────────────── */
+.amountText {
+    font-size: 13.5px;
+    font-weight: 800;
+    color: #059669;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ── Items count ─────────────────────────────────────── */
+.itemsCount {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    background: #f3f4f6;
+    color: #374151;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+/* ── Payment badge ───────────────────────────────────── */
+.payBadge {
+    display: inline-block;
+    padding: 3px 10px;
     border-radius: 20px;
-    font-weight: 500;
-    font-size: 12px;
+    font-size: 11.5px;
+    font-weight: 600;
+    white-space: nowrap;
 }
 
-.pagination {
+/* ── Status select (inline) ──────────────────────────── */
+.statusSelect :global(.ant-select-selector) {
+    border-radius: 20px !important;
+    border: 1.5px solid var(--status-border, #e5e7eb) !important;
+    background: var(--status-bg, #f3f4f6) !important;
+    height: 30px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    padding: 0 10px !important;
+    align-items: center !important;
+    transition: all 0.2s !important;
+}
+.statusSelect :global(.ant-select-selection-item) {
+    color: var(--status-color, #374151) !important;
+    font-weight: 600 !important;
+    font-size: 12px !important;
+    line-height: 28px !important;
+    padding-right: 18px !important;
+}
+.statusSelect :global(.ant-select-arrow) {
+    color: var(--status-color, #374151) !important;
+    font-size: 10px !important;
+}
+
+/* ── Action button ───────────────────────────────────── */
+.iconBtnView {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    background: #f5f3ff;
+    color: #7c3aed;
+    transition: all 0.18s;
+    outline: none;
+}
+.iconBtnView:hover { background: #ede9fe; color: #6d28d9; transform: scale(1.08); }
+
+/* ── Empty ───────────────────────────────────────────── */
+.empty { text-align: center; padding: 56px 20px; color: #d1d5db; }
+.empty p { margin: 12px 0 0; font-size: 14px; color: #9ca3af; font-weight: 500; }
+
+/* ── Detail modal ────────────────────────────────────── */
+.modalHead { display: flex; align-items: center; gap: 14px; }
+.modalHeadIcon {
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #ff914d, #ff6b35);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px; color: #fff;
+    box-shadow: 0 4px 12px rgba(255,145,77,0.35);
+    flex-shrink: 0;
+}
+.modalHeadTitle { font-size: 16px; font-weight: 700; color: #111827; }
+.modalHeadSub   { font-size: 12px; color: #9ca3af; margin-top: 2px; }
+
+.detailBody { padding: 4px 0; }
+
+.detailGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 20px;
+    background: #f9fafb;
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 20px;
+}
+.detailItem { display: flex; flex-direction: column; gap: 3px; }
+.detailLbl {
+    font-size: 11px; font-weight: 600; color: #9ca3af;
+    text-transform: uppercase; letter-spacing: 0.5px;
+}
+.detailVal { font-size: 13.5px; font-weight: 600; color: #111827; }
+
+.itemsTitle {
+    font-size: 13px; font-weight: 700; color: #374151;
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.itemsList {
     display: flex;
-    justify-content: flex-end;
-    padding-top: 16px;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 16px;
 }
 
-.emptyState {
-    text-align: center;
-    padding: 40px 20px;
-    color: #999;
+.itemRow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: #f9fafb;
+    border-radius: 10px;
+    border: 1px solid #f3f4f6;
 }
 
-th.ant-table-column-has-sorters:hover {
-    opacity: 0.95 !important;
-    background-color: #667eea !important;
+.itemImgWrap {
+    width: 40px; height: 40px;
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+    background: #e5e7eb;
+}
+.itemImg { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.itemName { flex: 1; font-size: 13px; font-weight: 600; color: #111827; min-width: 0; }
+.itemQty  { font-size: 13px; font-weight: 600; color: #6b7280; flex-shrink: 0; }
+.itemPrice {
+    font-size: 13.5px; font-weight: 800; color: #ff6b35;
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
 }
 
+.detailTotal {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 16px;
+    background: linear-gradient(135deg, #fff8f3, #fff3e8);
+    border-radius: 12px;
+    border: 1.5px solid #fed7aa;
+    font-size: 14px;
+    font-weight: 700;
+    color: #92400e;
+}
+.detailTotalAmt {
+    font-size: 20px;
+    font-weight: 800;
+    color: #ff6b35;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ── Responsive ──────────────────────────────────────── */
 @media (max-width: 768px) {
-    .header {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .headerTitle {
-        font-size: 24px;
-    }
-
-    .searchInput {
-        width: 100%;
-    }
-
-    .toolbar {
-        width: 100%;
-        flex-direction: column;
-    }
-
-    .toolbar :global(.ant-btn) {
-        width: 100%;
-    }
-
-    .table :global(.ant-table-wrapper) {
-        font-size: 12px;
-    }
-
-    .table :global(.ant-table-thead > tr > th) {
-        padding: 12px 8px !important;
-    }
-
-    .table :global(.ant-table-tbody > tr > td) {
-        padding: 10px 8px;
-    }
+    .pageHeader  { flex-direction: column; }
+    .pipeline    { gap: 4px; padding: 12px; }
+    .pipelineNum { font-size: 18px; }
+    .toolbar     { flex-direction: column; align-items: stretch; }
+    .toolbarLeft { flex-direction: column; }
+    .searchInput, .filterSelect { width: 100% !important; }
+    .detailGrid  { grid-template-columns: 1fr; }
 }

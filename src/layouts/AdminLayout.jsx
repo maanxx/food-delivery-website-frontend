@@ -105,7 +105,10 @@ const AdminLayout = ({ children }) => {
         <Layout className={styles.adminLayout}>
             {/* Sidebar */}
             <Sider trigger={null} collapsible collapsed={collapsed} className={styles.sidebar} theme="dark" width={250}>
-                <div className={styles.logo}>{!collapsed && <span className={styles.logoText}>Eatsy Admin</span>}</div>
+                <div className={styles.logo}>
+                    <span style={{ fontSize: 22 }}>🍊</span>
+                    {!collapsed && <span className={styles.logoText}>Eatsy Admin</span>}
+                </div>
                 <Menu
                     theme="dark"
                     mode="inline"
@@ -132,16 +135,8 @@ const AdminLayout = ({ children }) => {
                         <Dropdown menu={{ items: userMenu }} trigger={["click"]}>
                             <div className={styles.userSection}>
                                 <Avatar
-                                    size={40}
+                                    size={36}
                                     src={user?.avatar_path || null}
-                                    style={{
-                                        backgroundColor: "#1890ff",
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        fontWeight: "bold",
-                                        fontSize: "16px",
-                                    }}
                                     className={styles.avatar}
                                 >
                                     {!user?.avatar_path && user?.fullname

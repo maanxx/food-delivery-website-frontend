@@ -276,7 +276,7 @@ function FormPhoneNumber() {
                         name="phone"
                         onInput={handleValidatePhoneInput}
                         placeholder="0 1 2 3 4 5 6 7 8 9"
-                        // autoComplete={"off"}
+                    // autoComplete={"off"}
                     />
                     <div className={cx("phone-input-alert")}>{alertMessage}</div>
                 </div>

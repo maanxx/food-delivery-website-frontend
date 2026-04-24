@@ -1,220 +1,200 @@
-import React, { useState, useEffect } from "react";
-import { Row, Col, Space, Button, DatePicker, Card, Statistic, message } from "antd";
-import { ShoppingCartOutlined, DollarOutlined, UserOutlined, FireOutlined, ReloadOutlined } from "@ant-design/icons";
-import StatCard from "./StatCard";
+import React, { useState, useEffect, useCallback } from "react";
+import { Row, Col, Button, Spin, Tooltip } from "antd";
+import {
+    ShoppingOutlined, CheckCircleOutlined, AppstoreOutlined,
+    TeamOutlined, ReloadOutlined, RiseOutlined,
+} from "@ant-design/icons";
 import { OrderStatsChart, RevenueChart, TopDishesChart, CategoryChart } from "./Chart";
 import RecentOrders from "./RecentOrders";
 import adminService from "@services/adminService";
 import styles from "./AdminDashboard.module.css";
 
+const PERIOD_OPTIONS = [
+    { value: "today", label: "Hôm nay" },
+    { value: "week",  label: "Tuần này" },
+    { value: "month", label: "Tháng này" },
+];
+
+const MOCK_CHARTS = {
+    today: {
+        orderStats: [
+            { date: "6h", orders: 3 }, { date: "8h", orders: 7 }, { date: "10h", orders: 11 },
+            { date: "12h", orders: 18 }, { date: "14h", orders: 14 }, { date: "16h", orders: 9 },
+            { date: "18h", orders: 15 }, { date: "20h", orders: 22 }, { date: "22h", orders: 8 },
+        ],
+        revenueData: [
+            { date: "6h", revenue: 120000 }, { date: "8h", revenue: 380000 }, { date: "10h", revenue: 620000 },
+            { date: "12h", revenue: 980000 }, { date: "14h", revenue: 740000 }, { date: "16h", revenue: 490000 },
+            { date: "18h", revenue: 830000 }, { date: "20h", revenue: 1200000 }, { date: "22h", revenue: 460000 },
+        ],
+    },
+    week: {
+        orderStats: [
+            { date: "T2", orders: 48 }, { date: "T3", orders: 55 }, { date: "T4", orders: 42 },
+            { date: "T5", orders: 61 }, { date: "T6", orders: 73 }, { date: "T7", orders: 88 }, { date: "CN", orders: 65 },
+        ],
+        revenueData: [
+            { date: "T2", revenue: 2800000 }, { date: "T3", revenue: 3200000 }, { date: "T4", revenue: 2400000 },
+            { date: "T5", revenue: 3600000 }, { date: "T6", revenue: 4200000 }, { date: "T7", revenue: 5100000 }, { date: "CN", revenue: 3800000 },
+        ],
+    },
+    month: {
+        orderStats: [
+            { date: "T1", orders: 312 }, { date: "T2", orders: 287 }, { date: "T3", orders: 354 },
+            { date: "T4", orders: 401 }, { date: "T5", orders: 378 }, { date: "T6", orders: 445 },
+        ],
+        revenueData: [
+            { date: "T1", revenue: 18200000 }, { date: "T2", revenue: 16800000 }, { date: "T3", revenue: 21400000 },
+            { date: "T4", revenue: 24600000 }, { date: "T5", revenue: 22900000 }, { date: "T6", revenue: 27300000 },
+        ],
+    },
+};
+
+const MOCK_TOP_DISHES = [
+    { name: "Pizza Pepperoni", quantity: 156 },
+    { name: "Burger Deluxe",   quantity: 143 },
+    { name: "Phở Bò",          quantity: 129 },
+    { name: "Pad Thai",        quantity: 115 },
+    { name: "Sushi Combo",     quantity: 98  },
+];
+
+const MOCK_CATEGORY = [
+    { category: "Pizza",   revenue: 5600000 },
+    { category: "Burger",  revenue: 4200000 },
+    { category: "Noodles", revenue: 3800000 },
+    { category: "Drinks",  revenue: 2100000 },
+    { category: "Rice",    revenue: 3200000 },
+];
+
 const AdminDashboard = () => {
-    const [loading, setLoading] = useState(false);
-    const [period, setPeriod] = useState("today");
-    const [stats, setStats] = useState({
-        totalOrders: 0,
-        revenue: 0,
-        activeUsers: 0,
-        topDishes: [],
-    });
-    const [chartData, setChartData] = useState({
-        orderStats: [],
-        revenueData: [],
-        topDishesData: [],
-        categoryData: [],
-    });
+    const [loading, setLoading]       = useState(false);
+    const [period, setPeriod]         = useState("today");
+    const [kpis, setKpis]             = useState({ totalOrders: 0, pendingOrders: 0, totalProducts: 0, totalEmployees: 0 });
     const [recentOrders, setRecentOrders] = useState([]);
 
-    // Fetch tất cả dữ liệu
-    const fetchDashboardData = async () => {
+    const today = new Date().toLocaleDateString("vi-VN", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+
+    const fetchData = useCallback(async () => {
         setLoading(true);
         try {
-            // Giả dữ liệu để demo, sau này replace bằng API thực
-            const mockOrderStats = [
-                { date: "1-tháng này", orders: 45 },
-                { date: "2-tháng này", orders: 52 },
-                { date: "3-tháng này", orders: 48 },
-                { date: "4-tháng này", orders: 61 },
-                { date: "5-tháng này", orders: 55 },
-                { date: "6-tháng này", orders: 67 },
-                { date: "7-tháng này", orders: 72 },
-            ];
+            const [orderStats, productStats, empRes, ordersRes] = await Promise.all([
+                adminService.getOrderStats().catch(() => ({ success: false })),
+                adminService.getProductStats().catch(() => ({ success: false })),
+                adminService.getEmployees({ limit: 1, page: 1 }).catch(() => ({ success: false })),
+                adminService.getOrders({ limit: 5, page: 1 }).catch(() => ({ success: false })),
+            ]);
 
-            const mockRevenueData = [
-                { date: "1-tháng này", revenue: 2450000 },
-                { date: "2-tháng này", revenue: 2800000 },
-                { date: "3-tháng này", revenue: 2200000 },
-                { date: "4-tháng này", revenue: 2780000 },
-                { date: "5-tháng này", revenue: 1890000 },
-                { date: "6-tháng này", revenue: 2390000 },
-                { date: "7-tháng này", revenue: 3490000 },
-            ];
-
-            const mockTopDishes = [
-                { name: "Pizza Pepperoni", quantity: 156 },
-                { name: "Burger Deluxe", quantity: 143 },
-                { name: "Phở Bò", quantity: 129 },
-                { name: "Pad Thai", quantity: 115 },
-                { name: "Sushi Combo", quantity: 98 },
-            ];
-
-            const mockCategoryData = [
-                { category: "Pizza", revenue: 5600000 },
-                { category: "Burger", revenue: 4200000 },
-                { category: "Noodles", revenue: 3800000 },
-                { category: "Drinks", revenue: 2100000 },
-                { category: "Rice", revenue: 3200000 },
-            ];
-
-            const mockRecentOrders = [
-                {
-                    id: "#ORD001",
-                    customerName: "Nguyễn Văn A",
-                    total: 250000,
-                    itemCount: 3,
-                    status: "confirmed",
-                    createdAt: new Date().toISOString(),
-                },
-                {
-                    id: "#ORD002",
-                    customerName: "Trần Thị B",
-                    total: 320000,
-                    itemCount: 4,
-                    status: "shipping",
-                    createdAt: new Date(Date.now() - 5 * 60000).toISOString(),
-                },
-                {
-                    id: "#ORD003",
-                    customerName: "Lê Văn C",
-                    total: 180000,
-                    itemCount: 2,
-                    status: "pending",
-                    createdAt: new Date(Date.now() - 10 * 60000).toISOString(),
-                },
-                {
-                    id: "#ORD004",
-                    customerName: "Phạm Thị D",
-                    total: 450000,
-                    itemCount: 5,
-                    status: "delivered",
-                    createdAt: new Date(Date.now() - 20 * 60000).toISOString(),
-                },
-                {
-                    id: "#ORD005",
-                    customerName: "Đặng Văn E",
-                    total: 290000,
-                    itemCount: 3,
-                    status: "confirmed",
-                    createdAt: new Date(Date.now() - 30 * 60000).toISOString(),
-                },
-            ];
-
-            setStats({
-                totalOrders: period === "today" ? 45 : period === "week" ? 312 : 1247,
-                revenue: period === "today" ? 3450000 : period === "week" ? 24280000 : 112500000,
-                activeUsers: 1243,
-                topDishes: mockTopDishes,
+            setKpis({
+                totalOrders:    orderStats.success   ? orderStats.data.total   : 0,
+                pendingOrders:  orderStats.success   ? (orderStats.data.pending + orderStats.data.confirmed) : 0,
+                totalProducts:  productStats.success ? productStats.data.total  : 0,
+                totalEmployees: empRes.success        ? empRes.data.total        : 0,
             });
 
-            setChartData({
-                orderStats: mockOrderStats,
-                revenueData: mockRevenueData,
-                topDishesData: mockTopDishes,
-                categoryData: mockCategoryData,
-            });
-
-            setRecentOrders(mockRecentOrders);
-        } catch (error) {
-            message.error("Lỗi khi tải dữ liệu!");
-            console.error(error);
-        } finally {
-            setLoading(false);
-        }
-    };
+            if (ordersRes.success) setRecentOrders(ordersRes.data.orders);
+        } catch {}
+        finally { setLoading(false); }
+    }, []);
 
     useEffect(() => {
-        fetchDashboardData();
-        const interval = setInterval(fetchDashboardData, 30000);
-        return () => clearInterval(interval);
-    }, [period]);
+        fetchData();
+        const timer = setInterval(fetchData, 60000);
+        return () => clearInterval(timer);
+    }, [fetchData]);
 
-    const handleRefresh = () => {
-        fetchDashboardData();
-    };
+    const chartData = MOCK_CHARTS[period] || MOCK_CHARTS.today;
 
     return (
-        <div className={styles.adminDashboard}>
-            <div className={styles.header}>
-                <h1>Admin Dashboard</h1>
-                <Space>
-                    <Button type="primary" icon={<ReloadOutlined />} onClick={handleRefresh} loading={loading}>
-                        Làm mới
-                    </Button>
-                    <select
-                        className={styles.periodSelector}
-                        value={period}
-                        onChange={(e) => setPeriod(e.target.value)}
-                    >
-                        <option value="today">Hôm nay</option>
-                        <option value="week">Tuần này</option>
-                        <option value="month">Tháng này</option>
-                    </select>
-                </Space>
+        <div className={styles.page}>
+
+            {/* ── Header ── */}
+            <div className={styles.pageHeader}>
+                <div>
+                    <h1 className={styles.pageTitle}>Dashboard</h1>
+                    <p className={styles.pageSub}>{today}</p>
+                </div>
+                <div className={styles.headerRight}>
+                    <div className={styles.periodTabs}>
+                        {PERIOD_OPTIONS.map(({ value, label }) => (
+                            <button
+                                key={value}
+                                className={`${styles.periodTab} ${period === value ? styles.periodTabActive : ""}`}
+                                onClick={() => setPeriod(value)}
+                            >
+                                {label}
+                            </button>
+                        ))}
+                    </div>
+                    <Tooltip title="Làm mới">
+                        <Button
+                            icon={<ReloadOutlined spin={loading} />}
+                            onClick={fetchData}
+                            className={styles.reloadBtn}
+                        />
+                    </Tooltip>
+                </div>
             </div>
 
-            <Row gutter={[16, 16]} className={styles.statsSection}>
-                <Col xs={24} sm={12} md={6}>
-                    <StatCard
-                        title="Tổng đơn hàng"
-                        value={stats.totalOrders}
-                        icon={<ShoppingCartOutlined />}
-                        color="#1890ff"
-                        loading={loading}
-                    />
+            {/* ── KPI Cards ── */}
+            <Spin spinning={loading} tip="">
+                <Row gutter={[16, 16]} className={styles.kpiRow}>
+                    {[
+                        {
+                            icon: <ShoppingOutlined />, iconBg: "#fff3e8", iconColor: "#ff914d",
+                            num: kpis.totalOrders, lbl: "Tổng đơn hàng",
+                            sub: `${kpis.pendingOrders} chờ xử lý`, subColor: "#d97706",
+                        },
+                        {
+                            icon: <CheckCircleOutlined />, iconBg: "#e8faf0", iconColor: "#22a06b",
+                            num: kpis.totalOrders > 0 ? `${Math.round(((kpis.totalOrders - kpis.pendingOrders) / kpis.totalOrders) * 100)}%` : "0%",
+                            lbl: "Tỷ lệ hoàn thành",
+                            sub: "đơn đã xử lý", subColor: "#22a06b",
+                        },
+                        {
+                            icon: <AppstoreOutlined />, iconBg: "#f0f9ff", iconColor: "#0284c7",
+                            num: kpis.totalProducts, lbl: "Tổng sản phẩm",
+                            sub: "trong thực đơn", subColor: "#6b7280",
+                        },
+                        {
+                            icon: <TeamOutlined />, iconBg: "#f5f3ff", iconColor: "#7c3aed",
+                            num: kpis.totalEmployees, lbl: "Nhân viên",
+                            sub: "đang làm việc", subColor: "#6b7280",
+                        },
+                    ].map((k, i) => (
+                        <Col key={i} xs={12} sm={12} md={6}>
+                            <div className={styles.kpiCard}>
+                                <div className={styles.kpiTop}>
+                                    <div className={styles.kpiIconBox} style={{ background: k.iconBg }}>
+                                        {React.cloneElement(k.icon, { style: { color: k.iconColor, fontSize: 20 } })}
+                                    </div>
+                                    <RiseOutlined className={styles.kpiTrend} />
+                                </div>
+                                <div className={styles.kpiNum}>{k.num.toLocaleString?.() ?? k.num}</div>
+                                <div className={styles.kpiLbl}>{k.lbl}</div>
+                                <div className={styles.kpiSub} style={{ color: k.subColor }}>{k.sub}</div>
+                            </div>
+                        </Col>
+                    ))}
+                </Row>
+            </Spin>
+
+            {/* ── Charts row 1 ── */}
+            <Row gutter={[16, 16]} className={styles.chartsRow}>
+                <Col xs={24} lg={12}>
+                    <OrderStatsChart data={chartData.orderStats} loading={loading} period={period} />
                 </Col>
-                <Col xs={24} sm={12} md={6}>
-                    <StatCard
-                        title="Doanh thu"
-                        value={`${(stats.revenue / 1000000).toFixed(1)}M`}
-                        icon={<DollarOutlined />}
-                        color="#52c41a"
-                        loading={loading}
-                    />
-                </Col>
-                <Col xs={24} sm={12} md={6}>
-                    <StatCard
-                        title="User hoạt động"
-                        value={stats.activeUsers}
-                        icon={<UserOutlined />}
-                        color="#fa8c16"
-                        loading={loading}
-                    />
-                </Col>
-                <Col xs={24} sm={12} md={6}>
-                    <StatCard
-                        title="Món bán chạy"
-                        value={stats.topDishes.length > 0 ? stats.topDishes[0].name : "N/A"}
-                        icon={<FireOutlined />}
-                        color="#f5222d"
-                        loading={loading}
-                    />
+                <Col xs={24} lg={12}>
+                    <RevenueChart data={chartData.revenueData} loading={loading} period={period} />
                 </Col>
             </Row>
 
-            <Row gutter={[16, 16]} className={styles.chartsSection}>
+            {/* ── Charts row 2 ── */}
+            <Row gutter={[16, 16]}>
                 <Col xs={24} lg={12}>
-                    <OrderStatsChart data={chartData.orderStats} loading={loading} />
+                    <TopDishesChart data={MOCK_TOP_DISHES} loading={loading} />
                 </Col>
                 <Col xs={24} lg={12}>
-                    <RevenueChart data={chartData.revenueData} loading={loading} />
-                </Col>
-            </Row>
-
-            <Row gutter={[16, 16]} className={styles.chartsSection}>
-                <Col xs={24} lg={12}>
-                    <TopDishesChart data={chartData.topDishesData} loading={loading} />
-                </Col>
-                <Col xs={24} lg={12}>
-                    <CategoryChart data={chartData.categoryData} loading={loading} />
+                    <RecentOrders orders={recentOrders} loading={loading} />
                 </Col>
             </Row>
         </div>
