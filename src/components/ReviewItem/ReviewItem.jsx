@@ -59,14 +59,14 @@ const ReviewItem = ({ review, onEdit, onDelete }) => {
                 <Box className={styles.userInfo}>
                     <Avatar
                         src={review.user?.avatar}
-                        alt={review.user?.fullname}
+                        alt={review.user?.fullname || review.user?.username}
                         className={styles.avatar}
                     >
-                        {review.user?.fullname?.charAt(0).toUpperCase()}
+                        {(review.user?.fullname || review.user?.username || "U")?.charAt(0).toUpperCase()}
                     </Avatar>
                     <Box>
                         <Typography className={styles.username}>
-                            {review.user?.fullname || "Người dùng"}
+                            {review.user?.fullname || review.user?.username || "Người dùng"}
                         </Typography>
                         <Typography className={styles.date}>
                             {formatDate(review.created_at)}
