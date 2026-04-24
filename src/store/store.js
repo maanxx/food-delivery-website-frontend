@@ -9,6 +9,7 @@ import cartReducer from "@features/cart/cartSlice";
 import voucherReducer from "@features/voucher/voucherSlice";
 import addressReducer from "@features/address/addressSlice";
 import userReducer from "@features/user/userSlice";
+import supportChatReducer from "@features/supportChat/supportChatSlice";
 
 const persistConfig = {
     key: "root",
@@ -24,6 +25,7 @@ const rootReducer = combineReducers({
     voucher: voucherReducer,
     address: addressReducer,
     user: userReducer,
+    supportChat: supportChatReducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);
