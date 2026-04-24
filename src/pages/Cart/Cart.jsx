@@ -60,7 +60,10 @@ function Cart() {
   [cartItems, selectedItemIds]);
 
   const selectedTotal = useMemo(() => 
-    selectedItems.reduce((acc, cur) => acc + Number(cur.price_snapshot) * cur.quantity, 0),
+    selectedItems.reduce((acc, cur) => {
+      const itemPrice = cur.priceSnapshot || cur.price_snapshot || 0;
+      return acc + Number(itemPrice) * cur.quantity;
+    }, 0),
   [selectedItems]);
 
   const hasInvalidSelectedItems = useMemo(() => 
@@ -77,6 +80,7 @@ function Cart() {
   const finalTotal = Math.max(0, selectedTotal - discountAmount);
 
   const handleSelectItem = useCallback((id) => {
+    console.log("🔘 Select item:", id);
     setSelectedItemIds(prev => 
       prev.includes(id) ? prev.filter(itemId => itemId !== id) : [...prev, id]
     );
@@ -91,19 +95,17 @@ function Cart() {
   }, [selectedItemIds.length, cartItems]);
 
   const handleDeleteItem = useCallback(async (itemId) => {
+    console.log("🗑️ Delete item:", itemId);
     dispatch(removeItemFromCart(itemId));
   }, [dispatch]);
 
   const handleBulkDelete = useCallback(async () => {
     if (selectedItemIds.length === 0) return;
-    if (selectedItemIds.length === cartItems.length) {
-      dispatch(clearCart());
-    } else {
-      // If partially selected, remove them one by one (or implement bulk remove in backend)
-      await Promise.all(selectedItemIds.map(id => dispatch(removeItemFromCart(id))));
-    }
+    
+    // Always remove items one by one to ensure they are deleted from backend
+    await Promise.all(selectedItemIds.map(id => dispatch(removeItemFromCart(id))));
     setSelectedItemIds([]);
-  }, [selectedItemIds, cartItems.length, dispatch]);
+  }, [selectedItemIds, dispatch]);
 
   const handleApplyVoucher = useCallback(async () => {
     if (!voucherCode) return;

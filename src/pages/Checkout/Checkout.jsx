@@ -100,18 +100,25 @@ function Checkout() {
 
   const orderSummaryList = useMemo(() => (
     <div className={styles.summaryList}>
-      {checkoutData.items.map((item) => (
-        <div key={item.dish_id} className={styles.summaryItem}>
-          <img src={item.thumbnail_path} alt={item.name} className={styles.itemImage} />
-          <div className={styles.itemInfo}>
-            <span className={styles.itemName}>{item.name}</span>
-            <span className={styles.itemMeta}>Số lượng: {item.quantity}</span>
+      {checkoutData.items.map((item) => {
+        // Support both formats from cart
+        const itemPrice = item.priceSnapshot || item.price_snapshot || 0;
+        const itemImage = item.dish?.thumbnail_path || item.thumbnail_path || '';
+        const itemName = item.dish?.name || item.name || 'Món ăn';
+        
+        return (
+          <div key={item.cart_item_id || item.dish_id} className={styles.summaryItem}>
+            <img src={itemImage} alt={itemName} className={styles.itemImage} />
+            <div className={styles.itemInfo}>
+              <span className={styles.itemName}>{itemName}</span>
+              <span className={styles.itemMeta}>Số lượng: {item.quantity}</span>
+            </div>
+            <span className={styles.itemPrice}>
+              {(Number(itemPrice) * item.quantity).toLocaleString("vi-VN")} ₫
+            </span>
           </div>
-          <span className={styles.itemPrice}>
-            {(Number(item.price_snapshot) * item.quantity).toLocaleString("vi-VN")} ₫
-          </span>
-        </div>
-      ))}
+        );
+      })}
     </div>
   ), [checkoutData.items]);
 
