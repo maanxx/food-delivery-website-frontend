@@ -24,6 +24,7 @@ const Offers = () => {
   useEffect(() => {
     const fetchData = async () => {
       const res = await getAllDishes();
+      console.log("🍔 Dishes data:", res?.data?.[0]); // Log first dish to see structure
       setDishes(res?.data || []);
     };
     fetchData();
@@ -76,16 +77,25 @@ const Offers = () => {
   );
 
   // Filter dishes by category
-  const filteredDishes = filter === "all" 
-    ? discountedDishes 
-    : discountedDishes.filter(dish => {
-        if (filter === "food") {
-          return !dish.category_id || dish.category_id !== 'drinks-category-id'; // Adjust based on your category IDs
-        } else if (filter === "drink") {
-          return dish.category_id === 'drinks-category-id'; // Adjust based on your category IDs
-        }
-        return true;
-      });
+  const filteredDishes = React.useMemo(() => {
+    if (filter === "all") {
+      return discountedDishes;
+    }
+    
+    return discountedDishes.filter(dish => {
+      const categoryName = dish.category?.name?.toLowerCase() || '';
+      
+      if (filter === "food") {
+        // Exclude drinks category
+        return categoryName !== 'nước uống' && categoryName !== 'drinks';
+      } else if (filter === "drink") {
+        // Only drinks category
+        return categoryName === 'nước uống' || categoryName === 'drinks';
+      }
+      
+      return true;
+    });
+  }, [discountedDishes, filter]);
 
   return (
     <Container maxWidth="lg" className={styles.page}>
