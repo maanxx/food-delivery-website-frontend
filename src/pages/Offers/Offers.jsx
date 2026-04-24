@@ -9,21 +9,17 @@ import {
 } from "@mui/material";
 import Carousel from "react-material-ui-carousel";
 import styles from "./Offers.module.css";
+import { toast } from "react-toastify";
 
 import FoodCard from "../../components/FoodCard/FoodCard";
 import { getAllDishes } from "../../services/dishService";
-
-const MOCK_VOUCHERS = [
-  { code: 'EATSYWELCOME', desc: 'Giảm 10% cho hóa đơn' },
-  { code: 'EATSY50', desc: 'Giảm 50K cho đơn từ 500K' },
-  { code: 'WELCOME20', desc: 'Giảm 20% khách mới' },
-  { code: 'BIGSALE100', desc: 'Giảm 100K đơn 1Tr' },
-  { code: 'FREESHIP', desc: 'Miễn phí VC đơn từ 300K' },
-];
+import { getVouchers } from "../../services/voucherService";
 
 const Offers = () => {
   const [dishes, setDishes] = useState([]);
+  const [vouchers, setVouchers] = useState([]);
   const [filter, setFilter] = useState("all");
+  const [savedVouchers, setSavedVouchers] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -33,10 +29,63 @@ const Offers = () => {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    const fetchVouchers = async () => {
+      try {
+        console.log("🎟️ Fetching vouchers...");
+        const res = await getVouchers();
+        console.log("🎟️ Vouchers response:", res);
+        if (res.data.success) {
+          console.log("🎟️ Vouchers data:", res.data.data);
+          setVouchers(res.data.data || []);
+        }
+      } catch (error) {
+        console.error("Failed to fetch vouchers:", error);
+        toast.error("Không thể tải danh sách voucher");
+      }
+    };
+    fetchVouchers();
+  }, []);
+
+  // Load saved vouchers from localStorage
+  useEffect(() => {
+    const saved = JSON.parse(localStorage.getItem('savedVouchers') || '[]');
+    setSavedVouchers(saved);
+  }, []);
+
+  const handleSaveVoucher = (voucherCode) => {
+    const saved = JSON.parse(localStorage.getItem('savedVouchers') || '[]');
+    if (saved.includes(voucherCode)) {
+      // Unsave
+      const updated = saved.filter(code => code !== voucherCode);
+      localStorage.setItem('savedVouchers', JSON.stringify(updated));
+      setSavedVouchers(updated);
+      toast.info("Đã bỏ lưu voucher");
+    } else {
+      // Save
+      const updated = [...saved, voucherCode];
+      localStorage.setItem('savedVouchers', JSON.stringify(updated));
+      setSavedVouchers(updated);
+      toast.success("Đã lưu voucher!");
+    }
+  };
+
   // lọc món giảm giá
   const discountedDishes = dishes.filter(
     (dish) => Number(dish.discount_amount) > 0
   );
+
+  // Filter dishes by category
+  const filteredDishes = filter === "all" 
+    ? discountedDishes 
+    : discountedDishes.filter(dish => {
+        if (filter === "food") {
+          return !dish.category_id || dish.category_id !== 'drinks-category-id'; // Adjust based on your category IDs
+        } else if (filter === "drink") {
+          return dish.category_id === 'drinks-category-id'; // Adjust based on your category IDs
+        }
+        return true;
+      });
 
   return (
     <Container maxWidth="lg" className={styles.page}>
@@ -65,27 +114,48 @@ const Offers = () => {
         </Typography>
 
         <Box className={styles.voucherList} sx={{ pb: 2 }}>
-          {MOCK_VOUCHERS.map((voucher, idx) => (
-            <Box key={idx} className={styles.voucher}>
-              <div>
-                <Typography className={styles.voucherCode}>{voucher.code}</Typography>
-                <Typography className={styles.voucherDesc}>{voucher.desc}</Typography>
-              </div>
-              <Button size="small" variant="outlined" sx={{ color: "var(--primaryColor)", borderColor: "var(--primaryColor)" }}>Lưu</Button>
-            </Box>
-          ))}
+          {vouchers.length === 0 ? (
+            <Typography sx={{ textAlign: 'center', py: 4, color: '#999' }}>
+              Hiện tại chưa có voucher nào
+            </Typography>
+          ) : (
+            vouchers.map((voucher) => (
+              <Box key={voucher.voucher_id} className={styles.voucher}>
+                <div>
+                  <Typography className={styles.voucherCode}>{voucher.code}</Typography>
+                  <Typography className={styles.voucherDesc}>{voucher.description}</Typography>
+                </div>
+                <Button 
+                  size="small" 
+                  variant={savedVouchers.includes(voucher.code) ? "contained" : "outlined"}
+                  sx={{ 
+                    color: savedVouchers.includes(voucher.code) ? "white" : "var(--primaryColor)", 
+                    borderColor: "var(--primaryColor)",
+                    backgroundColor: savedVouchers.includes(voucher.code) ? "var(--primaryColor)" : "transparent"
+                  }}
+                  onClick={() => handleSaveVoucher(voucher.code)}
+                >
+                  {savedVouchers.includes(voucher.code) ? "Đã lưu" : "Lưu"}
+                </Button>
+              </Box>
+            ))
+          )}
         </Box>
       </Box>
 
       {/* 🔥 FILTER */}
       <Box className={styles.filter}>
-        {["all", "food", "drink"].map((item) => (
+        {[
+          { value: "all", label: "Tất cả" },
+          { value: "food", label: "Đồ ăn" },
+          { value: "drink", label: "Đồ uống" }
+        ].map((item) => (
           <Chip
-            key={item}
-            label={item}
+            key={item.value}
+            label={item.label}
             clickable
-            color={filter === item ? "primary" : "default"}
-            onClick={() => setFilter(item)}
+            color={filter === item.value ? "primary" : "default"}
+            onClick={() => setFilter(item.value)}
           />
         ))}
       </Box>
@@ -97,7 +167,7 @@ const Offers = () => {
         </Typography>
 
         <Grid container spacing={3}>
-          {discountedDishes.map((dish) => (
+          {filteredDishes.map((dish) => (
             <Grid item xs={6} md={3} key={dish.dish_id}>
               <FoodCard dish={dish} />
             </Grid>
@@ -112,7 +182,7 @@ const Offers = () => {
         </Typography>
 
         <Grid container spacing={3}>
-          {discountedDishes.slice(0, 4).map((dish) => (
+          {filteredDishes.slice(0, 4).map((dish) => (
             <Grid item xs={6} md={3} key={dish.dish_id}>
               <FoodCard dish={dish} />
             </Grid>
