@@ -17,6 +17,7 @@ import {
 import styles from "./DishDetail.module.css";
 import QuantityInput from "../../components/QuantityInput/QuantityInput";
 import FoodCard from "../../components/FoodCard/FoodCard";
+import ReviewList from "../../components/ReviewList/ReviewList";
 import { getDishById } from "../../services/dishService";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
@@ -183,6 +184,9 @@ const DishDetail = () => {
           </div>
         </Grid>
       </Grid>
+      {/* REVIEWS SECTION */}
+      <ReviewList dishId={id} />
+
       <Box mt={6}>
         <Typography className={styles.sectionTitle}>
           Món bạn có thể thích
@@ -197,9 +201,6 @@ const DishDetail = () => {
         </Box>
       </Box>
     </Container>
-
-    
-
   );
 };
 

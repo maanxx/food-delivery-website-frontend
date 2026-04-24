@@ -18,6 +18,9 @@ import FormResetPassword from "./FormForgotPassword/FormResetPassword/FormResetP
 import QuantityInput from "./QuantityInput/QuantityInput";
 import CartItemCard from "./CartItemCard/CartItemCard";
 import ProfileEmptyState from "./ProfileEmptyState/ProfileEmptyState";
+import ReviewList from "./ReviewList/ReviewList";
+import ReviewItem from "./ReviewItem/ReviewItem";
+import ReviewForm from "./ReviewForm/ReviewForm";
 
 export {
     Authentication,
@@ -40,4 +43,7 @@ export {
     FloatingWidget,
     CartItemCard,
     ProfileEmptyState,
+    ReviewList,
+    ReviewItem,
+    ReviewForm,
 };
