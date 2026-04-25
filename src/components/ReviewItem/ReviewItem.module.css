@@ -1,0 +1,54 @@
+.reviewItem {
+    padding: 16px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.reviewItem:last-child {
+    border-bottom: none;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+}
+
+.userInfo {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.avatar {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, #ff6b00 0%, #ff8c00 100%);
+}
+
+.username {
+    font-weight: 600;
+    font-size: 14px;
+    color: #333;
+}
+
+.date {
+    font-size: 12px;
+    color: #999;
+    margin-top: 2px;
+}
+
+.menuButton {
+    color: #999;
+}
+
+.rating {
+    margin-bottom: 8px;
+}
+
+.content {
+    font-size: 14px;
+    color: #666;
+    line-height: 1.6;
+    white-space: pre-wrap;
+}

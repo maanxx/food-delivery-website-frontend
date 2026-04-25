@@ -82,6 +82,11 @@ function Checkout() {
         payment_method: "COD"
       };
 
+      // Add voucher_code if available
+      if (checkoutData.voucher_code) {
+        orderPayload.voucher_code = checkoutData.voucher_code;
+      }
+
       const resultAction = await dispatch(createOrder(orderPayload));
       
       if (createOrder.fulfilled.match(resultAction)) {
@@ -96,22 +101,29 @@ function Checkout() {
       console.error("Order error:", error);
       message.error("Lỗi hệ thống khi đặt hàng");
     }
-  }, [selectedAddressId, note, navigate, dispatch]);
+  }, [selectedAddressId, note, navigate, dispatch, checkoutData.voucher_code]);
 
   const orderSummaryList = useMemo(() => (
     <div className={styles.summaryList}>
-      {checkoutData.items.map((item) => (
-        <div key={item.dish_id} className={styles.summaryItem}>
-          <img src={item.thumbnail_path} alt={item.name} className={styles.itemImage} />
-          <div className={styles.itemInfo}>
-            <span className={styles.itemName}>{item.name}</span>
-            <span className={styles.itemMeta}>Số lượng: {item.quantity}</span>
+      {checkoutData.items.map((item) => {
+        // Support both formats from cart
+        const itemPrice = item.priceSnapshot || item.price_snapshot || 0;
+        const itemImage = item.dish?.thumbnail_path || item.thumbnail_path || '';
+        const itemName = item.dish?.name || item.name || 'Món ăn';
+        
+        return (
+          <div key={item.cart_item_id || item.dish_id} className={styles.summaryItem}>
+            <img src={itemImage} alt={itemName} className={styles.itemImage} />
+            <div className={styles.itemInfo}>
+              <span className={styles.itemName}>{itemName}</span>
+              <span className={styles.itemMeta}>Số lượng: {item.quantity}</span>
+            </div>
+            <span className={styles.itemPrice}>
+              {(Number(itemPrice) * item.quantity).toLocaleString("vi-VN")} ₫
+            </span>
           </div>
-          <span className={styles.itemPrice}>
-            {(Number(item.price_snapshot) * item.quantity).toLocaleString("vi-VN")} ₫
-          </span>
-        </div>
-      ))}
+        );
+      })}
     </div>
   ), [checkoutData.items]);
 
@@ -208,10 +220,16 @@ function Checkout() {
                   <span>{checkoutData.subtotal?.toLocaleString("vi-VN")} ₫</span>
                 </div>
                 {checkoutData.discount > 0 && (
-                  <div className={styles.summaryRow} style={{ color: "#ff4d4f" }}>
-                    <span>Giảm giá</span>
-                    <span>-{checkoutData.discount.toLocaleString("vi-VN")} ₫</span>
-                  </div>
+                  <>
+                    <div className={styles.summaryRow} style={{ color: "#52c41a" }}>
+                      <span>Mã giảm giá: {checkoutData.voucher_code}</span>
+                      <span></span>
+                    </div>
+                    <div className={styles.summaryRow} style={{ color: "#ff4d4f" }}>
+                      <span>Giảm giá</span>
+                      <span>-{checkoutData.discount.toLocaleString("vi-VN")} ₫</span>
+                    </div>
+                  </>
                 )}
                 <div className={styles.totalRow}>
                   <span>Tổng cộng</span>
