@@ -166,183 +166,186 @@ const useCall = (socket) => {
     };
 
     // End call function - defined early to avoid temporal dead zone
-    const endCall = useCallback((options = {}) => {
-        const { skipMessage = false } = options;
-        console.log("📵 Ending call...", options);
+    const endCall = useCallback(
+        (options = {}) => {
+            const { skipMessage = false } = options;
+            console.log("📵 Ending call...", options);
 
-        // Prevent recursive cleanup
-        if (isCleaningUpRef.current) {
-            console.log("📵 Cleanup already in progress, skipping");
-            return;
-        }
-        isCleaningUpRef.current = true;
-
-        // Store reference to stream before destroying peer (SimplePeer might be using it)
-        const streamToCleanup = streamRef.current;
-
-        // Close peer connection - with proper error handling
-        if (peerRef.current) {
-            try {
-                console.log("📵 Destroying peer connection...");
-                if (typeof peerRef.current.destroy === "function") {
-                    // Wrap destroy in setTimeout to allow any in-flight operations to complete
-                    setTimeout(() => {
-                        try {
-                            peerRef.current?.destroy?.();
-                            console.log("📵 Peer connection destroyed (async)");
-                        } catch (asyncError) {
-                            console.error("⚠️ Async error destroying peer:", asyncError);
-                        }
-                    }, 0);
-                } else {
-                    console.warn("⚠️ Peer doesn't have destroy method");
-                }
-            } catch (peerError) {
-                console.error("⚠️ Error destroying peer connection:", peerError);
-            } finally {
-                peerRef.current = null;
+            // Prevent recursive cleanup
+            if (isCleaningUpRef.current) {
+                console.log("📵 Cleanup already in progress, skipping");
+                return;
             }
-        }
+            isCleaningUpRef.current = true;
 
-        // Stop media tracks AFTER destroying peer (to avoid SimplePeer errors)
-        // Use setTimeout to prevent race conditions
-        setTimeout(() => {
-            if (streamToCleanup) {
+            // Store reference to stream before destroying peer (SimplePeer might be using it)
+            const streamToCleanup = streamRef.current;
+
+            // Close peer connection - with proper error handling
+            if (peerRef.current) {
                 try {
-                    console.log("📵 Stopping media tracks...");
-                    // Check if it's a real MediaStream with getTracks
-                    if (typeof streamToCleanup.getTracks === "function") {
-                        streamToCleanup.getTracks().forEach((track) => {
+                    console.log("📵 Destroying peer connection...");
+                    if (typeof peerRef.current.destroy === "function") {
+                        // Wrap destroy in setTimeout to allow any in-flight operations to complete
+                        setTimeout(() => {
                             try {
-                                if (track && typeof track.stop === "function") {
-                                    track.stop();
-                                    console.log(`📵 Stopped ${track.kind} track`);
-                                }
-                            } catch (trackError) {
-                                console.error("⚠️ Error stopping track:", trackError);
+                                peerRef.current?.destroy?.();
+                                console.log("📵 Peer connection destroyed (async)");
+                            } catch (asyncError) {
+                                console.error("⚠️ Async error destroying peer:", asyncError);
                             }
-                        });
+                        }, 0);
                     } else {
-                        console.warn("⚠️ Stream object doesn't have getTracks method");
+                        console.warn("⚠️ Peer doesn't have destroy method");
                     }
-                } catch (streamError) {
-                    console.error("⚠️ Error accessing stream tracks:", streamError);
+                } catch (peerError) {
+                    console.error("⚠️ Error destroying peer connection:", peerError);
+                } finally {
+                    peerRef.current = null;
                 }
             }
-            // Clear reference after cleanup
-            streamRef.current = null;
-        }, 50);
 
-        // Emit end call signal BEFORE resetting state - use refs for current values with fallback to state
-        try {
-            setCallState((prev) => {
-                const callIdToEnd = callIdRef.current || prev.callId || prev.outgoingCallId;
-                const remoteUserId = remoteUserIdRef.current || prev.remoteUserId;
-                const conversationId = callConversationIdRef.current;
-                const callType = callTypeRef.current || prev.callType;
-                const wasInCall = prev.inCall;
-
-                console.log(
-                    `📞 [endCall] Using: callId=${callIdToEnd}, remoteUserId=${remoteUserId}, socket.connected=${socket?.connected}`,
-                );
-
-                if (callIdToEnd && remoteUserId && socket && socket.connected) {
-                    console.log(`📞 [endCall] Emitting call end signals...`);
-
-                    // Try both event names for compatibility
+            // Stop media tracks AFTER destroying peer (to avoid SimplePeer errors)
+            // Use setTimeout to prevent race conditions
+            setTimeout(() => {
+                if (streamToCleanup) {
                     try {
-                        socket.emit("cancel_call", {
-                            callId: callIdToEnd,
-                            toUserId: remoteUserId,
-                        });
-                        console.log(`✅ [endCall] cancel_call emitted`);
-                    } catch (err) {
-                        console.error(`❌ [endCall] Error emitting cancel_call:`, err);
-                    }
-
-                    // Also try call_cancelled as backup
-                    try {
-                        socket.emit("call_cancelled", {
-                            callId: callIdToEnd,
-                            toUserId: remoteUserId,
-                        });
-                        console.log(`✅ [endCall] call_cancelled emitted`);
-                    } catch (err) {
-                        console.error(`❌ [endCall] Error emitting call_cancelled:`, err);
-                    }
-                } else {
-                    console.warn(
-                        `⚠️ [endCall] Cannot emit: callId=${callIdToEnd}, remoteUserId=${remoteUserId}, socket=${socket?.connected ? "connected" : "disconnected"}`,
-                    );
-                }
-
-                // Determine call status and save message
-                if (conversationId && callType && !skipMessage) {
-                    const duration = wasInCall ? prev.callDuration : 0; // Only count duration if call was active
-                    const status = wasInCall ? "ended" : "cancelled"; // "cancelled" if never entered active call
-
-                    console.log(`💬 [endCall] Will save call message: status=${status}, duration=${duration}s`);
-                    // Save call message after state update completes
-                    setTimeout(() => {
-                        if (socket && socket.connected) {
-                            socket.emit("save_call_message", {
-                                conversationId,
-                                content: formatCallMessage(callType, duration, status),
-                                type: "system_call",
-                                callData: {
-                                    callId: callIdToEnd,
-                                    callType,
-                                    duration,
-                                    status,
-                                },
+                        console.log("📵 Stopping media tracks...");
+                        // Check if it's a real MediaStream with getTracks
+                        if (typeof streamToCleanup.getTracks === "function") {
+                            streamToCleanup.getTracks().forEach((track) => {
+                                try {
+                                    if (track && typeof track.stop === "function") {
+                                        track.stop();
+                                        console.log(`📵 Stopped ${track.kind} track`);
+                                    }
+                                } catch (trackError) {
+                                    console.error("⚠️ Error stopping track:", trackError);
+                                }
                             });
-                            console.log("✅ [endCall] Call message emitted");
+                        } else {
+                            console.warn("⚠️ Stream object doesn't have getTracks method");
                         }
-                    }, 100);
+                    } catch (streamError) {
+                        console.error("⚠️ Error accessing stream tracks:", streamError);
+                    }
                 }
+                // Clear reference after cleanup
+                streamRef.current = null;
+            }, 50);
 
-                return prev;
-            });
-        } catch (error) {
-            console.error("⚠️ Error in endCall emit logic:", error);
-        }
+            // Emit end call signal BEFORE resetting state - use refs for current values with fallback to state
+            try {
+                setCallState((prev) => {
+                    const callIdToEnd = callIdRef.current || prev.callId || prev.outgoingCallId;
+                    const remoteUserId = remoteUserIdRef.current || prev.remoteUserId;
+                    const conversationId = callConversationIdRef.current;
+                    const callType = callTypeRef.current || prev.callType;
+                    const wasInCall = prev.inCall;
 
-        // Reset state
-        setCallState((prev) => ({
-            ...prev,
-            inCall: false,
-            callId: null,
-            incomingCall: null,
-            outgoingCallId: null,
-            remoteStream: null,
-            localStream: null,
-            callDuration: 0,
-            callType: null,
-            remoteUserId: null,
-        }));
+                    console.log(
+                        `📞 [endCall] Using: callId=${callIdToEnd}, remoteUserId=${remoteUserId}, socket.connected=${socket?.connected}`,
+                    );
 
-        remoteUserIdRef.current = null;
-        callIdRef.current = null;
-        recipientIdRef.current = null;
-        callStartTimeRef.current = null;
-        callConversationIdRef.current = null;
-        callTypeRef.current = null;
+                    if (callIdToEnd && remoteUserId && socket && socket.connected) {
+                        console.log(`📞 [endCall] Emitting call end signals...`);
 
-        // Reset WebRTC signal state for next call
-        pendingSignalsRef.current = [];
-        peerReadyRef.current = false;
-        offerProcessedRef.current = false; // Allow next call to process its offer
-        signalsProcessedRef.current = { offers: 0, answers: 0, iceCandidates: 0 };
-        answerRetryCountRef.current = 0;
-        console.log("📵 [endCall] Signal state reset for next call");
+                        // Try both event names for compatibility
+                        try {
+                            socket.emit("cancel_call", {
+                                callId: callIdToEnd,
+                                toUserId: remoteUserId,
+                            });
+                            console.log(`✅ [endCall] cancel_call emitted`);
+                        } catch (err) {
+                            console.error(`❌ [endCall] Error emitting cancel_call:`, err);
+                        }
 
-        if (callTimerRef.current) {
-            clearInterval(callTimerRef.current);
-        }
+                        // Also try call_cancelled as backup
+                        try {
+                            socket.emit("call_cancelled", {
+                                callId: callIdToEnd,
+                                toUserId: remoteUserId,
+                            });
+                            console.log(`✅ [endCall] call_cancelled emitted`);
+                        } catch (err) {
+                            console.error(`❌ [endCall] Error emitting call_cancelled:`, err);
+                        }
+                    } else {
+                        console.warn(
+                            `⚠️ [endCall] Cannot emit: callId=${callIdToEnd}, remoteUserId=${remoteUserId}, socket=${socket?.connected ? "connected" : "disconnected"}`,
+                        );
+                    }
 
-        // Allow cleanup to be called again
-        isCleaningUpRef.current = false;
-    }, [socket]);
+                    // Determine call status and save message
+                    if (conversationId && callType && !skipMessage) {
+                        const duration = wasInCall ? prev.callDuration : 0; // Only count duration if call was active
+                        const status = wasInCall ? "ended" : "cancelled"; // "cancelled" if never entered active call
+
+                        console.log(`💬 [endCall] Will save call message: status=${status}, duration=${duration}s`);
+                        // Save call message after state update completes
+                        setTimeout(() => {
+                            if (socket && socket.connected) {
+                                socket.emit("save_call_message", {
+                                    conversationId,
+                                    content: formatCallMessage(callType, duration, status),
+                                    type: "system_call",
+                                    callData: {
+                                        callId: callIdToEnd,
+                                        callType,
+                                        duration,
+                                        status,
+                                    },
+                                });
+                                console.log("✅ [endCall] Call message emitted");
+                            }
+                        }, 100);
+                    }
+
+                    return prev;
+                });
+            } catch (error) {
+                console.error("⚠️ Error in endCall emit logic:", error);
+            }
+
+            // Reset state
+            setCallState((prev) => ({
+                ...prev,
+                inCall: false,
+                callId: null,
+                incomingCall: null,
+                outgoingCallId: null,
+                remoteStream: null,
+                localStream: null,
+                callDuration: 0,
+                callType: null,
+                remoteUserId: null,
+            }));
+
+            remoteUserIdRef.current = null;
+            callIdRef.current = null;
+            recipientIdRef.current = null;
+            callStartTimeRef.current = null;
+            callConversationIdRef.current = null;
+            callTypeRef.current = null;
+
+            // Reset WebRTC signal state for next call
+            pendingSignalsRef.current = [];
+            peerReadyRef.current = false;
+            offerProcessedRef.current = false; // Allow next call to process its offer
+            signalsProcessedRef.current = { offers: 0, answers: 0, iceCandidates: 0 };
+            answerRetryCountRef.current = 0;
+            console.log("📵 [endCall] Signal state reset for next call");
+
+            if (callTimerRef.current) {
+                clearInterval(callTimerRef.current);
+            }
+
+            // Allow cleanup to be called again
+            isCleaningUpRef.current = false;
+        },
+        [socket],
+    );
 
     // Timer for call duration
     useEffect(() => {
@@ -639,7 +642,6 @@ const useCall = (socket) => {
             }
         });
 
-
         return () => {
             console.log("🧹 Cleaning up call listeners");
             socket.off("incoming_call");
@@ -730,19 +732,19 @@ const useCall = (socket) => {
                 try {
                     const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
                     streamRef.current = audioStream;
-                    
+
                     setCallState((prev) => ({
                         ...prev,
                         localStream: audioStream,
                         callType: "voice", // Downgrade to voice call
                         error: `Camera issue: ${error.name === "NotReadableError" ? "Already in use" : "Not found"}. Switched to voice call.`,
                     }));
-                    
+
                     // Clear error after 5 seconds but keep the voice call going
                     setTimeout(() => {
-                        setCallState(prev => ({ ...prev, error: null }));
+                        setCallState((prev) => ({ ...prev, error: null }));
                     }, 5000);
-                    
+
                     return audioStream;
                 } catch (audioError) {
                     console.error("❌ Audio fallback also failed:", audioError);
@@ -1079,7 +1081,9 @@ const useCall = (socket) => {
                 peer.on("error", (error) => {
                     // CRITICAL FIX: Ignore events from replaced/old peers
                     if (peerRef.current !== peer) {
-                        console.warn("❌ [peer.on.error] Ignoring error from old/replaced peer - preventing new call teardown");
+                        console.warn(
+                            "❌ [peer.on.error] Ignoring error from old/replaced peer - preventing new call teardown",
+                        );
                         return;
                     }
                     console.error("❌ [peer.on.error] WebRTC peer error:", error);
@@ -1099,7 +1103,9 @@ const useCall = (socket) => {
                     // the old peer fires 'close' asynchronously AFTER peerRef.current already points
                     // to the new peer. Without this check, endCall() would destroy the new connection.
                     if (peerRef.current !== peer) {
-                        console.warn("🔌 [peer.on.close] Ignoring close from old/replaced peer - this is expected on second+ calls");
+                        console.warn(
+                            "🔌 [peer.on.close] Ignoring close from old/replaced peer - this is expected on second+ calls",
+                        );
                         return;
                     }
                     console.log("🔌 [peer.on.close] Peer connection closed");
@@ -1317,7 +1323,10 @@ const useCall = (socket) => {
                 offerProcessedRef.current = false; // Reset so incoming offer can be processed
                 answerRetryCountRef.current = 0;
                 signalsProcessedRef.current = { offers: 0, answers: 0, iceCandidates: 0 };
-                console.log("🔄 [acceptCall] Reset peer state - preserving any pre-queued signals:", pendingSignalsRef.current.length);
+                console.log(
+                    "🔄 [acceptCall] Reset peer state - preserving any pre-queued signals:",
+                    pendingSignalsRef.current.length,
+                );
 
                 console.log(`✅ [acceptCall] START - callType: ${callType}`);
                 console.log(`   incomingCall:`, callState.incomingCall);
