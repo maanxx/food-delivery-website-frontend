@@ -5,6 +5,7 @@ import { Avatar, message } from "antd";
 import { InfoCircleOutlined, PhoneOutlined, SearchOutlined, VideoCameraOutlined } from "@ant-design/icons";
 import styles from "./ChatWindow.module.css";
 import { getFirstLetterOfEachWord } from "@helpers/stringHelper";
+import useWebSocket from "@hooks/useWebSocket";
 
 import MessageList from "./MessageList";
 import MessageInput from "./MessageInput";
@@ -28,14 +29,14 @@ import {
     loadConversations,
     addMessage,
 } from "@features/chat/chatSlice";
-import useWebSocket from "@hooks/useWebSocket";
+import callService from "@services/callService";
 import { useCallContext } from "@contexts/CallContext";
 
 const ChatWindow = () => {
     const { conversationId } = useParams();
     const dispatch = useDispatch();
     const { socket, isConnected, markAsRead } = useWebSocket();
-    const { callState, makeCall, acceptCall, rejectCall, endCall, toggleAudio, toggleVideo } = useCallContext();
+    const { callState, makeCall, makeGroupCall, acceptCall, rejectCall, endCall, toggleAudio, toggleVideo } = useCallContext();
 
     const messages = useSelector(selectMessages(conversationId));
     const conversation = useSelector((state) => state.chat.conversations.byId[conversationId]);
@@ -63,9 +64,8 @@ const ChatWindow = () => {
         console.log("📋 Full conversation object:", conversation);
         console.log("📋 Current user ID:", currentUserId);
 
-        // Check for group conversations first
+        // Check for group conversations first - return null but don't error
         if (conversation?.type === "group" || conversation?.conversationType === "group") {
-            message.error("Group calls are not yet supported");
             return null;
         }
 
@@ -271,24 +271,46 @@ const ChatWindow = () => {
 
     const handleInitiateVoiceCall = async () => {
         try {
-            console.log("🎤 [handleInitiateVoiceCall] Voice call button clicked");
             setIsInitiatingCall(true);
-            const recipientId = getRecipientId();
+            const isGroup = conversation?.type === "group" || conversation?.conversationType === "group";
 
-            if (!recipientId) {
-                console.warn("⚠️ [handleInitiateVoiceCall] No recipientId found");
-                return;
+            if (isGroup) {
+                console.log("🎤 [handleInitiateVoiceCall] Group voice call initiated");
+                // Get all participant IDs except current user
+                const participantIds =
+                    conversation?.participants
+                        ?.filter((p) => (p.id || p.userId || p.user_id) !== currentUserId)
+                        .map((p) => p.id || p.userId || p.user_id) || [];
+
+                if (participantIds.length === 0) {
+                    message.error("No participants to call");
+                    return;
+                }
+
+                // Initiate group call via makeGroupCall to show outgoing UI
+                await makeGroupCall(
+                    conversationId,
+                    "voice",
+                    conversation?.name || "Group",
+                    participantIds,
+                );
+            } else {
+                console.log("🎤 [handleInitiateVoiceCall] Voice call button clicked");
+                const recipientId = getRecipientId();
+
+                if (!recipientId) {
+                    console.warn("⚠️ [handleInitiateVoiceCall] No recipientId found");
+                    return;
+                }
+
+                console.log("🎤 [handleInitiateVoiceCall] Initiating voice call with:", recipientId);
+                await makeCall(
+                    recipientId,
+                    conversationId,
+                    "voice",
+                    conversation?.name || conversation?.senderName || "User",
+                );
             }
-
-            console.log("🎤 [handleInitiateVoiceCall] Initiating voice call with:", recipientId);
-            console.log("🎤 [handleInitiateVoiceCall] About to call makeCall function");
-            await makeCall(
-                recipientId,
-                conversationId,
-                "voice",
-                conversation?.name || conversation?.senderName || "User",
-            );
-            console.log("🎤 [handleInitiateVoiceCall] makeCall returned");
         } catch (error) {
             console.error("❌ [handleInitiateVoiceCall] Failed to initiate voice call:", error);
             message.error("Failed to initiate voice call: " + error.message);
@@ -299,24 +321,46 @@ const ChatWindow = () => {
 
     const handleInitiateVideoCall = async () => {
         try {
-            console.log("📹 [handleInitiateVideoCall] Video call button clicked");
             setIsInitiatingCall(true);
-            const recipientId = getRecipientId();
+            const isGroup = conversation?.type === "group" || conversation?.conversationType === "group";
 
-            if (!recipientId) {
-                console.warn("⚠️ [handleInitiateVideoCall] No recipientId found");
-                return;
+            if (isGroup) {
+                console.log("📹 [handleInitiateVideoCall] Group video call initiated");
+                // Get all participant IDs except current user
+                const participantIds =
+                    conversation?.participants
+                        ?.filter((p) => (p.id || p.userId || p.user_id) !== currentUserId)
+                        .map((p) => p.id || p.userId || p.user_id) || [];
+
+                if (participantIds.length === 0) {
+                    message.error("No participants to call");
+                    return;
+                }
+
+                // Initiate group call via makeGroupCall to show outgoing UI
+                await makeGroupCall(
+                    conversationId,
+                    "video",
+                    conversation?.name || "Group",
+                    participantIds,
+                );
+            } else {
+                console.log("📹 [handleInitiateVideoCall] Video call button clicked");
+                const recipientId = getRecipientId();
+
+                if (!recipientId) {
+                    console.warn("⚠️ [handleInitiateVideoCall] No recipientId found");
+                    return;
+                }
+
+                console.log("📹 [handleInitiateVideoCall] Initiating video call with:", recipientId);
+                await makeCall(
+                    recipientId,
+                    conversationId,
+                    "video",
+                    conversation?.name || conversation?.senderName || "User",
+                );
             }
-
-            console.log("📹 [handleInitiateVideoCall] Initiating video call with:", recipientId);
-            console.log("📹 [handleInitiateVideoCall] About to call makeCall function");
-            await makeCall(
-                recipientId,
-                conversationId,
-                "video",
-                conversation?.name || conversation?.senderName || "User",
-            );
-            console.log("📹 [handleInitiateVideoCall] makeCall returned");
         } catch (error) {
             console.error("❌ [handleInitiateVideoCall] Failed to initiate video call:", error);
             message.error("Failed to initiate video call: " + error.message);
@@ -354,52 +398,10 @@ const ChatWindow = () => {
         }
     };
 
-    // Render call window if there's active call or incoming call
-    if (callState.inCall || callState.outgoingCallId || callState.incomingCall) {
-        return (
-            <CallWindow
-                callState={callState}
-                onEndCall={endCall}
-                isIncomingMode={!!callState.incomingCall && !callState.inCall}
-                onAcceptVO={() => acceptCall("voice")}
-                onAcceptVideo={() => acceptCall("video")}
-                onReject={rejectCall}
-                onRetry={handleRetryCall}
-                onToggleAudio={toggleAudio}
-                onToggleVideo={toggleVideo}
-            />
-        );
-    }
-
-    // DEBUG: Show call state for troubleshooting
-    const showDebugInfo = !!callState?.outgoingCallId && !callState?.inCall;
 
     return (
         <div className={styles.chatWindowContainer}>
-            {/* DEBUG PANEL - Show call state status */}
-            {showDebugInfo && (
-                <div
-                    style={{
-                        position: "fixed",
-                        bottom: "20px",
-                        right: "20px",
-                        background: "#333",
-                        color: "#0f0",
-                        padding: "10px",
-                        borderRadius: "5px",
-                        fontSize: "12px",
-                        fontFamily: "monospace",
-                        zIndex: 9999,
-                        maxWidth: "300px",
-                    }}
-                >
-                    <div>📞 CALL STATE DEBUG</div>
-                    <div>outgoingCallId: {callState.outgoingCallId}</div>
-                    <div>callType: {callState.callType}</div>
-                    <div>remoteUserId: {callState.remoteUserId}</div>
-                    <div>error: {callState.error || "none"}</div>
-                </div>
-            )}
+           
 
             <div className={styles.chatWindow}>
                 {/* Header */}
@@ -442,7 +444,7 @@ const ChatWindow = () => {
                             className={styles.actionBtn}
                             title="Voice Call"
                             onClick={handleInitiateVoiceCall}
-                            disabled={conversation?.conversationType === "group" || isInitiatingCall}
+                            disabled={isInitiatingCall}
                             loading={isInitiatingCall}
                         >
                             <PhoneOutlined />
@@ -451,7 +453,7 @@ const ChatWindow = () => {
                             className={styles.actionBtn}
                             title="Video Call"
                             onClick={handleInitiateVideoCall}
-                            disabled={conversation?.conversationType === "group" || isInitiatingCall}
+                            disabled={isInitiatingCall}
                             loading={isInitiatingCall}
                         >
                             <VideoCameraOutlined />
@@ -577,6 +579,21 @@ const ChatWindow = () => {
                 participants={conversation?.participants || []}
                 onMembersAdded={() => dispatch(loadConversations())}
             />
+            {/* Call Window Overlay */}
+            {(callState.inCall || callState.outgoingCallId || callState.incomingCall) && (
+                <CallWindow
+                    callState={callState}
+                    userId={currentUserId}
+                    onEndCall={endCall}
+                    isIncomingMode={!!callState.incomingCall && !callState.inCall}
+                    onAcceptVO={() => acceptCall("voice")}
+                    onAcceptVideo={() => acceptCall("video")}
+                    onReject={rejectCall}
+                    onRetry={handleRetryCall}
+                    onToggleAudio={toggleAudio}
+                    onToggleVideo={toggleVideo}
+                />
+            )}
         </div>
     );
 };

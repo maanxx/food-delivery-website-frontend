@@ -339,8 +339,12 @@ const useCallNotification = (incomingCall, outgoingCallId, inCall) => {
         if (Notification.permission !== "granted") return;
 
         try {
-            const notification = new Notification("📞 Incoming Call", {
-                body: `${incomingCall.fromUserName || "Someone"} is calling you...`,
+            const notification = new Notification(
+                incomingCall.isGroupCall ? `👥 Group Call: ${incomingCall.groupName || "Group"}` : "📞 Incoming Call",
+                {
+                    body: incomingCall.isGroupCall
+                        ? `${incomingCall.fromUserName || "Someone"} is calling the group...`
+                        : `${incomingCall.fromUserName || "Someone"} is calling you...`,
                 tag: `call-${incomingCall.callId}`,
                 requireInteraction: true,
             });

@@ -40,6 +40,29 @@ const callService = {
     getActiveCalls: () => {
         return axiosInstance.get(`${API_BASE}/active`);
     },
+
+    // Initiate a group call
+    initiateGroupCall: (conversationId, callType = "voice", participantIds = []) => {
+        return axiosInstance.post(`${API_BASE}/group`, {
+            conversationId,
+            callType,
+            participantIds,
+        });
+    },
+
+    // Add participant to group call
+    addGroupCallParticipant: (callId, participantId) => {
+        return axiosInstance.post(`${API_BASE}/${callId}/add-participant`, {
+            participantId,
+        });
+    },
+
+    // Remove participant from group call
+    removeGroupCallParticipant: (callId, participantId) => {
+        return axiosInstance.post(`${API_BASE}/${callId}/remove-participant`, {
+            participantId,
+        });
+    },
 };
 
 export default callService;
