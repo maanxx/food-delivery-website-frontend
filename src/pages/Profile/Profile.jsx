@@ -1,20 +1,20 @@
 import React, { useState, useEffect } from "react";
-import { message, Spin } from "antd";
+import { message } from "antd";
 import useAuth from "@hooks/useAuth";
 import profileService from "@services/profileService";
 import useLoading from "@hooks/useLoading";
 
-// New Components
+// Components
 import ProfileLayout from "@components/ProfileLayout/ProfileLayout";
+import ProfileHeader from "@components/ProfileHeader/ProfileHeader";
 import ProfileInfo from "@components/ProfileInfo/ProfileInfo";
 import ProfileSkeleton from "@components/ProfileSkeleton/ProfileSkeleton";
 import ProfileAddresses from "@components/ProfileAddresses/ProfileAddresses";
 import ProfileOrders from "@components/ProfileOrders/ProfileOrders";
-// Placeholder for components we haven't refactored yet
-// import ProfileAddresses from "@components/ProfileAddresses/ProfileAddresses";
-// import ProfilePassword from "@components/ProfilePassword/ProfilePassword";
-
-import styles from "./Profile.module.css";
+import ProfileFavorites from "@components/ProfileFavorites/ProfileFavorites";
+import ProfilePayment from "@components/ProfilePayment/ProfilePayment";
+import ProfileSettings from "@components/ProfileSettings/ProfileSettings";
+import ProfilePassword from "@components/ProfilePassword/ProfilePassword";
 
 const Profile = () => {
   const { isAuthenticated } = useAuth();
@@ -49,11 +49,17 @@ const Profile = () => {
       case "addresses":
         return <ProfileAddresses />;
       case "payment":
-        return <div>Payment Component (Coming soon)</div>;
+        return <ProfilePayment />;
       case "favorites":
-        return <div>Favorites Component (Coming soon)</div>;
+        return <ProfileFavorites />;
       case "password":
-        return <div>Password Component (Migrating...)</div>;
+        return <ProfilePassword />;
+      case "settings":
+        return <ProfileSettings />;
+      case "notifications":
+        return <ProfileSettings />; // Reuse settings for now
+      case "vouchers":
+        return <ProfilePayment />; // Reuse payment for placeholder
       default:
         return <ProfileInfo profile={profile} loading={loading} onSuccess={setProfile} />;
     }
@@ -64,7 +70,6 @@ const Profile = () => {
       <ProfileLayout
         activeTab={activeTab}
         onTabSelect={setActiveTab}
-        profileData={profile}
       >
         <ProfileSkeleton />
       </ProfileLayout>
@@ -75,8 +80,8 @@ const Profile = () => {
     <ProfileLayout 
       activeTab={activeTab} 
       onTabSelect={setActiveTab} 
-      profileData={profile}
     >
+      <ProfileHeader />
       {renderContent()}
     </ProfileLayout>
   );

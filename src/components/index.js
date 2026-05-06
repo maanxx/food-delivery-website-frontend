@@ -22,6 +22,17 @@ import ReviewList from "./ReviewList/ReviewList";
 import ReviewItem from "./ReviewItem/ReviewItem";
 import ReviewForm from "./ReviewForm/ReviewForm";
 
+import ProfileLayout from "./ProfileLayout/ProfileLayout";
+import ProfileHeader from "./ProfileHeader/ProfileHeader";
+import ProfileInfo from "./ProfileInfo/ProfileInfo";
+import ProfileSkeleton from "./ProfileSkeleton/ProfileSkeleton";
+import ProfileAddresses from "./ProfileAddresses/ProfileAddresses";
+import ProfileOrders from "./ProfileOrders/ProfileOrders";
+import ProfileFavorites from "./ProfileFavorites/ProfileFavorites";
+import ProfilePayment from "./ProfilePayment/ProfilePayment";
+import ProfileSettings from "./ProfileSettings/ProfileSettings";
+import ProfilePassword from "./ProfilePassword/ProfilePassword";
+
 export {
     Authentication,
     RoleGuard,
@@ -46,4 +57,15 @@ export {
     ReviewList,
     ReviewItem,
     ReviewForm,
+    ProfileLayout,
+    ProfileHeader,
+    ProfileInfo,
+    ProfileSkeleton,
+    ProfileAddresses,
+    ProfileOrders,
+    ProfileFavorites,
+    ProfilePayment,
+    ProfileSettings,
+    ProfilePassword,
 };
+

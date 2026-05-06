@@ -8,6 +8,8 @@ import useLoading from "@hooks/useLoading";
 import { regexEmail, regexVietnamPhoneNumber } from "@constants/constants";
 import axiosInstance from "@config/axiosInstance";
 
+import { toast } from "react-toastify";
+
 const cx = classNames.bind(styles);
 
 function FormForgetPasswordInfo() {
@@ -60,16 +62,25 @@ function FormForgetPasswordInfo() {
             });
 
             if (response.data.success) {
+                if (response.data.otp) {
+                    toast.info(`[DEV MODE] OTP: ${response.data.otp}`, {
+                        autoClose: false,
+                        closeOnClick: false,
+                    });
+                }
                 navigate("/api/forgot-password/verify-otp");
             } else {
                 console.log("Failed");
+                toast.error("Failed to send OTP. Please try again.");
             }
         } catch (error) {
             console.log(error);
+            toast.error("An error occurred. Please try again.");
         } finally {
             setLoading(false);
         }
     };
+
 
     return (
         <form onSubmit={handleSubmit}>

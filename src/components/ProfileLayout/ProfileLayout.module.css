@@ -1,44 +1,46 @@
+.container {
+  background-color: #fcfcfc;
+  min-height: 100vh;
+  padding: 40px 20px;
+}
+
 .layout {
-  display: flex;
-  margin: 0 auto;
   max-width: 1200px;
-  gap: 2rem;
-  padding: 1rem;
+  margin: 0 auto;
+  display: flex;
+  gap: 30px;
 }
 
 .sidebarWrapper {
-  width: 250px;
+  width: 280px;
   flex-shrink: 0;
 }
 
 .contentWrapper {
   flex-grow: 1;
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  padding: 2rem;
-  min-height: 500px;
+  min-width: 0; /* Prevents flex items from overflowing */
 }
 
 .hamburgerBtn {
   display: none;
-  margin-bottom: 1rem;
+  margin-bottom: 20px;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .layout {
     flex-direction: column;
-    margin: 1rem auto;
+    gap: 0;
   }
+  
   .sidebarWrapper {
-    display: none; /* Hidden on mobile by default, handled by Drawer */
+    display: none;
   }
+  
   .hamburgerBtn {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+    display: block;
   }
-  .contentWrapper {
-    padding: 1rem;
+  
+  .container {
+    padding: 20px 15px;
   }
 }

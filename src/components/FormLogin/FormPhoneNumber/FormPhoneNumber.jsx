@@ -13,6 +13,8 @@ import { FormOTP } from "@components/index";
 import axiosInstance from "@config/axiosInstance";
 import { Link, useNavigate, useOutletContext } from "react-router-dom";
 
+import { toast } from "react-toastify";
+
 const cx = classNames.bind(styles);
 
 function FormPhoneNumber() {
@@ -99,14 +101,22 @@ function FormPhoneNumber() {
             });
 
             if (res.data.success) {
+                if (res.data.otp) {
+                    toast.info(`[DEV MODE] OTP: ${res.data.otp}`, {
+                        autoClose: false,
+                        closeOnClick: false,
+                    });
+                }
                 navigate("/login/verify-otp");
             }
         } catch (err) {
             console.log(err);
+            toast.error("Failed to send OTP. Please try again.");
         } finally {
             setLoading(false);
         }
     };
+
 
     const handleLoginWithGoogle = async () => {
         const width = 500;
