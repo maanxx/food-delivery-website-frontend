@@ -5,21 +5,8 @@ import styles from "./ChatWindow.module.css";
 import { formatTime, formatFileSize } from "@utils/formatters";
 import { getFirstLetterOfEachWord } from "@helpers/stringHelper";
 
-// Add animation styles
-const animationStyles = `
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: scale(0.95);
-    }
-    to {
-      opacity: 1;
-      transform: scale(1);
-    }
-  }
-`;
 
-const MessageBubble = ({ message, isOwn, showAvatar, showTimestamp, onDelete, onForward, conversationId, currentUserId }) => {
+const MessageBubble = ({ message, isOwn, showAvatar, showTimestamp, onDelete, onForward, conversationId, currentUserId, conversationTheme }) => {
     const [showMenu, setShowMenu] = useState(false);
     const [isHovering, setIsHovering] = useState(false);
     const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
@@ -156,9 +143,47 @@ const MessageBubble = ({ message, isOwn, showAvatar, showTimestamp, onDelete, on
         return audioExtensions.some((ext) => fileNameLower.endsWith(ext) || uriPart.includes(ext));
     };
 
+    // Compute custom theme style for sender bubbles
+    const getBubbleStyle = () => {
+        if (!isOwn || !conversationTheme || conversationTheme.themeType === "default") return {};
+        
+        switch (conversationTheme.themeType) {
+            case "color":
+                return { background: conversationTheme.backgroundColor || "#007bff" };
+            case "gradient":
+                return { background: `linear-gradient(135deg, ${conversationTheme.gradientStart || "#007bff"}, ${conversationTheme.gradientEnd || "#0056b3"})` };
+            case "dark":
+                return { background: "#333333" };
+            case "image":
+                // Fallback to a solid color if background is an image
+                return { background: "rgba(0, 123, 255, 0.9)" };
+            default:
+                return {};
+        }
+    };
+
     const renderContent = () => {
-        if (!message || !message.type) {
-            return <p className={styles.messageText}>{message?.content || "Message"}</p>;
+        if (!message) return null;
+
+        // Mask content for recalled or deleted messages
+        if (message.isRecalled || message.isDeletedForEveryone || message.isDeleted) {
+            const label = message.isRecalled ? "This message was recalled" : "This message was deleted";
+            return (
+                <p 
+                    className={styles.messageText} 
+                    style={{ 
+                        fontStyle: "italic", 
+                        color: isOwn ? "rgba(255,255,255,0.7)" : "#999",
+                        opacity: 0.8 
+                    }}
+                >
+                    {label}
+                </p>
+            );
+        }
+
+        if (!message.type || message.type === "text") {
+            return <p className={styles.messageText}>{message.content || ""}</p>;
         }
 
         let effectiveType = message.type;
@@ -754,7 +779,7 @@ const MessageBubble = ({ message, isOwn, showAvatar, showTimestamp, onDelete, on
                 </Avatar>
             )}
 
-            <div className={styles.bubbleContent}>
+            <div className={styles.bubbleContent} style={getBubbleStyle()}>
                 {message.forwardedFromId && (
                     <div
                         style={{
@@ -966,4 +991,4 @@ const MessageBubble = ({ message, isOwn, showAvatar, showTimestamp, onDelete, on
     );
 };
 
-export default MessageBubble;
+export default React.memo(MessageBubble);

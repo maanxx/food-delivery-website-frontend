@@ -9,3 +9,6 @@ export { default as EmptyChat } from "./EmptyChat";
 export { default as MicrophoneReaction } from "./MicrophoneReaction";
 export { default as ForwardModal } from "./ForwardModal";
 export { default as GroupSettingsModal } from "./GroupSettingsModal";
+export { default as ChatThemeModal } from "./ChatThemeModal";
+export { default as MuteNotificationsModal } from "./MuteNotificationsModal";
+

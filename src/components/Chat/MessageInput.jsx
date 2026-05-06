@@ -6,12 +6,18 @@ import EmojiPicker from "emoji-picker-react";
 import styles from "./MessageInput.module.css";
 import useWebSocket from "@hooks/useWebSocket";
 import useVoiceRecorder from "@hooks/useVoiceRecorder";
-import { sendMessage, setSendingMessageId, addMessage } from "@features/chat/chatSlice";
+import { sendMessage, addMessage } from "@features/chat/chatSlice";
 import VoiceRecorder from "./VoiceRecorder";
 
 const MessageInput = ({ conversationId }) => {
     const dispatch = useDispatch();
     const currentUser = useSelector((state) => state.auth.user);
+    const {
+        sub, user_id, userId, id,
+        name, username,
+        avatar, avatarPath, avatar_path
+    } = currentUser || {};
+    
     const { sendMessage: emitMessage, emitTyping } = useWebSocket();
     const {
         isRecording,
@@ -168,8 +174,8 @@ const MessageInput = ({ conversationId }) => {
             setIsSending(true);
             const temporaryId = `temp-${Date.now()}`;
 
-            // Get current user info for optimistic update from Redux state
-            const senderId = currentUser?.sub || currentUser?.user_id || currentUser?.userId || currentUser?.id;
+            // Get current user info for optimistic update
+            const senderId = sub || user_id || userId || id;
 
             const messageContent = content.trim();
             const messageType =
@@ -181,8 +187,8 @@ const MessageInput = ({ conversationId }) => {
                     messageId: temporaryId,
                     conversationId,
                     senderId,
-                    senderName: currentUser?.name || currentUser?.username || "You",
-                    senderAvatar: currentUser?.avatar || currentUser?.avatarPath || currentUser?.avatar_path,
+                    senderName: name || username || "You",
+                    senderAvatar: avatar || avatarPath || avatar_path,
                     content: messageContent,
                     type: messageType,
                     createdAt: new Date().toISOString(),
@@ -240,7 +246,7 @@ const MessageInput = ({ conversationId }) => {
                 setIsSending(false);
             }
         },
-        [content, attachments, conversationId, dispatch, isSending, emitMessage, emitTyping, currentUser],
+        [content, attachments, conversationId, dispatch, isSending, emitMessage, emitTyping, sub, user_id, userId, id, name, username, avatar, avatarPath, avatar_path],
     );
 
     // Send voice message
@@ -253,8 +259,8 @@ const MessageInput = ({ conversationId }) => {
             setIsSending(true);
             const temporaryId = `temp-${Date.now()}`;
 
-            // Get current user info from Redux
-            const senderId = currentUser?.sub || currentUser?.user_id || currentUser?.userId || currentUser?.id;
+            // Get current user info
+            const senderId = sub || user_id || userId || id;
 
             // Create a File object from the Blob
             const audioFile = new File([recordedBlob], `voice-${Date.now()}.webm`, {
@@ -266,8 +272,8 @@ const MessageInput = ({ conversationId }) => {
                 messageId: temporaryId,
                 conversationId,
                 senderId,
-                senderName: currentUser?.name || currentUser?.username || "You",
-                senderAvatar: currentUser?.avatar || currentUser?.avatarPath || currentUser?.avatar_path,
+                senderName: name || username || "You",
+                senderAvatar: avatar || avatarPath || avatar_path,
                 content: "",
                 type: "voice",
                 createdAt: new Date().toISOString(),
@@ -329,7 +335,7 @@ const MessageInput = ({ conversationId }) => {
         } finally {
             setIsSending(false);
         }
-    }, [recordedBlob, conversationId, dispatch, emitMessage, clearRecording]);
+    }, [recordedBlob, conversationId, dispatch, emitMessage, clearRecording, sub, user_id, userId, id, name, username, avatar, avatarPath, avatar_path]);
 
     // Auto-expand textarea
     const handleTextareaChange = useCallback(

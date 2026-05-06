@@ -4,23 +4,29 @@ import {
     BarsOutlined,
     UserOutlined,
     BellOutlined,
-    SearchOutlined,
     InfoCircleOutlined,
     EditOutlined,
     FileOutlined,
     RightOutlined,
     PlusOutlined,
-    DeleteOutlined,
     CrownOutlined,
     UserDeleteOutlined,
 } from "@ant-design/icons";
 import { useDispatch } from "react-redux";
 import styles from "./ChatSidebar.module.css";
-import { removeMemberFromGroup, disbandGroup, addMessage } from "@features/chat/chatSlice";
+import { removeMemberFromGroup, disbandGroup } from "@features/chat/chatSlice";
 import { getFirstLetterOfEachWord } from "@helpers/stringHelper";
 import GroupAvatar from "./GroupAvatar";
 
-const ChatSidebar = ({ conversation, currentUserId, onClose, onOpenGroupSettings, onOpenAddMembersModal }) => {
+const ChatSidebar = ({
+    conversation,
+    currentUserId,
+    onClose,
+    onOpenGroupSettings,
+    onOpenAddMembersModal,
+    onOpenTheme,
+    onOpenMute,
+}) => {
     const dispatch = useDispatch();
     const isGroup = conversation?.type === "group" || conversation?.conversationType === "group";
 
@@ -34,6 +40,9 @@ const ChatSidebar = ({ conversation, currentUserId, onClose, onOpenGroupSettings
     const participants = conversation?.participants || [];
     const isAdmin =
         participants.find((p) => p.userId === currentUserId || p.user_id === currentUserId)?.role === "admin";
+
+    // Check if conversation is muted
+    const isMuted = conversation?.isMuted;
 
     const handleRemoveMember = (memberId, memberName) => {
         Modal.confirm({
@@ -157,8 +166,12 @@ const ChatSidebar = ({ conversation, currentUserId, onClose, onOpenGroupSettings
             icon: <BarsOutlined />,
             content: (
                 <div className={styles.sectionContent}>
-                    <button className={styles.customizeBtn}>🔔 Mute Group Notifications</button>
-                    <button className={styles.customizeBtn}>🎨 Change Group Theme</button>
+                    <button className={styles.customizeBtn} onClick={onOpenMute}>
+                        {isMuted ? "🔕 Muted (Manage)" : "🔔 Mute Group Notifications"}
+                    </button>
+                    <button className={styles.customizeBtn} onClick={onOpenTheme}>
+                        🎨 Change Group Theme
+                    </button>
                     <button className={styles.customizeBtn} onClick={onOpenGroupSettings}>
                         {conversation.isDisbanded || conversation.is_active === false || conversation.isActive === false
                             ? "👁️ View Group Info"
@@ -212,8 +225,12 @@ const ChatSidebar = ({ conversation, currentUserId, onClose, onOpenGroupSettings
             icon: <EditOutlined />,
             content: (
                 <div className={styles.sectionContent}>
-                    <button className={styles.customizeBtn}>🔔 Mute Notifications</button>
-                    <button className={styles.customizeBtn}>🎨 Change Chat Color</button>
+                    <button className={styles.customizeBtn} onClick={onOpenMute}>
+                        {isMuted ? "🔕 Muted (Manage)" : "🔔 Mute Notifications"}
+                    </button>
+                    <button className={styles.customizeBtn} onClick={onOpenTheme}>
+                        🎨 Change Chat Color
+                    </button>
                     <button className={styles.customizeBtn}>⭐ Mark as Favorite</button>
                 </div>
             ),
@@ -259,7 +276,14 @@ const ChatSidebar = ({ conversation, currentUserId, onClose, onOpenGroupSettings
                             : "U"}
                     </Avatar>
                 )}
-                <h3 className={styles.profileName}>{conversation?.name}</h3>
+                <h3 className={styles.profileName}>
+                    {conversation?.name}
+                    {isMuted && (
+                        <span title="Muted" style={{ marginLeft: 8, fontSize: 16 }}>
+                            🔕
+                        </span>
+                    )}
+                </h3>
                 <p className={styles.encryptionStatus}>
                     {isGroup ? `${participants.length} members` : "Personal conversation"}
                 </p>

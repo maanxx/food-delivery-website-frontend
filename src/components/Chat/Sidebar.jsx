@@ -16,6 +16,7 @@ import {
 } from "@ant-design/icons";
 import styles from "./Sidebar.module.css";
 import GroupAvatar from "./GroupAvatar";
+import MuteNotificationsModal from "./MuteNotificationsModal";
 import {
     loadConversations,
     selectConversation,
@@ -25,10 +26,13 @@ import {
     clearSearchResults,
     selectMessages,
     deleteConversation,
+    selectNotificationSettings,
+    selectConversations,
 } from "@features/chat/chatSlice";
 import useWebSocket from "@hooks/useWebSocket";
 import callService from "@services/callService";
 import { getFirstLetterOfEachWord } from "@helpers/stringHelper";
+
 
 const Sidebar = () => {
     const dispatch = useDispatch();
@@ -38,9 +42,7 @@ const Sidebar = () => {
     // Track auth state to reload conversations when user changes
     const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
 
-    const conversations = useSelector((state) =>
-        state.chat.conversations.allIds.map((id) => state.chat.conversations.byId[id]).filter(Boolean),
-    );
+    const conversations = useSelector(selectConversations);
     const selectedConvId = useSelector((state) => state.chat.conversations.selectedId);
     const searchResults = useSelector((state) => state.chat.searchResults);
     const isSearching = useSelector((state) => state.chat.isSearching);
@@ -54,7 +56,6 @@ const Sidebar = () => {
     }, [conversations]);
 
     const [searchQuery, setSearchQuery] = useState("");
-    const [showSearch, setShowSearch] = useState(false);
     const [isLoadingConversations, setIsLoadingConversations] = useState(false);
     const [showAddUserModal, setShowAddUserModal] = useState(false);
     const [addUserSearchQuery, setAddUserSearchQuery] = useState("");
@@ -335,7 +336,7 @@ const Sidebar = () => {
                     placeholder="Search conversations..."
                     value={searchQuery}
                     onChange={(e) => handleSearch(e.target.value)}
-                    onFocus={() => setShowSearch(true)}
+                    onFocus={() => {}}
                     className={styles.searchInput}
                 />
                 <SearchOutlined className={styles.searchIcon} />
@@ -681,7 +682,12 @@ const formatRelativeTime = (timestamp) => {
 const ConversationItem = ({ conv, isSelected, onSelect }) => {
     const [showMenu, setShowMenu] = useState(false);
     const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+    const [showMuteModal, setShowMuteModal] = useState(false);
     const menuRef = React.useRef(null);
+
+    // Mute status from Redux
+    const notifSettings = useSelector(selectNotificationSettings(conv.conversationId));
+    const isMuted = notifSettings?.isMuted;
 
     // Get last message text from conversation lastMessage object or fallback to messages store
     const convMessages = useSelector(selectMessages(conv.conversationId));
@@ -722,8 +728,8 @@ const ConversationItem = ({ conv, isSelected, onSelect }) => {
                 setShowMenu(false);
                 break;
             case "mute":
-                console.log("Mute notifications for:", conv.conversationId);
-                // TODO: Implement mute notifications
+                setShowMuteModal(true);
+                setShowMenu(false);
                 break;
             case "call":
                 handleInitiateCall("voice", conv);
@@ -737,6 +743,7 @@ const ConversationItem = ({ conv, isSelected, onSelect }) => {
                 break;
         }
     };
+
 
     // Handle initiating calls from conversation menu
     const handleInitiateCall = async (callType, conversation) => {
@@ -817,6 +824,9 @@ const ConversationItem = ({ conv, isSelected, onSelect }) => {
             <div className={styles.convInfo}>
                 <div className={styles.convName}>
                     {conv.name}
+                    {isMuted && (
+                        <span title="Notifications muted" style={{ marginLeft: 5, fontSize: 11 }}>🔕</span>
+                    )}
                     {(conv.isDisbanded || conv.is_active === false) && (
                         <span style={{ color: "#ff4d4f", fontSize: "11px", marginLeft: "8px", fontWeight: "normal" }}>
                             (Disbanded)
@@ -849,7 +859,7 @@ const ConversationItem = ({ conv, isSelected, onSelect }) => {
                         <DeleteOutlined /> Delete
                     </div>
                     <div className={styles.menuOption} onClick={(e) => handleMenuOption("mute", e)}>
-                        <SoundOutlined /> Mute
+                        <SoundOutlined /> {isMuted ? "Manage Mute" : "Mute"}
                     </div>
                     <div className={styles.menuOption} onClick={(e) => handleMenuOption("call", e)}>
                         <PhoneOutlined /> Call
@@ -859,8 +869,16 @@ const ConversationItem = ({ conv, isSelected, onSelect }) => {
                     </div>
                 </div>
             )}
+
+            {/* Mute notifications modal triggered from context menu */}
+            <MuteNotificationsModal
+                visible={showMuteModal}
+                onClose={() => setShowMuteModal(false)}
+                conversationId={conv.conversationId}
+            />
         </div>
     );
 };
 
 export default Sidebar;
+

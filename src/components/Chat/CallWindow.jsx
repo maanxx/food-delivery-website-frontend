@@ -12,7 +12,6 @@ import {
 } from "@ant-design/icons";
 import styles from "./CallWindow.module.css";
 import useAudioLevel from "@hooks/useAudioLevel";
-import MicrophoneReaction from "./MicrophoneReaction";
 import { getUserInfo } from "@helpers/cookieHelper";
 
 const formatDuration = (seconds) => {
@@ -201,7 +200,8 @@ const CallWindow = ({
                 // Handle specific autoplay policy errors
                 if (err.name === "NotAllowedError") {
                     console.warn("   ⚠️ Browser autoplay policy prevented audio playback");
-                    setAudioError("Click anywhere on the page to enable audio playback");
+                    setIsAudioBlocked(true);
+                    setAudioError("Click anywhere on the page or the Resume Audio button to enable audio playback");
                 } else {
                     setAudioError(`Audio playback failed: ${err.message}`);
                 }
@@ -358,9 +358,25 @@ const CallWindow = ({
                                     /* Local Participant Rendering */
                                     participant.isCameraOff ? (
                                         <div className={styles.participantInfo}>
-                                            <Avatar size={100} src={participant.avatar} icon={<UserOutlined />}>
-                                                {participant.name?.charAt(0).toUpperCase()}
-                                            </Avatar>
+                                            <div className={styles.avatarWrapper}>
+                                                <Avatar 
+                                                    size={100} 
+                                                    src={participant.avatar} 
+                                                    icon={<UserOutlined />}
+                                                    className={localAudioLevel > 15 ? styles.speaking : ""}
+                                                    style={{
+                                                        border: localAudioLevel > 15 ? "4px solid #52c41a" : "none",
+                                                        transition: "all 0.2s ease"
+                                                    }}
+                                                >
+                                                    {participant.name?.charAt(0).toUpperCase()}
+                                                </Avatar>
+                                                {localAudioLevel > 15 && (
+                                                    <div className={styles.audioIndicator}>
+                                                        <AudioOutlined style={{ color: "#52c41a" }} />
+                                                    </div>
+                                                )}
+                                            </div>
                                             <p className={styles.participantName}>{participant.name}</p>
                                         </div>
                                     ) : (
@@ -380,16 +396,19 @@ const CallWindow = ({
                                             <video 
                                                 autoPlay 
                                                 playsInline 
-                                                muted={true} // Mute video element as we use dedicated audio element
+                                                muted={true} 
                                                 className={styles.participantVideo}
                                                 ref={el => { if (el) el.srcObject = participant.stream; }}
                                             />
                                         ) : (
                                             <div className={styles.participantInfo}>
-                                                <Avatar size={100} src={participant.avatar} icon={<UserOutlined />}>
-                                                    {participant.name?.charAt(0).toUpperCase()}
-                                                </Avatar>
+                                                <div className={styles.avatarWrapper}>
+                                                    <Avatar size={100} src={participant.avatar} icon={<UserOutlined />}>
+                                                        {participant.name?.charAt(0).toUpperCase()}
+                                                    </Avatar>
+                                                </div>
                                                 <p className={styles.participantName}>{participant.name}</p>
+                                                {participant.stream && <AudioVisualization stream={participant.stream} />}
                                             </div>
                                         )}
                                     </>
@@ -450,11 +469,42 @@ const CallWindow = ({
                     </div>
 
                     <div className={styles.extraControls}>
+                        {isAudioBlocked && (
+                            <Button 
+                                type="primary" 
+                                icon={<AudioOutlined />} 
+                                onClick={retryAudioPlayback}
+                                className={styles.resumeAudioBtn}
+                            >
+                                Resume Audio
+                            </Button>
+                        )}
                         <Tooltip title="Fullscreen">
                             <Button shape="circle" icon={<FullscreenOutlined />} className={styles.ghostBtn} />
                         </Tooltip>
                     </div>
                 </div>
+
+                {/* Error/Status Overlay */}
+                {audioError && (
+                    <div className={styles.errorOverlay}>
+                        <Alert
+                            message="Audio Issue"
+                            description={audioError}
+                            type="warning"
+                            showIcon
+                            closable
+                            onClose={() => setAudioError(null)}
+                            action={
+                                isAudioBlocked && (
+                                    <Button size="small" type="primary" onClick={retryAudioPlayback}>
+                                        Resume
+                                    </Button>
+                                )
+                            }
+                        />
+                    </div>
+                )}
             </div>
         );
     }
@@ -495,7 +545,10 @@ const CallWindow = ({
                                                 {participant.name?.charAt(0).toUpperCase()}
                                             </Avatar>
                                             <p className={styles.participantName}>{participant.name}</p>
-                                            <div className={styles.statusTag}>Calling...</div>
+                                            <div className={styles.statusTag}>
+                                                <SyncOutlined spin style={{ marginRight: 8 }} />
+                                                Calling...
+                                            </div>
                                         </div>
                                     )}
                                     <div className={styles.participantLabel}>

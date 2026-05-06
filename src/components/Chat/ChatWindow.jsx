@@ -17,20 +17,26 @@ import ForwardModal from "./ForwardModal";
 import GroupSettingsModal from "./GroupSettingsModal";
 import AddMembersModal from "./AddMembersModal";
 import GroupAvatar from "./GroupAvatar";
+import ChatThemeModal, { buildBgStyle } from "./ChatThemeModal";
+import MuteNotificationsModal from "./MuteNotificationsModal";
 import {
     loadMessages,
     selectMessages,
     markMessagesAsRead,
-    updateConversationList,
     updateMemberInConversation,
     removeMemberFromConversation,
     markGroupAsDisbanded,
     markAsKicked,
     loadConversations,
-    addMessage,
+    selectConversationTheme,
+    selectNotificationSettings,
+    setConversationTheme,
+    setConversationMuteStatus,
+    loadConversationTheme,
+    loadNotificationSettings,
 } from "@features/chat/chatSlice";
-import callService from "@services/callService";
 import { useCallContext } from "@contexts/CallContext";
+
 
 const ChatWindow = () => {
     const { conversationId } = useParams();
@@ -38,6 +44,7 @@ const ChatWindow = () => {
     const { socket, isConnected, markAsRead } = useWebSocket();
     const { callState, makeCall, makeGroupCall, acceptCall, rejectCall, endCall, toggleAudio, toggleVideo } = useCallContext();
 
+    const messagesState = useSelector((state) => state.chat.messages.byConversation[conversationId]);
     const messages = useSelector(selectMessages(conversationId));
     const conversation = useSelector((state) => state.chat.conversations.byId[conversationId]);
     const typingUsers = useSelector((state) => state.chat.typing[conversationId] || []);
@@ -54,6 +61,12 @@ const ChatWindow = () => {
     const [showGroupSettings, setShowGroupSettings] = useState(false);
     const [showAddMembersModal, setShowAddMembersModal] = useState(false);
     const [messageToForward, setMessageToForward] = useState(null);
+    const [showThemeModal, setShowThemeModal] = useState(false);
+    const [showMuteModal, setShowMuteModal] = useState(false);
+
+    // Load theme + notification settings for the active conversation
+    const conversationTheme = useSelector(selectConversationTheme(conversationId));
+    const notifSettings = useSelector(selectNotificationSettings(conversationId));
 
     const messagesEndRef = useRef(null);
     const messageContainerRef = useRef(null);
@@ -147,7 +160,29 @@ const ChatWindow = () => {
                 setLoadError(error);
             })
             .finally(() => setIsLoadingMessages(false));
+
+        // Load conversation settings (theme + notifications)
+        dispatch(loadConversationTheme(conversationId))
+            .unwrap()
+            .catch((error) => {
+                console.error("❌ Failed to load conversation settings:", error);
+            });
     }, [conversationId, dispatch]);
+
+    // Handle scroll for pagination
+    const handleScroll = (e) => {
+        const { scrollTop } = e.currentTarget;
+        if (scrollTop === 0 && messagesState?.hasMore && !isLoadingMessages) {
+            console.log("📜 Scrolled to top, loading more messages. Cursor:", messagesState.cursor);
+            setIsLoadingMessages(true);
+            dispatch(loadMessages({ conversationId, cursor: messagesState.cursor, limit: 50 }))
+                .unwrap()
+                .catch((error) => {
+                    console.error("❌ Failed to load more messages:", error);
+                })
+                .finally(() => setIsLoadingMessages(false));
+        }
+    };
 
     // Join conversation room
     useEffect(() => {
@@ -234,18 +269,55 @@ const ChatWindow = () => {
             }
         };
 
+        // ── Customization events ──────────────────────────────────────────
+        const handleThemeUpdated = (data) => {
+            if (data.conversationId === conversationId) {
+                dispatch(setConversationTheme({
+                    conversationId,
+                    themeType: data.themeType,
+                    backgroundColor: data.backgroundColor,
+                    backgroundImage: data.backgroundImage,
+                    gradientStart: data.gradientStart,
+                    gradientEnd: data.gradientEnd,
+                }));
+            }
+        };
+
+        const handleNotificationSettingsUpdated = (data) => {
+            if (data.conversationId === conversationId) {
+                dispatch(setConversationMuteStatus({
+                    conversationId,
+                    isMuted: data.isMuted,
+                    muteUntil: data.muteUntil,
+                    isMutedForever: data.isMutedForever,
+                }));
+            }
+        };
+
         socket.on("group_disbanded", handleGroupDisbanded);
         socket.on("member_role_updated", handleMemberRoleUpdated);
         socket.on("member_added", handleMemberAdded);
         socket.on("member_removed", handleMemberRemoved);
+        socket.on("theme_updated", handleThemeUpdated);
+        socket.on("notification_settings_updated", handleNotificationSettingsUpdated);
 
         return () => {
             socket.off("group_disbanded", handleGroupDisbanded);
             socket.off("member_role_updated", handleMemberRoleUpdated);
             socket.off("member_added", handleMemberAdded);
             socket.off("member_removed", handleMemberRemoved);
+            socket.off("theme_updated", handleThemeUpdated);
+            socket.off("notification_settings_updated", handleNotificationSettingsUpdated);
         };
     }, [socket, conversationId, dispatch, currentUserId]);
+
+    // Load theme + notification settings whenever conversation changes
+    useEffect(() => {
+        if (!conversationId) return;
+        dispatch(loadConversationTheme(conversationId));
+        dispatch(loadNotificationSettings(conversationId));
+    }, [conversationId, dispatch]);
+
 
     const handleForwardMessage = (msg) => {
         setMessageToForward(msg);
@@ -403,7 +475,7 @@ const ChatWindow = () => {
         <div className={styles.chatWindowContainer}>
            
 
-            <div className={styles.chatWindow}>
+            <div className={styles.chatWindow} style={buildBgStyle(conversationTheme)}>
                 {/* Header */}
                 <div className={styles.header}>
                     <div className={styles.headerInfo}>
@@ -428,7 +500,17 @@ const ChatWindow = () => {
                             </Avatar>
                         )}
                         <div className={styles.headerText}>
-                            <h3>{conversation.name}</h3>
+                            <h3>
+                                {conversation.name}
+                                {notifSettings?.isMuted && (
+                                    <span
+                                        title="Notifications muted"
+                                        style={{ marginLeft: 6, fontSize: 14, color: "#aaa" }}
+                                    >
+                                        🔕
+                                    </span>
+                                )}
+                            </h3>
                             {(conversation.type === "group" || conversation.conversationType === "group") && (
                                 <span className={styles.participants}>
                                     {conversation.memberCount || conversation.participants?.length || 0} members
@@ -457,6 +539,24 @@ const ChatWindow = () => {
                             loading={isInitiatingCall}
                         >
                             <VideoCameraOutlined />
+                        </button>
+                        {/* Theme button */}
+                        <button
+                            className={styles.actionBtn}
+                            title="Change Chat Theme"
+                            id="chat-theme-btn"
+                            onClick={() => setShowThemeModal(true)}
+                        >
+                            🎨
+                        </button>
+                        {/* Mute button */}
+                        <button
+                            className={`${styles.actionBtn} ${notifSettings?.isMuted ? styles.mutedBtn : ""}`}
+                            title={notifSettings?.isMuted ? "Notifications muted (click to manage)" : "Mute notifications"}
+                            id="chat-mute-btn"
+                            onClick={() => setShowMuteModal(true)}
+                        >
+                            {notifSettings?.isMuted ? "🔕" : "🔔"}
                         </button>
                         <button className={styles.actionBtn} title="Info" onClick={() => setShowSidebar(!showSidebar)}>
                             <InfoCircleOutlined />
@@ -492,7 +592,12 @@ const ChatWindow = () => {
                     </div>
                 ) : (
                     <>
-                        <div className={styles.messagesContainer} ref={messageContainerRef}>
+                        <div 
+                            className={styles.messagesContainer} 
+                            ref={messageContainerRef} 
+                            style={buildBgStyle(conversationTheme)}
+                            onScroll={handleScroll}
+                        >
                             {loadError ? (
                                 <div className={styles.errorPlaceholder}>
                                     <div style={{ fontSize: "32px", marginBottom: "12px" }}>⚠️</div>
@@ -534,6 +639,7 @@ const ChatWindow = () => {
                                     conversationId={conversationId}
                                     currentUserId={currentUserId}
                                     onForward={handleForwardMessage}
+                                    conversationTheme={conversationTheme}
                                 />
                             )}
 
@@ -556,6 +662,8 @@ const ChatWindow = () => {
                     onClose={() => setShowSidebar(false)}
                     onOpenGroupSettings={() => setShowGroupSettings(true)}
                     onOpenAddMembersModal={() => setShowAddMembersModal(true)}
+                    onOpenTheme={() => setShowThemeModal(true)}
+                    onOpenMute={() => setShowMuteModal(true)}
                 />
             )}
 
@@ -579,6 +687,21 @@ const ChatWindow = () => {
                 participants={conversation?.participants || []}
                 onMembersAdded={() => dispatch(loadConversations())}
             />
+
+            {/* Theme modal */}
+            <ChatThemeModal
+                visible={showThemeModal}
+                onClose={() => setShowThemeModal(false)}
+                conversationId={conversationId}
+            />
+
+            {/* Mute notifications modal */}
+            <MuteNotificationsModal
+                visible={showMuteModal}
+                onClose={() => setShowMuteModal(false)}
+                conversationId={conversationId}
+            />
+
             {/* Call Window Overlay */}
             {(callState.inCall || callState.outgoingCallId || callState.incomingCall) && (
                 <CallWindow
@@ -599,3 +722,4 @@ const ChatWindow = () => {
 };
 
 export default ChatWindow;
+

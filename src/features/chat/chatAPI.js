@@ -78,11 +78,9 @@ export const chatAPI = {
 
     // ========== MESSAGES ==========
     getMessages: async (conversationId, limit = 50, cursor = null) => {
-        return axiosInstance.post(`${BASE_URL}/conversations/messages`, {
-            conversationId,
-            limit,
-            ...(cursor && { cursor }),
-        });
+        const params = { limit };
+        if (cursor) params.cursor = cursor;
+        return axiosInstance.get(`${BASE_URL}/conversations/${conversationId}/messages`, { params });
     },
 
     sendMessage: async (
@@ -165,5 +163,50 @@ export const chatAPI = {
         return axiosInstance.get(`${BASE_URL}/media/download/${fileId}`, {
             responseType: "blob",
         });
+    },
+
+    // ========== CHAT CUSTOMIZATION ==========
+
+    /** GET per-user theme for a conversation */
+    getConversationTheme: async (conversationId) => {
+        return axiosInstance.get(`${BASE_URL}/conversations/${conversationId}/theme`);
+    },
+
+    /**
+     * PUT per-user theme for a conversation.
+     * themeData: { themeType, backgroundColor?, gradientStart?, gradientEnd?, backgroundImage? (File) }
+     */
+    updateConversationTheme: async (conversationId, themeData) => {
+        const { themeType, backgroundColor, gradientStart, gradientEnd, backgroundImage } = themeData;
+
+        // Always use FormData so we can optionally attach a file
+        const formData = new FormData();
+        formData.append("themeType", themeType);
+        if (backgroundColor) formData.append("backgroundColor", backgroundColor);
+        if (gradientStart) formData.append("gradientStart", gradientStart);
+        if (gradientEnd) formData.append("gradientEnd", gradientEnd);
+        if (backgroundImage instanceof File) formData.append("backgroundImage", backgroundImage);
+
+        return axiosInstance.put(`${BASE_URL}/conversations/${conversationId}/theme`, formData, {
+            headers: { "Content-Type": "multipart/form-data" },
+        });
+    },
+
+    /** GET mute/notification and theme settings for a conversation */
+    getConversationSettings: async (conversationId) => {
+        return axiosInstance.get(`${BASE_URL}/conversations/${conversationId}/settings`);
+    },
+
+    /** GET mute/notification settings for a conversation (LEGACY) */
+    getNotificationSettings: async (conversationId) => {
+        return axiosInstance.get(`${BASE_URL}/conversations/${conversationId}/settings`);
+    },
+
+    /**
+     * PUT mute/unmute notifications for a conversation.
+     * type: "1_hour" | "8_hours" | "24_hours" | "forever" | "unmute"
+     */
+    updateNotificationSettings: async (conversationId, type) => {
+        return axiosInstance.put(`${BASE_URL}/conversations/${conversationId}/mute`, { type });
     },
 };

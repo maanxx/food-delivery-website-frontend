@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { useSelector, useDispatch } from "react-redux";
+import { useDispatch } from "react-redux";
 import { Modal, List, Avatar, Button, Tag, Select, message, Divider, Popconfirm, Input } from "antd";
 import {
-    UserOutlined,
     UserAddOutlined,
     DeleteOutlined,
     CrownOutlined,
@@ -18,7 +17,6 @@ import {
     searchUsers,
     addMembersToGroup,
     loadConversations,
-    addMessage,
 } from "@features/chat/chatSlice";
 import { getFirstLetterOfEachWord } from "@helpers/stringHelper";
 import { getUserInfo } from "@helpers/cookieHelper";
@@ -78,7 +76,7 @@ const GroupSettingsModal = ({ visible, onClose, conversation }) => {
                     memberId,
                 }),
             ).unwrap();
-            message.success("Member removed successfully");
+            message.success(`Removed ${memberName} successfully`);
             // The backend will broadcast the system message
 
         } catch (error) {

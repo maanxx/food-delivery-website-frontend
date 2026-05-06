@@ -1,4 +1,4 @@
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk, createSelector } from "@reduxjs/toolkit";
 import { chatAPI } from "./chatAPI";
 
 export const loadConversations = createAsyncThunk(
@@ -79,7 +79,7 @@ export const loadMessages = createAsyncThunk(
             if (data && data.messages) {
                 messages = Array.isArray(data.messages) ? data.messages : [];
                 hasMore = data.hasMore || false;
-                nextCursor = data.cursor || null;
+                nextCursor = data.nextCursor || data.cursor || null;
             } else if (data && Array.isArray(data)) {
                 messages = data;
             } else if (Array.isArray(data)) {
@@ -276,7 +276,7 @@ export const deleteConversation = createAsyncThunk(
                 return rejectWithValue("Conversation ID is invalid");
             }
 
-            const response = await chatAPI.deleteConversation(conversationId);
+            await chatAPI.deleteConversation(conversationId);
             return conversationId;
         } catch (error) {
             const statusCode = error?.response?.status;
@@ -354,6 +354,63 @@ export const forwardMessage = createAsyncThunk(
     },
 );
 
+// ========== CHAT CUSTOMIZATION THUNKS ==========
+
+export const loadConversationTheme = createAsyncThunk(
+    "chat/loadConversationTheme",
+    async (conversationId, { rejectWithValue }) => {
+        try {
+            const response = await chatAPI.getConversationSettings(conversationId);
+            const data = response.data?.data || response.data;
+            // Return BOTH because we have them now
+            return { conversationId, theme: data.theme, notifications: data.notifications };
+        } catch (error) {
+            return rejectWithValue(error.response?.data?.message || "Failed to load theme");
+        }
+    },
+);
+
+export const updateConversationTheme = createAsyncThunk(
+    "chat/updateConversationTheme",
+    async ({ conversationId, themeData }, { rejectWithValue }) => {
+        try {
+            const response = await chatAPI.updateConversationTheme(conversationId, themeData);
+            const data = response.data?.data || response.data;
+            return { conversationId, ...data };
+        } catch (error) {
+            return rejectWithValue(error.response?.data?.message || "Failed to update theme");
+        }
+    },
+);
+
+export const loadNotificationSettings = createAsyncThunk(
+    "chat/loadNotificationSettings",
+    async (conversationId, { rejectWithValue }) => {
+        try {
+            const response = await chatAPI.getConversationSettings(conversationId);
+            const data = response.data?.data || response.data;
+            // Return BOTH because we have them now
+            return { conversationId, theme: data.theme, notifications: data.notifications };
+        } catch (error) {
+            return rejectWithValue(error.response?.data?.message || "Failed to load notification settings");
+        }
+    },
+);
+
+export const updateNotificationSettings = createAsyncThunk(
+    "chat/updateNotificationSettings",
+    async ({ conversationId, type }, { rejectWithValue }) => {
+        try {
+            const response = await chatAPI.updateNotificationSettings(conversationId, type);
+            const data = response.data?.data || response.data;
+            return { conversationId, ...data };
+        } catch (error) {
+            return rejectWithValue(error.response?.data?.message || "Failed to update notification settings");
+        }
+    },
+);
+
+
 const initialState = {
     conversations: {
         byId: {},
@@ -374,6 +431,8 @@ const initialState = {
     searchError: null,
     error: null,
     sendingMessageId: null,
+    // Per-conversationId customization data (theme + notifications)
+    customization: {},
 };
 
 const chatSlice = createSlice({
@@ -545,6 +604,39 @@ const chatSlice = createSlice({
         },
 
         resetChatState: () => initialState,
+
+        // ===== CUSTOMIZATION SYNC FROM SOCKET EVENTS =====
+        setConversationTheme: (state, action) => {
+            const { conversationId, themeType, backgroundColor, backgroundImage, gradientStart, gradientEnd } =
+                action.payload;
+            if (!state.customization) {
+                state.customization = {};
+            }
+            if (!state.customization[conversationId]) {
+                state.customization[conversationId] = {};
+            }
+            state.customization[conversationId].theme = {
+                themeType,
+                backgroundColor,
+                backgroundImage,
+                gradientStart,
+                gradientEnd,
+            };
+        },
+
+        setConversationMuteStatus: (state, action) => {
+            const { conversationId, isMuted, muteUntil, isMutedForever } = action.payload;
+            if (!state.customization) {
+                state.customization = {};
+            }
+            if (!state.customization[conversationId]) {
+                state.customization[conversationId] = {};
+            }
+            state.customization[conversationId].notifications = { isMuted, muteUntil, isMutedForever };
+            if (state.conversations.byId[conversationId]) {
+                state.conversations.byId[conversationId].isMuted = isMuted;
+            }
+        },
     },
 
     extraReducers: (builder) => {
@@ -606,15 +698,19 @@ const chatSlice = createSlice({
                 }
 
                 const conv = state.messages.byConversation[conversationId];
-                let savedCount = 0;
+
                 if (Array.isArray(messages)) {
+                    console.log(`[FRONTEND DEBUG] Conversation ${conversationId}: Processing ${messages.length} messages. IDs:`, messages.map(m => m.messageId));
                     messages.forEach((msg) => {
                         if (msg && msg.messageId) {
                             if (!conv.byId[msg.messageId]) {
                                 conv.byId[msg.messageId] = msg;
                                 // Add to beginning for older messages (pagination)
                                 conv.allIds.unshift(msg.messageId);
-                                savedCount++;
+                            } else {
+                                // Sync existing message
+                                console.log("🔄 Syncing existing message:", msg.messageId);
+                                conv.byId[msg.messageId] = { ...conv.byId[msg.messageId], ...msg };
                             }
                         }
                     });
@@ -916,6 +1012,82 @@ const chatSlice = createSlice({
             }
             state.conversations.allIds.unshift(conversationId);
         });
+
+        // ========== CHAT CUSTOMIZATION: THEME ==========
+        builder
+            .addCase(updateConversationTheme.fulfilled, (state, action) => {
+                const { conversationId, themeType, backgroundColor, backgroundImage, gradientStart, gradientEnd } =
+                    action.payload;
+                if (!state.customization) {
+                    state.customization = {};
+                }
+                if (!state.customization[conversationId]) {
+                    state.customization[conversationId] = {};
+                }
+                state.customization[conversationId].theme = {
+                    themeType,
+                    backgroundColor,
+                    backgroundImage,
+                    gradientStart,
+                    gradientEnd,
+                };
+            })
+            .addCase(loadConversationTheme.fulfilled, (state, action) => {
+                const { conversationId, theme, notifications } = action.payload;
+                if (!state.customization) {
+                    state.customization = {};
+                }
+                if (!state.customization[conversationId]) {
+                    state.customization[conversationId] = {};
+                }
+                state.customization[conversationId].theme = theme;
+                if (notifications) {
+                    state.customization[conversationId].notifications = notifications;
+                    if (state.conversations.byId[conversationId]) {
+                        state.conversations.byId[conversationId].isMuted = notifications.isMuted;
+                    }
+                }
+            });
+
+        // ========== CHAT CUSTOMIZATION: NOTIFICATIONS ==========
+        builder
+            .addCase(updateNotificationSettings.fulfilled, (state, action) => {
+                const { conversationId, isMuted, muteUntil, isMutedForever, type } = action.payload;
+                if (!state.customization) {
+                    state.customization = {};
+                }
+                if (!state.customization[conversationId]) {
+                    state.customization[conversationId] = {};
+                }
+                state.customization[conversationId].notifications = {
+                    isMuted,
+                    muteUntil,
+                    isMutedForever,
+                    type,
+                };
+                // Also flag the conversation in the list
+                if (state.conversations.byId[conversationId]) {
+                    state.conversations.byId[conversationId].isMuted = isMuted;
+                }
+            })
+            .addCase(loadNotificationSettings.fulfilled, (state, action) => {
+                const { conversationId, notifications, theme } = action.payload;
+                if (!state.customization) {
+                    state.customization = {};
+                }
+                if (!state.customization[conversationId]) {
+                    state.customization[conversationId] = {};
+                }
+                if (notifications) {
+                    state.customization[conversationId].notifications = notifications;
+                    if (state.conversations.byId[conversationId]) {
+                        state.conversations.byId[conversationId].isMuted = notifications.isMuted;
+                    }
+                }
+                if (theme) {
+                    state.customization[conversationId].theme = theme;
+                }
+            });
     },
 });
 
@@ -938,27 +1110,51 @@ export const {
     markGroupAsDisbanded,
     markAsKicked,
     resetChatState,
+    setConversationTheme,
+    setConversationMuteStatus,
 } = chatSlice.actions;
 
 // ========== SELECTORS ==========
-export const selectConversations = (state) =>
-    state.chat.conversations.allIds.map((id) => state.chat.conversations.byId[id]);
+export const selectConversations = createSelector(
+    [(state) => state.chat.conversations.allIds, (state) => state.chat.conversations.byId],
+    (allIds, byId) => allIds.map((id) => byId[id]),
+);
 
 export const selectSelectedConversation = (state) => {
     const convId = state.chat.conversations.selectedId;
     return convId ? state.chat.conversations.byId[convId] : null;
 };
 
-export const selectMessages = (conversationId) => (state) => {
-    const conv = state.chat.messages.byConversation[conversationId];
-    if (!conv) return [];
-    // Filter out undefined messages (stale IDs with no message object)
-    return conv.allIds.map((id) => conv.byId[id]).filter((msg) => msg !== undefined && msg !== null);
-};
+// Simple selector that returns the conversation object to avoid re-mapping on every call if not needed
+const selectConversationMessages = (state, conversationId) => state.chat.messages.byConversation[conversationId];
+
+export const selectMessages = (conversationId) =>
+    createSelector([selectConversationMessages], (conv) => {
+        if (!conv) return [];
+        // Filter out undefined messages (stale IDs with no message object)
+        return conv.allIds.map((id) => conv.byId[id]).filter((msg) => msg !== undefined && msg !== null);
+    });
 
 export const selectTypingUsers = (conversationId) => (state) => state.chat.typing[conversationId] || [];
 
 export const selectUserOnlineStatus = (userId) => (state) =>
     state.chat.onlineUsers[userId] || { status: "offline", lastSeen: null };
 
+const DEFAULT_THEME = { themeType: "default" };
+
+/** Select per-user theme for a given conversationId */
+export const selectConversationTheme = (conversationId) => (state) =>
+    state.chat.customization?.[conversationId]?.theme || DEFAULT_THEME;
+
+const DEFAULT_NOTIFICATIONS = {
+    isMuted: false,
+    muteUntil: null,
+    isMutedForever: false,
+};
+
+/** Select per-user mute settings for a given conversationId */
+export const selectNotificationSettings = (conversationId) => (state) =>
+    state.chat.customization?.[conversationId]?.notifications || DEFAULT_NOTIFICATIONS;
+
 export default chatSlice.reducer;
+

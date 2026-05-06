@@ -53,7 +53,7 @@ const formatDateLabel = (timestamp) => {
     }
 };
 
-const MessageList = ({ messages, conversationId, currentUserId, onForward }) => {
+const MessageList = ({ messages, conversationId, currentUserId, onForward, conversationTheme }) => {
     const containerRef = useRef(null);
     const dispatch = useDispatch();
 
@@ -240,6 +240,7 @@ const MessageList = ({ messages, conversationId, currentUserId, onForward }) => 
                                     onDelete={handleDeleteMessage}
                                     onForward={onForward}
                                     currentUserId={currentUserId}
+                                    conversationTheme={conversationTheme}
                                 />
                             ))}
                         </div>

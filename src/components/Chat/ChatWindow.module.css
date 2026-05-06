@@ -81,6 +81,38 @@
     background: #e0e0e0;
 }
 
+/* When muted, the bell button gets a subtle orange tint */
+.mutedBtn {
+    background: #fff3ec;
+    color: #ff914c;
+}
+
+.mutedBtn:hover {
+    background: #ffe4cc;
+}
+
+/* Allow custom backgrounds to show through the chat window */
+.chatWindow {
+    transition: background 0.4s cubic-bezier(0.4, 0, 0.2, 1), background-image 0.4s ease;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.chatWindow::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: inherit;
+    filter: saturate(1.2) contrast(1.05);
+    z-index: -1;
+}
+
+
 .messagesContainer {
     flex: 1;
     min-height: 0;
