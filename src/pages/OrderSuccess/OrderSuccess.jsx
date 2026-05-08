@@ -104,23 +104,27 @@ function OrderSuccess() {
           <div className={styles.detailRow}>
             <span className={styles.detailLabel}>{SUCCESS_TEXT.TOTAL}</span>
             <span className={styles.detailValue} style={{ color: "var(--primaryColor)", fontSize: "1.2rem" }}>
-              {order.total_amount.toLocaleString("vi-VN")} ₫
+              {Number(order.total_amount).toLocaleString("vi-VN")} ₫
             </span>
           </div>
 
           <div className={styles.itemList}>
             <div className={styles.detailLabel} style={{ marginBottom: "8px" }}>{SUCCESS_TEXT.ITEMS}</div>
-            {order.items.map((item, idx) => (
-              <div key={idx} className={styles.item}>
-                <span>{item.name} x{item.quantity}</span>
-                <span>{(item.price * item.quantity).toLocaleString("vi-VN")} ₫</span>
-              </div>
-            ))}
+            {order.items && order.items.length > 0 ? (
+              order.items.map((item, idx) => (
+                <div key={idx} className={styles.item}>
+                  <span>{item.name} x{item.quantity}</span>
+                  <span>{(Number(item.price) * item.quantity).toLocaleString("vi-VN")} ₫</span>
+                </div>
+              ))
+            ) : (
+              <p style={{ color: "#999", fontSize: "14px" }}>Không có thông tin sản phẩm</p>
+            )}
           </div>
         </div>
 
         <div className={styles.actions}>
-          <button className={styles.viewOrdersBtn} onClick={() => navigate("/profile/orders")}>
+          <button className={styles.viewOrdersBtn} onClick={() => navigate("/profile?tab=orders")}>
             <ShoppingBagOutlined style={{ marginRight: "8px", verticalAlign: "middle" }} />
             {SUCCESS_TEXT.VIEW_ORDERS}
           </button>

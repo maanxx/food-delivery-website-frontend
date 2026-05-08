@@ -308,25 +308,28 @@ function Cart() {
                     onInputChange={(event, newInputValue) => {
                       setVoucherCode(newInputValue);
                     }}
-                    renderOption={(props, option) => (
-                      <li {...props} style={{ 
-                        opacity: option.disabled ? 0.5 : 1,
-                        cursor: option.disabled ? 'not-allowed' : 'pointer',
-                        pointerEvents: option.disabled ? 'none' : 'auto'
-                      }}>
-                        <div style={{ width: '100%' }}>
-                          <div style={{ fontWeight: 600 }}>{option.value}</div>
-                          <div style={{ fontSize: '12px', color: '#666' }}>
-                            {option.voucher.description}
-                          </div>
-                          {option.disabled && (
-                            <div style={{ fontSize: '11px', color: '#ff4d4f', marginTop: '2px' }}>
-                              Đơn tối thiểu {option.minPurchase.toLocaleString('vi-VN')}₫
+                    renderOption={(props, option) => {
+                      const { key, ...otherProps } = props;
+                      return (
+                        <li key={key} {...otherProps} style={{ 
+                          opacity: option.disabled ? 0.5 : 1,
+                          cursor: option.disabled ? 'not-allowed' : 'pointer',
+                          pointerEvents: option.disabled ? 'none' : 'auto'
+                        }}>
+                          <div style={{ width: '100%' }}>
+                            <div style={{ fontWeight: 600 }}>{option.value}</div>
+                            <div style={{ fontSize: '12px', color: '#666' }}>
+                              {option.voucher.description}
                             </div>
-                          )}
-                        </div>
-                      </li>
-                    )}
+                            {option.disabled && (
+                              <div style={{ fontSize: '11px', color: '#ff4d4f', marginTop: '2px' }}>
+                                Đơn tối thiểu {option.minPurchase.toLocaleString('vi-VN')}₫
+                              </div>
+                            )}
+                          </div>
+                        </li>
+                      );
+                    }}
                     renderInput={(params) => (
                       <TextField
                         {...params}

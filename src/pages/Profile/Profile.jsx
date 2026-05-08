@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { message, Spin } from "antd";
 import useAuth from "@hooks/useAuth";
 import profileService from "@services/profileService";
@@ -20,7 +21,14 @@ const Profile = () => {
   const { isAuthenticated } = useAuth();
   const { loading, setLoading } = useLoading();
   const [profile, setProfile] = useState(null);
-  const [activeTab, setActiveTab] = useState("info");
+  const [searchParams] = useSearchParams();
+  const tabFromUrl = searchParams.get("tab") || "info";
+  const [activeTab, setActiveTab] = useState(tabFromUrl);
+
+  // Update activeTab when URL changes
+  useEffect(() => {
+    setActiveTab(tabFromUrl);
+  }, [tabFromUrl]);
 
   useEffect(() => {
     if (isAuthenticated) {
