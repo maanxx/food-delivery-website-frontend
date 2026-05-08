@@ -1,5 +1,4 @@
 import React from 'react';
-import { Avatar } from 'antd';
 import { 
   UserOutlined, 
   ShoppingOutlined, 
@@ -7,21 +6,41 @@ import {
   CreditCardOutlined, 
   HeartOutlined, 
   LockOutlined, 
-  LogoutOutlined 
+  SettingOutlined,
+  LogoutOutlined,
+  BellOutlined
 } from '@ant-design/icons';
 import useAuth from '@hooks/useAuth';
 import styles from './ProfileSidebar.module.css';
 
-const ProfileSidebar = ({ activeTab, onTabSelect, profileData, isMobile = false }) => {
+const ProfileSidebar = ({ activeTab, onTabSelect, isMobile = false }) => {
   const { logout } = useAuth();
   
-  const menuItems = [
-    { key: 'info', label: 'Profile Info', icon: <UserOutlined /> },
-    { key: 'orders', label: 'Order History', icon: <ShoppingOutlined /> },
-    { key: 'addresses', label: 'My Addresses', icon: <EnvironmentOutlined /> },
-    { key: 'payment', label: 'Payment Methods', icon: <CreditCardOutlined /> },
-    { key: 'favorites', label: 'Favorites', icon: <HeartOutlined /> },
-    { key: 'password', label: 'Change Password', icon: <LockOutlined /> },
+  const menuSections = [
+    {
+      title: 'Tài khoản của tôi',
+      items: [
+        { key: 'info', label: 'Thông tin cá nhân', icon: <UserOutlined /> },
+        { key: 'addresses', label: 'Địa chỉ nhận hàng', icon: <EnvironmentOutlined /> },
+        { key: 'password', label: 'Bảo mật/Mật khẩu', icon: <LockOutlined /> },
+      ]
+    },
+    {
+      title: 'Đơn hàng & Yêu thích',
+      items: [
+        { key: 'orders', label: 'Lịch sử đơn hàng', icon: <ShoppingOutlined /> },
+        { key: 'favorites', label: 'Món ăn yêu thích', icon: <HeartOutlined /> },
+        { key: 'vouchers', label: 'Kho Voucher', icon: <CreditCardOutlined /> },
+      ]
+    },
+    {
+      title: 'Tiện ích & Thiết lập',
+      items: [
+        { key: 'payment', label: 'Phương thức thanh toán', icon: <CreditCardOutlined /> },
+        { key: 'notifications', label: 'Thông báo', icon: <BellOutlined /> },
+        { key: 'settings', label: 'Thiết lập tài khoản', icon: <SettingOutlined /> },
+      ]
+    }
   ];
 
   const handleLogout = () => {
@@ -30,37 +49,30 @@ const ProfileSidebar = ({ activeTab, onTabSelect, profileData, isMobile = false 
 
   return (
     <div className={`${styles.sidebar} ${isMobile ? styles.mobileSidebar : ''}`}>
-      {/* User Header */}
-      <div className={styles.userSection}>
-        <Avatar 
-          size={isMobile ? 64 : 80} 
-          src={profileData?.avatar_path ? `http://localhost:3001${profileData.avatar_path}` : null}
-          icon={<UserOutlined />} 
-          className={styles.avatar}
-        />
-        <div className={styles.userInfo}>
-          <h3 className={styles.userName}>{profileData?.fullname || 'Loading...'}</h3>
-        </div>
-      </div>
-
-      {/* Navigation Menu */}
-      <ul className={styles.menuList}>
-        {menuItems.map((item) => (
-          <li 
-            key={item.key}
-            className={`${styles.menuItem} ${activeTab === item.key ? styles.active : ''}`}
-            onClick={() => onTabSelect(item.key)}
-          >
-            <span className={styles.icon}>{item.icon}</span>
-            <span className={styles.label}>{item.label}</span>
-          </li>
+      <div className={styles.menuContainer}>
+        {menuSections.map((section, sIndex) => (
+          <div key={sIndex} className={styles.section}>
+            <h4 className={styles.sectionTitle}>{section.title}</h4>
+            <ul className={styles.menuList}>
+              {section.items.map((item) => (
+                <li 
+                  key={item.key}
+                  className={`${styles.menuItem} ${activeTab === item.key ? styles.active : ''}`}
+                  onClick={() => onTabSelect(item.key)}
+                >
+                  <span className={styles.icon}>{item.icon}</span>
+                  <span className={styles.label}>{item.label}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
         ))}
-      </ul>
+      </div>
       
       <div className={styles.logoutWrapper}>
         <button className={styles.logoutButton} onClick={handleLogout}>
           <LogoutOutlined />
-          <span>Logout</span>
+          <span>Đăng xuất</span>
         </button>
       </div>
     </div>
@@ -68,3 +80,4 @@ const ProfileSidebar = ({ activeTab, onTabSelect, profileData, isMobile = false 
 };
 
 export default ProfileSidebar;
+

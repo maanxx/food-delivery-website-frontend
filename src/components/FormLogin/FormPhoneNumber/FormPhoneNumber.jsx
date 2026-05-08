@@ -13,6 +13,8 @@ import { FormOTP } from "@components/index";
 import axiosInstance from "@config/axiosInstance";
 import { Link, useNavigate, useOutletContext } from "react-router-dom";
 
+import { toast } from "react-toastify";
+
 const cx = classNames.bind(styles);
 
 function FormPhoneNumber() {
@@ -52,15 +54,25 @@ function FormPhoneNumber() {
     };
 
     const handleValidatePhoneInput = (e) => {
-        handleOnlyInputNumber(e);
-        setPhoneNumberValue(e.currentTarget.value);
+        let value = e.currentTarget.value.replace(/\D/g, ""); // Only digits (0-9)
+        
+        // Remove leading 0
+        if (value.startsWith("0")) {
+            value = value.substring(1);
+        }
+        
+        // Limit to 9 characters
+        value = value.substring(0, 9);
+        
+        e.currentTarget.value = value;
+        setPhoneNumberValue(value);
 
-        if (e.currentTarget.value.length <= 0) {
+        if (value.length === 0) {
             setAlertMessage("Số điện thoại không được bỏ trống.");
             e.currentTarget.parentElement.classList.add(styles.invalid);
             setIsValidPhoneNumber(false);
-        } else if (!regexVietnamPhoneNumber.test(e.currentTarget.value)) {
-            setAlertMessage("Số điện thoại không hợp lệ.");
+        } else if (value.length !== 9) {
+            setAlertMessage("Số điện thoại phải gồm đúng 9 số");
             e.currentTarget.parentElement.classList.add(styles.invalid);
             setIsValidPhoneNumber(false);
         } else {
@@ -99,14 +111,22 @@ function FormPhoneNumber() {
             });
 
             if (res.data.success) {
+                if (res.data.otp) {
+                    toast.info(`[DEV MODE] OTP: ${res.data.otp}`, {
+                        autoClose: false,
+                        closeOnClick: false,
+                    });
+                }
                 navigate("/login/verify-otp");
             }
         } catch (err) {
             console.log(err);
+            toast.error("Failed to send OTP. Please try again.");
         } finally {
             setLoading(false);
         }
     };
+
 
     const handleLoginWithGoogle = async () => {
         const width = 500;
@@ -275,7 +295,7 @@ function FormPhoneNumber() {
                         type="text"
                         name="phone"
                         onInput={handleValidatePhoneInput}
-                        placeholder="0 1 2 3 4 5 6 7 8 9"
+                        placeholder="Nhập số điện thoại (VD: 909943237)"
                     // autoComplete={"off"}
                     />
                     <div className={cx("phone-input-alert")}>{alertMessage}</div>
