@@ -20,6 +20,7 @@ import {
     DishDetail,
     Admin,
     OrderSuccess,
+    VNPayCheckout,
 } from "@pages/index";
 import Orders from "@pages/Admin/Orders";
 import Employees from "@pages/Admin/Employees";
@@ -149,6 +150,10 @@ const privateRoutes = [
                 element: <OrderSuccess />,
             },
             {
+                path: "/checkout/vnpay",
+                element: <VNPayCheckout />,
+            },
+            {
                 path: "/profile",
                 element: <Profile />,
             },
@@ -165,7 +170,7 @@ const adminRoutes = [
         path: "/admin",
         element: (
             // <RoleGuard allowedRoles={["Admin"]}>
-                <AdminLayout />
+            <AdminLayout />
             // </RoleGuard>
         ),
         children: [
