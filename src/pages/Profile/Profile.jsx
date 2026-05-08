@@ -11,9 +11,7 @@ import ProfileInfo from "@components/ProfileInfo/ProfileInfo";
 import ProfileSkeleton from "@components/ProfileSkeleton/ProfileSkeleton";
 import ProfileAddresses from "@components/ProfileAddresses/ProfileAddresses";
 import ProfileOrders from "@components/ProfileOrders/ProfileOrders";
-// Placeholder for components we haven't refactored yet
-// import ProfileAddresses from "@components/ProfileAddresses/ProfileAddresses";
-// import ProfilePassword from "@components/ProfilePassword/ProfilePassword";
+import ProfilePassword from "@components/ProfilePassword/ProfilePassword";
 
 import styles from "./Profile.module.css";
 
