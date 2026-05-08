@@ -241,7 +241,9 @@ const ProfileOrders = () => {
                 <div className={styles.infoRow}>
                   <span className={styles.infoLabel}>Phương thức thanh toán:</span>
                   <span className={styles.infoValue}>
-                    {selectedOrder.payment_method === 'cash' ? 'Tiền mặt' : 'Chuyển khoản'}
+                    {selectedOrder.payment_method === 'COD' || selectedOrder.payment_method === 'cash' 
+                      ? 'Thanh toán khi nhận hàng (COD)' 
+                      : 'Chuyển khoản'}
                   </span>
                 </div>
               )}

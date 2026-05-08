@@ -76,7 +76,7 @@ function OrderSuccess() {
         <div className={styles.orderDetailGrid}>
           <div className={styles.detailRow}>
             <span className={styles.detailLabel}>{SUCCESS_TEXT.ORDER_ID}</span>
-            <span className={`${styles.detailValue} ${styles.orderId}`}>{order.order_id}</span>
+            <span className={`${styles.detailValue} ${styles.orderId}`}>#{order.order_id.slice(-8).toUpperCase()}</span>
           </div>
 
           <div className={styles.detailRow}>
