@@ -18,6 +18,7 @@ import { resetCartState } from "@features/cart/cartSlice";
 
 import styles from "./Checkout.module.css";
 import profileService from "@services/profileService";
+import { createPaymentUrl } from "@services/vnpayService";
 
 const CHECKOUT_TEXT = {
     TITLE: "Thanh toán",
@@ -124,7 +125,28 @@ function Checkout() {
                     navigate(`/checkout/success?orderId=${orderId}`);
                 } else {
                     const amount = checkoutData.total || resultAction.payload.total_amount || 0;
-                    navigate(`/checkout/vnpay?orderId=${orderId}&method=${selectedPaymentMethod}&amount=${amount}`);
+                    const bankCode = selectedPaymentMethod === "QR" ? "VNPAYQR" : "VNBANK";
+                    try {
+                        const response = await createPaymentUrl({
+                            amount,
+                            orderDescription: `Thanh toán đơn hàng #${orderId}`,
+                            orderType: "billpayment",
+                            language: "vn",
+                            bankCode,
+                        });
+                        const redirectUrl = response?.data?.url;
+                        console.log("VNPay response:", redirectUrl);
+                        if (redirectUrl) {
+                            window.location.href = redirectUrl;
+                            return;
+                        }
+                        message.warning(
+                            "Đã tạo yêu cầu thanh toán, nhưng chưa lấy được URL chuyển hướng. Vui lòng thử lại.",
+                        );
+                    } catch (error) {
+                        const msg = error?.response?.data?.message || "Không thể kết nối VNPay sandbox";
+                        message.error(msg);
+                    }
                 }
             } else {
                 message.error(resultAction.payload || "Đặt hàng thất bại");

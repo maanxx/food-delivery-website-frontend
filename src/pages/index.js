@@ -16,7 +16,6 @@ import ForgotPassword from "./ForgotPassword/ForgotPassword";
 import DishDetail from "./DishDetail/DishDetail";
 import Admin from "./Admin/Admin";
 import OrderSuccess from "./OrderSuccess/OrderSuccess";
-import VNPayCheckout from "./VNPayCheckout/VNPayCheckout";
 
 export {
     Home,
@@ -37,5 +36,4 @@ export {
     ForgotPassword,
     Admin,
     OrderSuccess,
-    VNPayCheckout,
 };

@@ -20,7 +20,6 @@ import {
     DishDetail,
     Admin,
     OrderSuccess,
-    VNPayCheckout,
 } from "@pages/index";
 import Orders from "@pages/Admin/Orders";
 import Employees from "@pages/Admin/Employees";
@@ -148,10 +147,6 @@ const privateRoutes = [
             {
                 path: "/checkout/success",
                 element: <OrderSuccess />,
-            },
-            {
-                path: "/checkout/vnpay",
-                element: <VNPayCheckout />,
             },
             {
                 path: "/profile",
