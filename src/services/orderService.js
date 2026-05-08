@@ -5,7 +5,7 @@ import axiosInstance from "@config/axiosInstance";
  */
 export const fetchMyOrders = async () => {
     try {
-        const response = await axiosInstance.get("/orders/my-orders");
+        const response = await axiosInstance.get("/api/orders/my-orders");
         return response.data;
     } catch (error) {
         throw error;
@@ -17,7 +17,7 @@ export const fetchMyOrders = async () => {
  */
 export const fetchOrderById = async (orderId) => {
     try {
-        const response = await axiosInstance.get(`/orders/${orderId}`);
+        const response = await axiosInstance.get(`/api/orders/${orderId}`);
         return response.data;
     } catch (error) {
         throw error;
@@ -29,7 +29,7 @@ export const fetchOrderById = async (orderId) => {
  */
 export const createOrder = async (orderData) => {
     try {
-        const response = await axiosInstance.post("/orders", orderData);
+        const response = await axiosInstance.post("/api/orders", orderData);
         return response.data;
     } catch (error) {
         throw error;
@@ -40,7 +40,7 @@ export const createOrder = async (orderData) => {
  */
 export const reorder = async (orderId) => {
     try {
-        const response = await axiosInstance.post(`/orders/${orderId}/reorder`);
+        const response = await axiosInstance.post(`/api/orders/${orderId}/reorder`);
         return response.data;
     } catch (error) {
         throw error;

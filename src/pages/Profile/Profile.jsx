@@ -1,26 +1,34 @@
 import React, { useState, useEffect } from "react";
-import { message } from "antd";
+import { useSearchParams } from "react-router-dom";
+import { message, Spin } from "antd";
 import useAuth from "@hooks/useAuth";
 import profileService from "@services/profileService";
 import useLoading from "@hooks/useLoading";
 
-// Components
+// New Components
 import ProfileLayout from "@components/ProfileLayout/ProfileLayout";
-import ProfileHeader from "@components/ProfileHeader/ProfileHeader";
 import ProfileInfo from "@components/ProfileInfo/ProfileInfo";
 import ProfileSkeleton from "@components/ProfileSkeleton/ProfileSkeleton";
 import ProfileAddresses from "@components/ProfileAddresses/ProfileAddresses";
 import ProfileOrders from "@components/ProfileOrders/ProfileOrders";
-import ProfileFavorites from "@components/ProfileFavorites/ProfileFavorites";
-import ProfilePayment from "@components/ProfilePayment/ProfilePayment";
-import ProfileSettings from "@components/ProfileSettings/ProfileSettings";
-import ProfilePassword from "@components/ProfilePassword/ProfilePassword";
+// Placeholder for components we haven't refactored yet
+// import ProfileAddresses from "@components/ProfileAddresses/ProfileAddresses";
+// import ProfilePassword from "@components/ProfilePassword/ProfilePassword";
+
+import styles from "./Profile.module.css";
 
 const Profile = () => {
   const { isAuthenticated } = useAuth();
   const { loading, setLoading } = useLoading();
   const [profile, setProfile] = useState(null);
-  const [activeTab, setActiveTab] = useState("info");
+  const [searchParams] = useSearchParams();
+  const tabFromUrl = searchParams.get("tab") || "info";
+  const [activeTab, setActiveTab] = useState(tabFromUrl);
+
+  // Update activeTab when URL changes
+  useEffect(() => {
+    setActiveTab(tabFromUrl);
+  }, [tabFromUrl]);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -49,17 +57,11 @@ const Profile = () => {
       case "addresses":
         return <ProfileAddresses />;
       case "payment":
-        return <ProfilePayment />;
+        return <div>Payment Component (Coming soon)</div>;
       case "favorites":
-        return <ProfileFavorites />;
+        return <div>Favorites Component (Coming soon)</div>;
       case "password":
-        return <ProfilePassword />;
-      case "settings":
-        return <ProfileSettings />;
-      case "notifications":
-        return <ProfileSettings />; // Reuse settings for now
-      case "vouchers":
-        return <ProfilePayment />; // Reuse payment for placeholder
+        return <div>Password Component (Migrating...)</div>;
       default:
         return <ProfileInfo profile={profile} loading={loading} onSuccess={setProfile} />;
     }
@@ -70,6 +72,7 @@ const Profile = () => {
       <ProfileLayout
         activeTab={activeTab}
         onTabSelect={setActiveTab}
+        profileData={profile}
       >
         <ProfileSkeleton />
       </ProfileLayout>
@@ -80,8 +83,8 @@ const Profile = () => {
     <ProfileLayout 
       activeTab={activeTab} 
       onTabSelect={setActiveTab} 
+      profileData={profile}
     >
-      <ProfileHeader />
       {renderContent()}
     </ProfileLayout>
   );
