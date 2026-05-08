@@ -1,0 +1,161 @@
+.wrapper {
+    background-color: #f8f9fa;
+    min-height: calc(100vh - var(--headerHeight));
+    padding: 40px 0;
+}
+
+.card {
+    background: #fff;
+    border: 1px solid #eee;
+    border-radius: 20px;
+    padding: 28px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+}
+
+.headerRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.backBtn {
+    border: 1px solid #ddd;
+    background: #fff;
+    color: #444;
+    border-radius: 10px;
+    padding: 8px 14px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.backBtn:hover {
+    border-color: var(--primaryColor);
+    color: var(--primaryColor);
+}
+
+.badge {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: #096dd9;
+    background: #e6f4ff;
+    border: 1px solid #91caff;
+    border-radius: 999px;
+    padding: 4px 10px;
+}
+
+.title {
+    margin: 0 0 10px;
+    color: #222;
+    font-size: 1.6rem;
+    font-weight: 800;
+}
+
+.description {
+    margin: 0 0 20px;
+    color: #666;
+}
+
+.infoGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 18px;
+}
+
+.infoItem {
+    background: #fafafa;
+    border: 1px solid #eee;
+    border-radius: 12px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.infoItem span {
+    color: #777;
+    font-size: 13px;
+}
+
+.infoItem strong {
+    color: #222;
+}
+
+.methodValue {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.noteBox {
+    margin-bottom: 18px;
+    border: 1px dashed #91caff;
+    border-radius: 12px;
+    padding: 14px;
+    background: #f0f9ff;
+}
+
+.noteBox h3 {
+    margin: 0 0 8px;
+    font-size: 0.95rem;
+}
+
+.noteBox p {
+    margin: 0;
+    color: #444;
+    font-family: monospace;
+}
+
+.payBtn {
+    width: 100%;
+    background: var(--primaryColor);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.payBtn:hover {
+    opacity: 0.92;
+}
+
+.payBtn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.successBtn {
+    width: 100%;
+    margin-top: 12px;
+    background: #fff;
+    color: #333;
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    padding: 12px 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.successBtn:hover {
+    border-color: #bbb;
+}
+
+@media (max-width: 768px) {
+    .infoGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .card {
+        padding: 20px;
+    }
+}

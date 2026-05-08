@@ -165,7 +165,7 @@ const adminRoutes = [
         path: "/admin",
         element: (
             // <RoleGuard allowedRoles={["Admin"]}>
-                <AdminLayout />
+            <AdminLayout />
             // </RoleGuard>
         ),
         children: [

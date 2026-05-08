@@ -29,7 +29,6 @@ export const addToCart = createAsyncThunk(
             console.log("🛒 REDUX THUNK PAYLOAD:", payload);
             const response = await cartService.addToCart(dishId, quantity);
             if (response.success) {
-                message.success("✅ Added to cart");
                 return response; // Return full response { success, data: { items, totalQuantity, totalAmount } }
             }
             return rejectWithValue(response.message);

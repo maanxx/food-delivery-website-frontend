@@ -32,15 +32,13 @@ const config = {
             "@assets": path.resolve(__dirname, "src/assets"),
             "@utils": path.resolve(__dirname, "src/utils"),
             "@pages": path.resolve(__dirname, "src/pages"),
+            "@layouts": path.resolve(__dirname, "src/layouts"),
+            "@contexts": path.resolve(__dirname, "src/contexts"),
+            "@router": path.resolve(__dirname, "src/router"),
+            "@constants": path.resolve(__dirname, "src/constants"),
+            "@images": path.resolve(__dirname, "src/assets/images"),
+            "@styles": path.resolve(__dirname, "src/assets/styles"),
         },
-    },
-    devServer: {
-        open: true,
-        host: "localhost",
-    },
-    devtool: false,
-    ignoreWarnings: [/source-map-loader/, /simple-peer/],
-    resolve: {
         fallback: {
             process: require.resolve("process/browser"),
             util: require.resolve("util/"),
@@ -57,6 +55,12 @@ const config = {
             dgram: false,
         },
     },
+    devServer: {
+        open: true,
+        host: "localhost",
+    },
+    devtool: false,
+    ignoreWarnings: [/source-map-loader/, /simple-peer/],
     externals: {
         "simple-peer": "SimplePeer",
     },
@@ -97,11 +101,16 @@ const config = {
                 type: "asset",
             },
             {
-                test: /\.(?:js|mjs|cjs|jsx)$/,
+                test: /\.m?js/,
+                resolve: {
+                    fullySpecified: false,
+                },
+            },
+            {
+                test: /\.(?:js|jsx)$/,
                 exclude: /node_modules/,
                 use: {
                     loader: "babel-loader",
-                    // Rely on project .babelrc for presets/plugins (React and Alias support)
                 },
             },
         ],
