@@ -253,12 +253,12 @@ const useCall = (socket) => {
 
                     if (callIdToEnd && socket && socket.connected) {
                         console.log(`📞 [endCall] Emitting call termination signals...`);
-                        
+
                         const terminationData = {
                             callId: callIdToEnd,
                             toUserId: remoteUserId,
                             conversationId: conversationId,
-                            duration: wasInCall ? prev.callDuration : 0
+                            duration: wasInCall ? prev.callDuration : 0,
                         };
 
                         if (wasInCall) {
@@ -386,9 +386,11 @@ const useCall = (socket) => {
             // Determine if it's a group call and get group metadata
             const convId = data.conversationId || data.conversation_id;
             const conversation = convId ? conversations[convId] : null;
-            const isGroupCall = data.isGroupCall || conversation?.type === "group" || conversation?.conversationType === "group";
+            const isGroupCall =
+                data.isGroupCall || conversation?.type === "group" || conversation?.conversationType === "group";
             const groupName = data.groupName || data.conversationName || (isGroupCall ? conversation?.name : null);
-            const groupAvatar = data.groupAvatar || (isGroupCall ? (conversation?.avatarPath || conversation?.avatar_path) : null);
+            const groupAvatar =
+                data.groupAvatar || (isGroupCall ? conversation?.avatarPath || conversation?.avatar_path : null);
 
             console.log("   Group Info:", { isGroupCall, groupName, convId });
 
@@ -409,14 +411,16 @@ const useCall = (socket) => {
                     isGroupCall,
                     groupName,
                     groupAvatar,
-                    participants: [{
-                        userId: data.callerId || data.initiator_id,
-                        name: data.callerName || data.caller_name,
-                        avatar: data.callerAvatar || data.caller_avatar,
-                        isInitiator: true,
-                        isMuted: false,
-                        isCameraOff: false
-                    }]
+                    participants: [
+                        {
+                            userId: data.callerId || data.initiator_id,
+                            name: data.callerName || data.caller_name,
+                            avatar: data.callerAvatar || data.caller_avatar,
+                            isInitiator: true,
+                            isMuted: false,
+                            isCameraOff: false,
+                        },
+                    ],
                 },
             }));
         });
@@ -460,7 +464,12 @@ const useCall = (socket) => {
                 // Wrap in async IIFE because socket listeners aren't async by default
                 (async () => {
                     try {
-                        const peer = await createPeerConnection(localStreamRef.current, true, activeCallId, data.recipientId);
+                        const peer = await createPeerConnection(
+                            localStreamRef.current,
+                            true,
+                            activeCallId,
+                            data.recipientId,
+                        );
                         peerRef.current = peer;
                     } catch (err) {
                         console.error("❌ [socket.call_accepted] Error creating group peer:", err);
@@ -492,7 +501,7 @@ const useCall = (socket) => {
                     avatar: data.recipientAvatar,
                     isMuted: false,
                     isCameraOff: false,
-                    isInitiator: false
+                    isInitiator: false,
                 };
 
                 return {
@@ -500,13 +509,15 @@ const useCall = (socket) => {
                     inCall: true,
                     outgoingCallId: newOutgoingCallId,
                     // If it's a group call, keep the group name, otherwise use recipient's name
-                    remoteUserName: prev.isGroupCall ? prev.remoteUserName : (data.recipientName || data.recipient_name || prev.remoteUserName),
+                    remoteUserName: prev.isGroupCall
+                        ? prev.remoteUserName
+                        : data.recipientName || data.recipient_name || prev.remoteUserName,
                     // Update participants array
-                    participants: prev.isGroupCall 
-                        ? (prev.participants.some(p => p.userId === newParticipant.userId)
+                    participants: prev.isGroupCall
+                        ? prev.participants.some((p) => p.userId === newParticipant.userId)
                             ? prev.participants
-                            : [...prev.participants, newParticipant])
-                        : prev.participants
+                            : [...prev.participants, newParticipant]
+                        : prev.participants,
                 };
             });
         });
@@ -791,11 +802,12 @@ const useCall = (socket) => {
                     setCallState((prev) => ({
                         ...prev,
                         localStream: audioStream,
-                        callType: "voice", // Downgrade to voice call
-                        error: `Camera issue: ${error.name === "NotReadableError" ? "Already in use" : "Not found"}. Switched to voice call.`,
+                        callType: "video", // Stay in video call mode
+                        isCameraOff: true, // Mark camera as off
+                        error: `Camera issue: ${error.name === "NotReadableError" ? "Already in use" : "Not found"}. Your camera is disabled, but you can see the caller's video.`,
                     }));
 
-                    // Clear error after 5 seconds but keep the voice call going
+                    // Clear error after 5 seconds but keep the video call going with camera off
                     setTimeout(() => {
                         setCallState((prev) => ({ ...prev, error: null }));
                     }, 5000);
@@ -943,6 +955,33 @@ const useCall = (socket) => {
                         },
                     });
                     console.log("✅ [createPeerConnection] SimplePeer created successfully");
+
+                    // CRITICAL FIX: If we don't have a local video track (e.g., camera unavailable),
+                    // add a video transceiver with 'recv' only so we can still RECEIVE video from remote peer
+                    if (peer._pc && callTypeRef.current === "video") {
+                        const videoTracks = stream.getVideoTracks?.() || [];
+                        if (videoTracks.length === 0) {
+                            console.log(
+                                "📹 [CRITICAL] No local video track found. Adding video transceiver for RECEIVING only...",
+                            );
+                            try {
+                                if (peer._pc.addTransceiver && typeof peer._pc.addTransceiver === "function") {
+                                    peer._pc.addTransceiver("video", { send: false, recv: true });
+                                    console.log(
+                                        "✅ Video transceiver added (recv only) - remote video will be received",
+                                    );
+                                } else {
+                                    console.warn("⚠️ addTransceiver not available in this browser");
+                                }
+                            } catch (transceiverError) {
+                                console.error("❌ Error adding video transceiver:", transceiverError);
+                            }
+                        } else {
+                            console.log(
+                                `✅ Local stream has ${videoTracks.length} video track(s), video negotiation normal`,
+                            );
+                        }
+                    }
 
                     // Verify that audio tracks are being sent
                     if (peer._pc) {
@@ -1126,20 +1165,22 @@ const useCall = (socket) => {
 
                         setCallState((prev) => {
                             // Map the stream to the correct participant in the participants array
-                            const updatedParticipants = prev.participants.map(p => 
-                                String(p.userId) === String(capturedRecipientId) 
-                                    ? { ...p, stream: remoteStream } 
-                                    : p
+                            const updatedParticipants = prev.participants.map((p) =>
+                                String(p.userId) === String(capturedRecipientId) ? { ...p, stream: remoteStream } : p,
                             );
 
-                            console.log(`📥 [peer.on.stream] Updated participants with stream for: ${capturedRecipientId}`);
+                            console.log(
+                                `📥 [peer.on.stream] Updated participants with stream for: ${capturedRecipientId}`,
+                            );
                             console.log(`   Participants count: ${updatedParticipants.length}`);
-                            console.log(`   Participants with streams: ${updatedParticipants.filter(p => p.stream).length}`);
+                            console.log(
+                                `   Participants with streams: ${updatedParticipants.filter((p) => p.stream).length}`,
+                            );
 
                             return {
                                 ...prev,
                                 remoteStream,
-                                participants: updatedParticipants
+                                participants: updatedParticipants,
                             };
                         });
                     } catch (streamError) {
@@ -1329,14 +1370,16 @@ const useCall = (socket) => {
                         outgoingCallId: callId, // Replace pending with real ID
                         inCall: false,
                         error: null,
-                        participants: [{
-                            userId: recipientId,
-                            name: prev.remoteUserName,
-                            avatar: null, // Will be updated if possible
-                            isInitiator: false,
-                            isMuted: false,
-                            isCameraOff: false
-                        }]
+                        participants: [
+                            {
+                                userId: recipientId,
+                                name: prev.remoteUserName,
+                                avatar: null, // Will be updated if possible
+                                isInitiator: false,
+                                isMuted: false,
+                                isCameraOff: false,
+                            },
+                        ],
                     }));
                     console.log("✅ [makeCall] Updated with real callId:", callId);
                 } else {
@@ -1505,6 +1548,18 @@ const useCall = (socket) => {
                     remoteUserName: isGroupCall ? groupName : fromUserName,
                     incomingCall: null,
                     error: null,
+                    participants: [
+                        {
+                            userId: fromUserId,
+                            name: isGroupCall ? groupName : fromUserName,
+                            avatar: isGroupCall
+                                ? callState.incomingCall?.groupAvatar
+                                : callState.incomingCall?.fromUserAvatar,
+                            isInitiator: true,
+                            isMuted: false,
+                            isCameraOff: false,
+                        },
+                    ],
                 }));
 
                 // 🔑 CRITICAL: Notify backend about acceptance FIRST
