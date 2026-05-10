@@ -44,21 +44,16 @@ const useCall = (socket) => {
     const offerProcessedRef = useRef(false); // Guard: prevent processing same offer twice per call
     const localStreamRef = useRef(null); // Reference to local stream for peer creation
     const isGroupCallRef = useRef(false); // Track if current call is a group call
+    const peersRef = useRef({}); // Store multiple peer connections for group calls: { userId: peer }
+    const incomingCallRef = useRef(null); // Track latest incoming call to avoid stale closures
+    const conversationsRef = useRef({}); // Ref for conversations to avoid stale closures in socket listeners
 
     // Process queued signals when peer is ready
     const processPendingSignals = useCallback(() => {
         console.log(
-            `🔄 [processPendingSignals] CALLED - peer: ${!!peerRef.current}, ready: ${peerReadyRef.current}, cleaning: ${isCleaningUpRef.current}, pending: ${pendingSignalsRef.current.length}`,
+            `🔄 [processPendingSignals] CALLED - peers: ${Object.keys(peersRef.current).length}, ready: ${peerReadyRef.current}, cleaning: ${isCleaningUpRef.current}, pending: ${pendingSignalsRef.current.length}`,
         );
 
-        if (!peerRef.current) {
-            console.warn("   ❌ No peer yet!");
-            return;
-        }
-        if (!peerReadyRef.current) {
-            console.warn("   ❌ Peer not ready yet!");
-            return;
-        }
         if (isCleaningUpRef.current) {
             console.warn("   ❌ Cleanup in progress!");
             return;
@@ -66,80 +61,99 @@ const useCall = (socket) => {
 
         console.log(`   ✅ Processing ${pendingSignalsRef.current.length} pending signals...`);
 
+        const remainingSignals = [];
+
         while (pendingSignalsRef.current.length > 0) {
             const signal = pendingSignalsRef.current.shift();
-            console.log(`   📤 Processing: ${signal.type} (received ${Date.now() - signal.receivedAt}ms ago)`);
+            const targetUserId = signal.fromUserId;
+            
+            // Find the correct peer: 
+            // 1. By userId in peersRef
+            // 2. Fallback to peerRef.current if only one peer exists or for 1-on-1
+            let targetPeer = targetUserId ? peersRef.current[targetUserId] : null;
+            if (!targetPeer && !targetUserId) {
+                targetPeer = peerRef.current;
+            }
+            
+            if (!targetPeer) {
+                console.warn(`   ❌ No peer found for signal ${signal.type} from ${targetUserId || 'unknown'} - re-queuing`);
+                remainingSignals.push(signal);
+                continue;
+            }
+
+            console.log(`   📤 Processing: ${signal.type} for ${targetUserId || 'default'} (received ${Date.now() - signal.receivedAt}ms ago)`);
 
             try {
                 if (signal.type === "offer") {
-                    console.log("      Signaling OFFER to peer...");
-                    if (!signal.data || !signal.data.sdp) {
-                        console.error("      ❌ OFFER missing SDP!");
+                    // GUARD: Skip duplicate offers
+                    if (offerProcessedRef.current && !isGroupCallRef.current) {
+                        console.warn("      ⚠️ Duplicate offer detected — skipping");
                         continue;
                     }
 
-                    // GUARD: Skip duplicate offers — processing the same offer twice causes
-                    // 'setLocalDescription called in wrong state: stable' error.
-                    if (offerProcessedRef.current) {
-                        console.warn("      ⚠️ Duplicate offer detected — skipping (already processed for this call)");
-                        signalsProcessedRef.current.offers++;
-                        continue;
-                    }
-
-                    console.log(
-                        `      ✅ About to call peer.signal(offer) - offer SDP length: ${signal.data.sdp.length}`,
-                    );
-
-                    // CRITICAL: This should trigger peer.on('signal') with answer for non-initiator
-                    peerRef.current.signal(signal.data);
-                    offerProcessedRef.current = true; // Mark offer as processed for this call
-
+                    targetPeer.signal(signal.data);
+                    if (!isGroupCallRef.current) offerProcessedRef.current = true;
                     signalsProcessedRef.current.offers++;
-                    console.log(`      ✅ OFFER signaled successfully!`);
-                    console.log(`         ⏳ Waiting for SimplePeer to generate answer...`);
                 } else if (signal.type === "answer") {
-                    console.log("      Signaling ANSWER to peer...");
-                    if (!signal.data || !signal.data.sdp) {
-                        console.error("      ❌ ANSWER missing SDP!");
-                        continue;
-                    }
-                    peerRef.current.signal(signal.data);
+                    targetPeer.signal(signal.data);
                     signalsProcessedRef.current.answers++;
-                    answerRetryCountRef.current = 0;
-                    console.log("      ✅ ANSWER signaled successfully");
                 } else if (signal.type === "ice") {
-                    console.log("      Signaling ICE candidate to peer...");
-                    if (!signal.data || !signal.data.candidate) {
-                        console.error("      ❌ ICE candidate missing data!");
-                        continue;
-                    }
-                    peerRef.current.signal(signal.data);
+                    targetPeer.signal(signal.data);
                     signalsProcessedRef.current.iceCandidates++;
-                    console.log("      ✅ ICE candidate signaled successfully");
                 } else {
-                    // Generic signal handling
-                    console.log("      Signaling generic signal...");
-                    peerRef.current.signal(signal.data);
-                    console.log("      ✅ Generic signal processed");
+                    targetPeer.signal(signal.data);
                 }
+                console.log(`      ✅ ${signal.type} signaled successfully`);
             } catch (error) {
                 console.error(`      ❌ Error signaling ${signal.type}:`, error.message);
-                console.error(`      Stack: ${error.stack}`);
-                // Re-queue for retry (only for important signals)
-                if ((signal.type === "answer" || signal.type === "offer") && answerRetryCountRef.current < 3) {
+                // Simple retry logic
+                if (answerRetryCountRef.current < 3) {
                     answerRetryCountRef.current++;
-                    pendingSignalsRef.current.unshift(signal);
-                    console.warn(
-                        `      📋 Re-queuing ${signal.type} for retry (attempt ${answerRetryCountRef.current})`,
-                    );
-                    break; // Stop processing, try again later
+                    remainingSignals.push(signal);
                 }
             }
         }
+        
+        pendingSignalsRef.current = remainingSignals;
+    }, []);
 
-        console.log(
-            `🔄 [processPendingSignals] DONE - signals: ${signalsProcessedRef.current.offers} offers, ${signalsProcessedRef.current.answers} answers`,
-        );
+    // Helper to cleanup all peers
+    const cleanupPeers = useCallback(() => {
+        console.log("📵 [cleanupPeers] Destroying all peer connections...", Object.keys(peersRef.current));
+        
+        Object.keys(peersRef.current).forEach(uid => {
+            try {
+                const peer = peersRef.current[uid];
+                if (peer) {
+                    console.log(`   📵 Destroying peer for user: ${uid}`);
+                    // Use setTimeout to allow any in-flight operations to complete
+                    setTimeout(() => {
+                        try {
+                            peer.destroy?.();
+                        } catch (e) {
+                            console.warn(`      ⚠️ Error destroying peer ${uid}:`, e);
+                        }
+                    }, 0);
+                }
+            } catch (err) {
+                console.error(`   ⚠️ Error accessing peer ${uid}:`, err);
+            }
+        });
+        
+        // Also cleanup the primary peerRef if it's not in the map
+        if (peerRef.current) {
+            try {
+                const isManaged = Object.values(peersRef.current).includes(peerRef.current);
+                if (!isManaged) {
+                    console.log("   📵 Destroying primary peerRef (not in map)");
+                    const p = peerRef.current;
+                    setTimeout(() => p.destroy?.(), 0);
+                }
+            } catch (e) {}
+        }
+        
+        peersRef.current = {};
+        peerRef.current = null;
     }, []);
 
     // Helper to format call message content
@@ -186,28 +200,8 @@ const useCall = (socket) => {
             const streamToCleanup = streamRef.current;
 
             // Close peer connection - with proper error handling
-            if (peerRef.current) {
-                try {
-                    console.log("📵 Destroying peer connection...");
-                    if (typeof peerRef.current.destroy === "function") {
-                        // Wrap destroy in setTimeout to allow any in-flight operations to complete
-                        setTimeout(() => {
-                            try {
-                                peerRef.current?.destroy?.();
-                                console.log("📵 Peer connection destroyed (async)");
-                            } catch (asyncError) {
-                                console.error("⚠️ Async error destroying peer:", asyncError);
-                            }
-                        }, 0);
-                    } else {
-                        console.warn("⚠️ Peer doesn't have destroy method");
-                    }
-                } catch (peerError) {
-                    console.error("⚠️ Error destroying peer connection:", peerError);
-                } finally {
-                    peerRef.current = null;
-                }
-            }
+            // Close peer connections
+            cleanupPeers();
 
             // Stop media tracks AFTER destroying peer (to avoid SimplePeer errors)
             // Use setTimeout to prevent race conditions
@@ -365,6 +359,10 @@ const useCall = (socket) => {
         };
     }, [callState.inCall]);
 
+    useEffect(() => {
+        conversationsRef.current = conversations;
+    }, [conversations]);
+
     // Listen for incoming calls
     useEffect(() => {
         if (!socket) {
@@ -384,44 +382,54 @@ const useCall = (socket) => {
             console.log("   Group ID:", data.conversationId || data.conversation_id);
 
             // Determine if it's a group call and get group metadata
-            const convId = data.conversationId || data.conversation_id;
-            const conversation = convId ? conversations[convId] : null;
+            const convId = data.conversationId || data.conversation_id || data.groupId;
+            const conversation = convId ? conversationsRef.current[convId] : null;
             const isGroupCall =
-                data.isGroupCall || conversation?.type === "group" || conversation?.conversationType === "group";
-            const groupName = data.groupName || data.conversationName || (isGroupCall ? conversation?.name : null);
-            const groupAvatar =
-                data.groupAvatar || (isGroupCall ? conversation?.avatarPath || conversation?.avatar_path : null);
+                data.isGroupCall || 
+                data.group_call || 
+                data.type === "group" ||
+                conversation?.type === "group" || 
+                conversation?.conversationType === "group";
 
-            console.log("   Group Info:", { isGroupCall, groupName, convId });
+            console.log(`📞 [socket.incoming_call] Group: ${isGroupCall}, Conv: ${convId}`);
 
-            // Normalize field names from backend (callerId → fromUserId, callerName → fromUserName)
+            // Normalize field names from backend
             isGroupCallRef.current = isGroupCall;
+            const fromUserId = data.callerId || data.initiator_id || data.initiatorId || data.userId || data.fromUserId || data.from_user_id;
+            const fromUserName = data.callerName || data.caller_name || data.initiatorName || data.fromUserName || data.userName || "User";
+            const fromUserAvatar = data.callerAvatar || data.caller_avatar || data.initiatorAvatar || data.fromUserAvatar;
+            
+            const incomingData = {
+                callId: data.callId || data.id,
+                fromUserId,
+                fromUserName,
+                fromUserAvatar,
+                callType: data.callType || data.call_type || "voice",
+                conversationId: convId,
+                timestamp: data.timestamp || Date.now(),
+                // Group call additions
+                isGroupCall,
+                groupName: data.groupName || data.group_name || conversation?.name || fromUserName,
+                groupAvatar: data.groupAvatar || data.group_avatar || conversation?.avatarPath || conversation?.avatar_path || fromUserAvatar,
+                participants: [
+                    {
+                        userId: fromUserId,
+                        name: fromUserName,
+                        avatar: fromUserAvatar,
+                        isInitiator: true,
+                        isMuted: false,
+                        isCameraOff: false,
+                    },
+                ],
+            };
+            
+            incomingCallRef.current = incomingData;
+            
             setCallState((prev) => ({
                 ...prev,
-                callId: data.callId || data.id,
-                incomingCall: {
-                    callId: data.callId || data.id,
-                    fromUserId: data.callerId || data.initiator_id,
-                    fromUserName: data.callerName || data.caller_name,
-                    fromUserAvatar: data.callerAvatar || data.caller_avatar,
-                    callType: data.callType || data.call_type,
-                    conversationId: convId,
-                    timestamp: data.timestamp,
-                    // Group call additions
-                    isGroupCall,
-                    groupName,
-                    groupAvatar,
-                    participants: [
-                        {
-                            userId: data.callerId || data.initiator_id,
-                            name: data.callerName || data.caller_name,
-                            avatar: data.callerAvatar || data.caller_avatar,
-                            isInitiator: true,
-                            isMuted: false,
-                            isCameraOff: false,
-                        },
-                    ],
-                },
+                callId: incomingData.callId,
+                isGroupCall: incomingData.isGroupCall, // Ensure state matches
+                incomingCall: incomingData,
             }));
         });
 
@@ -458,19 +466,28 @@ const useCall = (socket) => {
             // Determine the call ID
             const activeCallId = data.callId || data.id || callIdRef.current;
 
-            // For group calls, if we don't have a peer yet, create it now with the actual recipient
-            if (!peerRef.current && localStreamRef.current && isGroupCallRef.current) {
-                console.log("👥 [socket.call_accepted] Group call: Creating peer for recipient:", data.recipientId);
-                // Wrap in async IIFE because socket listeners aren't async by default
+            // For group calls, initiator creates multiple peers
+            if (localStreamRef.current && isGroupCallRef.current) {
+                const recipientId = data.recipientId || data.userId || data.fromUserId;
+                
+                // If we already have a peer for this user, destroy it first (shouldn't happen usually)
+                if (peersRef.current[recipientId]) {
+                    console.log(`👥 [socket.call_accepted] Group call: Replacing existing peer for ${recipientId}`);
+                    try { peersRef.current[recipientId].destroy?.(); } catch(e) {}
+                }
+
+                console.log("👥 [socket.call_accepted] Group call: Creating peer for recipient:", recipientId);
                 (async () => {
                     try {
                         const peer = await createPeerConnection(
                             localStreamRef.current,
                             true,
                             activeCallId,
-                            data.recipientId,
+                            recipientId,
                         );
-                        peerRef.current = peer;
+                        peersRef.current[recipientId] = peer;
+                        // For 1-on-1 logic fallback, also set peerRef if it's the first one
+                        if (!peerRef.current) peerRef.current = peer;
                     } catch (err) {
                         console.error("❌ [socket.call_accepted] Error creating group peer:", err);
                     }
@@ -496,25 +513,28 @@ const useCall = (socket) => {
 
                 // Update participants list for group calls
                 const newParticipant = {
-                    userId: data.recipientId,
-                    name: data.recipientName || data.recipient_name,
-                    avatar: data.recipientAvatar,
+                    userId: data.recipientId || data.userId || data.fromUserId,
+                    name: data.recipientName || data.recipient_name || "User",
+                    avatar: data.recipientAvatar || data.recipient_avatar,
                     isMuted: false,
                     isCameraOff: false,
                     isInitiator: false,
                 };
+                
+                const isGroup = prev.isGroupCall || isGroupCallRef.current;
 
                 return {
                     ...prev,
                     inCall: true,
+                    isGroupCall: isGroup, // Ensure state matches
                     outgoingCallId: newOutgoingCallId,
                     // If it's a group call, keep the group name, otherwise use recipient's name
-                    remoteUserName: prev.isGroupCall
+                    remoteUserName: isGroup
                         ? prev.remoteUserName
                         : data.recipientName || data.recipient_name || prev.remoteUserName,
                     // Update participants array
-                    participants: prev.isGroupCall
-                        ? prev.participants.some((p) => p.userId === newParticipant.userId)
+                    participants: isGroup
+                        ? prev.participants.some((p) => String(p.userId) === String(newParticipant.userId))
                             ? prev.participants
                             : [...prev.participants, newParticipant]
                         : prev.participants,
@@ -600,6 +620,7 @@ const useCall = (socket) => {
                         sdpMLineIndex: data.sdpMLineIndex !== undefined ? data.sdpMLineIndex : 0,
                         sdpMid: data.sdpMid || "0",
                     },
+                    fromUserId: data.fromUserId || data.userId || data.senderId,
                     type: "ice",
                     receivedAt: Date.now(),
                 });
@@ -625,6 +646,7 @@ const useCall = (socket) => {
                 // Queue offer for processing when peer is ready
                 pendingSignalsRef.current.push({
                     data: data.offer,
+                    fromUserId: data.fromUserId || data.userId || data.callerId || data.initiatorId,
                     type: "offer",
                     receivedAt: Date.now(),
                 });
@@ -657,6 +679,7 @@ const useCall = (socket) => {
                 if (data.answer) {
                     pendingSignalsRef.current.push({
                         data: data.answer,
+                        fromUserId: data.fromUserId || data.userId || data.recipientId,
                         type: "answer",
                         receivedAt: Date.now(),
                     });
@@ -1084,6 +1107,7 @@ const useCall = (socket) => {
                                 callId: signalCallId,
                                 offer: data,
                                 toUserId: signalRecipientId,
+                                fromUserId: userId,
                             });
                             console.log("   ✅ 'offer' emitted to backend");
                         } else if (data.type === "answer") {
@@ -1102,6 +1126,7 @@ const useCall = (socket) => {
                                 callId: signalCallId,
                                 answer: data,
                                 toUserId: signalRecipientId,
+                                fromUserId: userId,
                             });
                             console.log(
                                 "   ✅ 'answer' emitted to backend - waiting for backend to forward to initiator",
@@ -1114,6 +1139,7 @@ const useCall = (socket) => {
                                 sdpMLineIndex: data.sdpMLineIndex,
                                 sdpMid: data.sdpMid,
                                 toUserId: signalRecipientId,
+                                fromUserId: userId,
                             });
                             console.log("   ✅ 'ice_candidate' emitted");
                         }
@@ -1164,18 +1190,29 @@ const useCall = (socket) => {
                         }
 
                         setCallState((prev) => {
-                            // Map the stream to the correct participant in the participants array
-                            const updatedParticipants = prev.participants.map((p) =>
-                                String(p.userId) === String(capturedRecipientId) ? { ...p, stream: remoteStream } : p,
-                            );
-
-                            console.log(
-                                `📥 [peer.on.stream] Updated participants with stream for: ${capturedRecipientId}`,
-                            );
-                            console.log(`   Participants count: ${updatedParticipants.length}`);
-                            console.log(
-                                `   Participants with streams: ${updatedParticipants.filter((p) => p.stream).length}`,
-                            );
+                            console.log(`   📝 Updating participants for ${capturedRecipientId}... Current count: ${prev.participants.length}`);
+                            
+                            // Check if participant exists, if not add them (race condition fix)
+                            const participantExists = prev.participants.some(p => String(p.userId) === String(capturedRecipientId));
+                            
+                            let updatedParticipants;
+                            if (participantExists) {
+                                updatedParticipants = prev.participants.map((p) =>
+                                    String(p.userId) === String(capturedRecipientId) ? { ...p, stream: remoteStream } : p,
+                                );
+                            } else {
+                                console.log(`   ⚠️ Participant ${capturedRecipientId} not found in state, adding them now...`);
+                                updatedParticipants = [
+                                    ...prev.participants, 
+                                    { 
+                                        userId: capturedRecipientId, 
+                                        stream: remoteStream, 
+                                        name: `User ${capturedRecipientId}`,
+                                        isMuted: false,
+                                        isCameraOff: false
+                                    }
+                                ];
+                            }
 
                             return {
                                 ...prev,
@@ -1411,6 +1448,7 @@ const useCall = (socket) => {
                     isGroupCallRef.current = false;
                     const peer = await createPeerConnection(stream, true, callId, recipientId);
                     peerRef.current = peer;
+                    peersRef.current[recipientId] = peer;
                     console.log("✅ [makeCall] Peer connection initialized");
                     console.log("✅ [makeCall] callKey passed to peer:", callId);
                 } catch (peerError) {
@@ -1527,13 +1565,20 @@ const useCall = (socket) => {
                 );
 
                 console.log(`✅ [acceptCall] START - callType: ${callType}`);
-                console.log(`   incomingCall:`, callState.incomingCall);
-                const fromUserId = callState.incomingCall?.fromUserId;
-                const incomingCallId = callState.incomingCall?.callId;
-                const conversationId = callState.incomingCall?.conversationId;
-                const isGroupCall = callState.incomingCall?.isGroupCall;
-                const groupName = callState.incomingCall?.groupName;
-                const fromUserName = callState.incomingCall?.fromUserName;
+                const incomingCall = incomingCallRef.current || callState.incomingCall;
+                console.log(`   incomingCall:`, incomingCall);
+                
+                if (!incomingCall) {
+                    console.error("❌ [acceptCall] No incoming call data found!");
+                    throw new Error("No incoming call to accept");
+                }
+
+                const fromUserId = incomingCall.fromUserId;
+                const incomingCallId = incomingCall.callId;
+                const conversationId = incomingCall.conversationId;
+                const isGroupCall = incomingCall.isGroupCall;
+                const groupName = incomingCall.groupName;
+                const fromUserName = incomingCall.fromUserName;
 
                 remoteUserIdRef.current = fromUserId;
 
@@ -1544,6 +1589,7 @@ const useCall = (socket) => {
                     inCall: true,
                     callId: incomingCallId,
                     callType,
+                    isGroupCall: isGroupCall, // Ensure state matches
                     remoteUserId: fromUserId,
                     remoteUserName: isGroupCall ? groupName : fromUserName,
                     incomingCall: null,
@@ -1553,8 +1599,8 @@ const useCall = (socket) => {
                             userId: fromUserId,
                             name: isGroupCall ? groupName : fromUserName,
                             avatar: isGroupCall
-                                ? callState.incomingCall?.groupAvatar
-                                : callState.incomingCall?.fromUserAvatar,
+                                ? incomingCall?.groupAvatar
+                                : incomingCall?.fromUserAvatar,
                             isInitiator: true,
                             isMuted: false,
                             isCameraOff: false,
@@ -1589,12 +1635,15 @@ const useCall = (socket) => {
                 // Initialize peer connection as non-initiator with callId from incoming call
                 const peer = await createPeerConnection(stream, false, incomingCallId, fromUserId);
                 peerRef.current = peer;
+                peersRef.current[fromUserId] = peer;
 
                 // Emit acceptance - Backend listens for 'accept_call'
                 console.log(`📤 [acceptCall] Emitting accept_call event...`);
                 socket?.emit("accept_call", {
                     callerId: fromUserId, // initiator's ID
-                    conversationId: callState.incomingCall?.conversationId,
+                    initiatorId: fromUserId, // alternative field name
+                    fromUserId: userId, // current user ID
+                    conversationId: incomingCall?.conversationId,
                     callId: incomingCallId,
                 });
                 console.log("✅ [acceptCall] accept_call event emitted");
