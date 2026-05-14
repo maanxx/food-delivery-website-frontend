@@ -12,6 +12,8 @@ import { regexNumbers, regexVietnamPhoneNumber } from "@constants/constants";
 import { FormOTP } from "@components/index";
 import axiosInstance from "@config/axiosInstance";
 import { Link, useNavigate, useOutletContext } from "react-router-dom";
+import { Search } from "@mui/icons-material";
+import { POPULAR_COUNTRIES, getDialCode } from "@constants/phoneCountries";
 
 import { toast } from "react-toastify";
 
@@ -19,35 +21,34 @@ const cx = classNames.bind(styles);
 
 function FormPhoneNumber() {
     const { setFormData, formData } = useOutletContext();
-    const [countries, setCountries] = useState([]);
-    const [currentCountry, setCurrentCountry] = useState({
-        name: "Việt Nam",
-        flags: {
-            png: "https://flagcdn.com/w320/vn.png",
-        },
-        idd: {
-            root: "+8",
-            suffixes: "4",
-        },
-        caa3: "VNM",
-    });
+    const [countries, setCountries] = useState(POPULAR_COUNTRIES);
+    const [currentCountry, setCurrentCountry] = useState(POPULAR_COUNTRIES[0]);
     const [isValidPhoneNumber, setIsValidPhoneNumber] = useState(false);
     const [isOpenDropdown, setIsOpenDropdown] = useState(false);
     const [alertMessage, setAlertMessage] = useState();
     const [phoneNumberValue, setPhoneNumberValue] = useState();
+    const [searchQuery, setSearchQuery] = useState("");
+    const dropdownRef = useRef();
     const formRef = useRef();
     const serverBaseUrl = process.env.REACT_APP_SERVER_BASE_URL;
     const clientBaseUrl = process.env.REACT_APP_CLIENT_BASE_URL;
     const { setLoading } = useLoading();
     const navigate = useNavigate();
 
-    const handleCountryChange = (e) => {
-        countries.forEach((country) => {
-            if (country.cca3 === e.currentTarget.getAttribute("data-option-value")) {
-                setCurrentCountry(country);
-            }
-        });
+    const handleCountryChange = (country) => {
+        setCurrentCountry(country);
+        setIsOpenDropdown(false);
+        setSearchQuery("");
     };
+
+    const handleSearchChange = (e) => {
+        setSearchQuery(e.target.value);
+    };
+
+    const filteredCountries = countries.filter((country) =>
+        country.name.common.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        getDialCode(country).includes(searchQuery)
+    );
 
     const handleOnlyInputNumber = (e) => {
         e.currentTarget.value = e.currentTarget.value.replace(regexNumbers, "");
@@ -203,23 +204,22 @@ function FormPhoneNumber() {
     };
 
     useEffect(() => {
-        const fetchCountries = async () => {
-            try {
-                const data = await countryService.getAll();
-                if (data && data.length > 0) {
-                    setCountries(data);
-                    const vnCountry = data.find(c => c.cca3 === "VNM") || data[0];
-                    setCurrentCountry(vnCountry);
-                }
-            } catch (error) {
-                console.error("Failed to load countries:", error);
-                setAlertMessage("Không thể tải danh sách quốc gia. Vui lòng thử lại.");
-            } finally {
-                setLoading(false);
+        // We stick to the 7 popular countries for the dropdown as per request.
+        // The list is already initialized with POPULAR_COUNTRIES.
+        setLoading(false);
+    }, [setLoading]);
+
+    // Handle clicks outside dropdown to close it
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+                setIsOpenDropdown(false);
+                setSearchQuery("");
             }
         };
-        fetchCountries();
-    }, [setLoading]);
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
     return (
         <>
@@ -248,7 +248,7 @@ function FormPhoneNumber() {
                         <input
                             className={cx("hidden-input")}
                             name="countryCode"
-                            defaultValue={currentCountry?.idd.root + currentCountry?.idd.suffixes || ""}
+                            defaultValue={getDialCode(currentCountry)}
                         />
                         <div className={cx("select-input-content")}>
                             <div
@@ -260,34 +260,51 @@ function FormPhoneNumber() {
                             <ExpandMore className={cx("more-icon", { active: isOpenDropdown })} />
 
                             <span className={cx("code")}>
-                                {currentCountry?.idd.root + currentCountry?.idd.suffixes || ""}
+                                {getDialCode(currentCountry)}
                             </span>
                         </div>
                         <div
                             id="country-selection"
                             className={cx("dropdown", { open: isOpenDropdown })}
                             name="country-selection"
+                            ref={dropdownRef}
+                            onClick={(e) => e.stopPropagation()}
                         >
-                            <div className={cx("dropdown-overlay")}></div>
-                            {countries.map((country, index) => (
-                                <div
-                                    key={index}
-                                    className={cx("option")}
-                                    data-option-value={country.cca3}
-                                    onClick={handleCountryChange}
-                                >
-                                    <div
-                                        className={cx("flag")}
-                                        style={{
-                                            backgroundImage: `url(${country.flags.png})`,
-                                        }}
-                                    ></div>
-                                    <span className={cx("code")} style={{ marginRight: "var(--spacingSmall)" }}>
-                                        {country.idd.root + country.idd.suffixes || ""}
-                                    </span>
-                                    <span className={cx("name")}>{country.name.common}</span>
-                                </div>
-                            ))}
+                            <div className={cx("dropdown-search")}>
+                                <Search className={cx("search-icon")} />
+                                <input
+                                    type="text"
+                                    placeholder="Tìm kiếm..."
+                                    value={searchQuery}
+                                    onChange={handleSearchChange}
+                                    onClick={(e) => e.stopPropagation()}
+                                />
+                            </div>
+                            <div className={cx("options-list")}>
+                                {filteredCountries.length > 0 ? (
+                                    filteredCountries.map((country, index) => (
+                                        <div
+                                            key={index}
+                                            className={cx("option", { selected: currentCountry?.cca3 === country.cca3 })}
+                                            onClick={() => handleCountryChange(country)}
+                                        >
+                                            <div
+                                                className={cx("flag")}
+                                                style={{
+                                                    backgroundImage: `url(${country.flags.png})`,
+                                                }}
+                                            ></div>
+                                            <span className={cx("code")}>
+                                                {getDialCode(country)}
+                                            </span>
+                                            &nbsp;
+                                            <span className={cx("name")}>{country.name.common}</span>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className={cx("no-results")}>Không tìm thấy</div>
+                                )}
+                            </div>
                         </div>
                     </div>
                     <input
@@ -295,7 +312,7 @@ function FormPhoneNumber() {
                         type="text"
                         name="phone"
                         onInput={handleValidatePhoneInput}
-                        placeholder="Nhập số điện thoại (VD: 909943237)"
+                        placeholder="Nhập số điện thoại"
                     // autoComplete={"off"}
                     />
                     <div className={cx("phone-input-alert")}>{alertMessage}</div>
