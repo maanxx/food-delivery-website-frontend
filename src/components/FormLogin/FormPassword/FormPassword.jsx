@@ -45,11 +45,9 @@ function FormPassword() {
             });
 
             if (res.data.success) {
-                const { accessToken, refreshToken, user } = res.data;
-                localStorage.setItem("access_token", accessToken);
-                if (refreshToken) localStorage.setItem("refresh_token", refreshToken);
-                // Dispatch login with payload to save token to localStorage via slice
-                login({ token: accessToken, refreshToken, user });
+                const { accessToken, refreshToken, user, rememberMe } = res.data;
+                // Tokens are now managed by the authSlice based on rememberMe
+                login({ token: accessToken, refreshToken, user, rememberMe });
                 setIsValidPassword(true);
                 navigate(res.data.redirect);
                 // Removed window.location.reload() to maintain SPA experience

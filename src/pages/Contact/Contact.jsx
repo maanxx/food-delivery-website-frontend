@@ -110,7 +110,12 @@ function Contact() {
   ];
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
+    let { name, value } = e.target;
+    if (name === "phone") {
+      value = value.replace(/\D/g, ""); // Only digits
+      if (value.startsWith("0")) value = value.substring(1); // No leading 0
+      value = value.substring(0, 9); // Limit to 9
+    }
     setFormData((prev) => ({
       ...prev,
       [name]: value,
@@ -246,6 +251,10 @@ function Contact() {
                           value={formData.phone}
                           onChange={handleInputChange}
                           variant="outlined"
+                          placeholder="909943237"
+                          inputProps={{ maxLength: 9 }}
+                          error={formData.phone.length > 0 && formData.phone.length !== 9}
+                          helperText={formData.phone.length > 0 && formData.phone.length !== 9 ? "Số điện thoại phải gồm đúng 9 số" : ""}
                         />
                       </Grid>
                       <Grid item xs={12} sm={6}>

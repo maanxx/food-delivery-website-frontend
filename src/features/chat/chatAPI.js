@@ -78,11 +78,9 @@ export const chatAPI = {
 
     // ========== MESSAGES ==========
     getMessages: async (conversationId, limit = 50, cursor = null) => {
-        return axiosInstance.post(`${BASE_URL}/conversations/messages`, {
-            conversationId,
-            limit,
-            ...(cursor && { cursor }),
-        });
+        const params = { limit };
+        if (cursor) params.cursor = cursor;
+        return axiosInstance.get(`${BASE_URL}/conversations/${conversationId}/messages`, { params });
     },
 
     sendMessage: async (

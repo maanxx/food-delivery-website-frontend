@@ -38,6 +38,12 @@ function Menu() {
   const [dishes, setDishes] = useState([]);
   const [openCategory, setOpenCategory] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  
+  // Sort & Filter states
+  const [sortBy, setSortBy] = useState("default"); // default, price-asc, price-desc, rating
+  const [priceRange, setPriceRange] = useState([0, 500000]); // [min, max]
+  const [openSort, setOpenSort] = useState(false);
+  const [openPriceFilter, setOpenPriceFilter] = useState(false);
 
   const itemsPerPage = 20;
 
@@ -64,7 +70,7 @@ function Menu() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedCategoryId, searchTerm]);
+  }, [selectedCategoryId, searchTerm, sortBy, priceRange]);
 
   const safeDishes = Array.isArray(dishes) ? dishes : [];
 
@@ -78,13 +84,32 @@ function Menu() {
       dish.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (dish.description &&
         dish.description.toLowerCase().includes(searchTerm.toLowerCase()));
-    return matchesCategory && matchesSearch;
+    
+    // Filter by price range
+    const dishPrice = Number(dish.price) || 0;
+    const matchesPriceRange = dishPrice >= priceRange[0] && dishPrice <= priceRange[1];
+    
+    return matchesCategory && matchesSearch && matchesPriceRange;
+  });
+
+  // Sort dishes
+  const sortedDishes = [...filteredDishes].sort((a, b) => {
+    switch (sortBy) {
+      case "price-asc":
+        return (Number(a.price) || 0) - (Number(b.price) || 0);
+      case "price-desc":
+        return (Number(b.price) || 0) - (Number(a.price) || 0);
+      case "rating":
+        return (Number(b.rating) || 0) - (Number(a.rating) || 0);
+      default:
+        return 0; // Keep original order
+    }
   }); 
 
-  const totalPages = Math.ceil(filteredDishes.length / itemsPerPage);
+  const totalPages = Math.ceil(sortedDishes.length / itemsPerPage);
 
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const currentDishes = filteredDishes.slice(
+  const currentDishes = sortedDishes.slice(
     startIndex,
     startIndex + itemsPerPage,
   );
@@ -184,9 +209,101 @@ function Menu() {
           </div>
         </div>
 
+        {/* Sort & Filter Bar */}
+        <div className={cx("filter-bar")}>
+          <div className={cx("filter-left")}>
+            <Typography variant="body2" color="text.secondary">
+              Tìm thấy {sortedDishes.length} món ăn
+            </Typography>
+          </div>
+          
+          <div className={cx("filter-right")}>
+            {/* Sort Dropdown */}
+            <div className={cx("filter-dropdown")}>
+              <div
+                className={cx("filter-select-box")}
+                onClick={() => setOpenSort(!openSort)}
+              >
+                <span>
+                  {sortBy === "default" && "Sắp xếp"}
+                  {sortBy === "price-asc" && "Giá: Thấp → Cao"}
+                  {sortBy === "price-desc" && "Giá: Cao → Thấp"}
+                  {sortBy === "rating" && "Đánh giá cao nhất"}
+                </span>
+                <span className={cx("arrow")}>{openSort ? "▲" : "▼"}</span>
+              </div>
+
+              {openSort && (
+                <div className={cx("filter-panel")}>
+                  {[
+                    { value: "default", label: "Mặc định" },
+                    { value: "price-asc", label: "Giá: Thấp → Cao" },
+                    { value: "price-desc", label: "Giá: Cao → Thấp" },
+                    { value: "rating", label: "Đánh giá cao nhất" },
+                  ].map((option) => (
+                    <div
+                      key={option.value}
+                      className={cx("filter-option", sortBy === option.value && "active")}
+                      onClick={() => {
+                        setSortBy(option.value);
+                        setOpenSort(false);
+                      }}
+                    >
+                      <span>{option.label}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Price Range Filter */}
+            <div className={cx("filter-dropdown")}>
+              <div
+                className={cx("filter-select-box")}
+                onClick={() => setOpenPriceFilter(!openPriceFilter)}
+              >
+                <span>
+                  {priceRange[0] === 0 && priceRange[1] === 500000
+                    ? "Khoảng giá"
+                    : `${(priceRange[0] / 1000).toFixed(0)}k - ${(priceRange[1] / 1000).toFixed(0)}k`}
+                </span>
+                <span className={cx("arrow")}>{openPriceFilter ? "▲" : "▼"}</span>
+              </div>
+
+              {openPriceFilter && (
+                <div className={cx("filter-panel", "price-panel")}>
+                  {[
+                    { value: [0, 500000], label: "Tất cả" },
+                    { value: [0, 50000], label: "Dưới 50k" },
+                    { value: [50000, 100000], label: "50k - 100k" },
+                    { value: [100000, 200000], label: "100k - 200k" },
+                    { value: [200000, 500000], label: "Trên 200k" },
+                  ].map((option, index) => (
+                    <div
+                      key={index}
+                      className={cx(
+                        "filter-option",
+                        priceRange[0] === option.value[0] &&
+                          priceRange[1] === option.value[1] &&
+                          "active"
+                      )}
+                      onClick={() => {
+                        setPriceRange(option.value);
+                        setOpenPriceFilter(false);
+                      }}
+                    >
+                      <span>{option.label}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
         {/* Products Grid */}
         <div className={cx("dishs-section")}>
-          {filteredDishes.length === 0 ? (
+          {sortedDishes.length === 0 ? (
             <div className={cx("no-dishs")}>
               <Typography variant="h6" color="text.secondary" align="center">
                 Không tìm thấy món ăn nào phù hợp

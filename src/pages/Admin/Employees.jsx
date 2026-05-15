@@ -354,8 +354,21 @@ const Employees = () => {
                             </Form.Item>
                         </Col>
                         <Col span={12}>
-                            <Form.Item label="Số điện thoại" name="phoneNumber" rules={[{ required: true, message: "Nhập SĐT" }]}>
-                                <Input placeholder="09xxxxxxxx" size="large" />
+                            <Form.Item label="Số điện thoại" name="phoneNumber" 
+                                rules={[
+                                    { required: true, message: "Vui lòng nhập SĐT" },
+                                    { len: 9, message: "Số điện thoại phải gồm đúng 9 số" }
+                                ]}>
+                                <Input 
+                                    placeholder="909943237" 
+                                    size="large" 
+                                    maxLength={9}
+                                    onInput={(e) => {
+                                        let val = e.target.value.replace(/\D/g, "");
+                                        if (val.startsWith("0")) val = val.substring(1);
+                                        e.target.value = val.substring(0, 9);
+                                    }}
+                                />
                             </Form.Item>
                         </Col>
                     </Row>

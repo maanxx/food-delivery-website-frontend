@@ -26,7 +26,16 @@ const Settings = () => {
                             </Form.Item>
 
                             <Form.Item label="Phone Number" name="phone">
-                                <Input placeholder="Enter phone" defaultValue="+84 123 456 789" />
+                                <Input 
+                                    placeholder="909943237" 
+                                    defaultValue="909943237" 
+                                    maxLength={9}
+                                    onInput={(e) => {
+                                        let val = e.target.value.replace(/\D/g, "");
+                                        if (val.startsWith("0")) val = val.substring(1);
+                                        e.target.value = val.substring(0, 9);
+                                    }}
+                                />
                             </Form.Item>
 
                             <Form.Item label="Address" name="address">

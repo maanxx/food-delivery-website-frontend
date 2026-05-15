@@ -63,6 +63,7 @@ export const loadMessages = createAsyncThunk(
                 return rejectWithValue("Conversation ID is invalid");
             }
 
+            console.log(`📨 [loadMessages] Fetching messages for ${conversationId}`);
             const response = await chatAPI.getMessages(conversationId, limit, cursor);
             let data = response.data;
 
@@ -79,7 +80,7 @@ export const loadMessages = createAsyncThunk(
             if (data && data.messages) {
                 messages = Array.isArray(data.messages) ? data.messages : [];
                 hasMore = data.hasMore || false;
-                nextCursor = data.cursor || null;
+                nextCursor = data.nextCursor || data.cursor || null;
             } else if (data && Array.isArray(data)) {
                 messages = data;
             } else if (Array.isArray(data)) {
@@ -87,6 +88,8 @@ export const loadMessages = createAsyncThunk(
             } else {
                 console.warn("❌ Could not extract messages from response. Data structure:", Object.keys(data || {}));
             }
+
+            console.log(`✅ [loadMessages] Success: ${messages.length} messages received`);
 
             return {
                 conversationId,
@@ -219,7 +222,7 @@ export const searchUsers = createAsyncThunk("chat/searchUsers", async ({ query, 
         // Ensure data is always an array
         if (Array.isArray(data)) {
             return data;
-        } else if (data && typeof data === "object" && data.user_id) {
+        } else if (data && typeof data === "object") {
             // Single user object - wrap in array
             return [data];
         } else if (data && Array.isArray(data.users)) {

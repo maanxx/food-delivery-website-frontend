@@ -10,8 +10,11 @@ const CartItemCard = memo(({
   onSelect, 
   onDelete, 
 }) => {
-  const { cart_item_id, quantity, price_snapshot, is_available, has_stock, warning, dish } = item;
+  const { cart_item_id, quantity, priceSnapshot, price_snapshot, is_available, has_stock, warning, dish } = item;
   const { name, thumbnail_path } = dish || {};
+  
+  // Support both priceSnapshot (from Sequelize) and price_snapshot (from DB)
+  const itemPrice = priceSnapshot || price_snapshot || 0;
 
   const handleZeroQuantity = React.useCallback(() => {
     onDelete(cart_item_id);
@@ -26,10 +29,14 @@ const CartItemCard = memo(({
         checked={isSelected}
         disabled={isInvalid}
         onChange={() => onSelect(cart_item_id)}
+        size="medium"
         sx={{
           color: 'var(--primaryColor)',
           '&.Mui-checked': {
             color: 'var(--primaryColor)',
+          },
+          '& .MuiSvgIcon-root': {
+            fontSize: 24,
           },
         }}
       />
@@ -43,7 +50,7 @@ const CartItemCard = memo(({
         <h3 className={styles.name}>{name}</h3>
         <div className={styles.priceContainer}>
           <span className={styles.price}>
-            {Number(price_snapshot).toLocaleString('vi-VN')}
+            {Number(itemPrice).toLocaleString('vi-VN')}
             <span className={styles.priceUnit}>₫</span>
           </span>
           {warning && <span className={styles.warningText}>{warning}</span>}

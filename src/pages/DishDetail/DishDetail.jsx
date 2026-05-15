@@ -17,12 +17,16 @@ import {
 import styles from "./DishDetail.module.css";
 import QuantityInput from "../../components/QuantityInput/QuantityInput";
 import FoodCard from "../../components/FoodCard/FoodCard";
+import ReviewList from "../../components/ReviewList/ReviewList";
 import { getDishById } from "../../services/dishService";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
 import axiosInstance from "@config/axiosInstance";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { addToCart } from "@features/cart/cartSlice";
+import { toast } from "react-toastify";
 const DishDetail = () => {
   const { id } = useParams();
   const [dish, setDish] = useState(null);
@@ -44,6 +48,8 @@ const DishDetail = () => {
   ];
 
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { user } = useSelector((state) => state.auth);
   // nay la lay mon an
   useEffect(() => {
     const fetchDish = async () => {
@@ -77,6 +83,31 @@ const DishDetail = () => {
     setSelectedAddons(prev => 
       prev.includes(addonId) ? prev.filter(id => id !== addonId) : [...prev, addonId]
     );
+  };
+
+  const handleAddToCart = async () => {
+    // Check if user is authenticated
+    if (!user) {
+      toast.warning("Vui lòng đăng nhập để thêm vào giỏ hàng");
+      navigate("/login");
+      return;
+    }
+
+    try {
+      // Dispatch addToCart action with dishId and quantity
+      await dispatch(addToCart({ 
+        dishId: id, 
+        quantity 
+      })).unwrap();
+      
+      toast.success("Đã thêm món vào giỏ hàng!");
+      
+      // Optional: Reset quantity after adding
+      setQuantity(1);
+    } catch (error) {
+      console.error("Add to cart error:", error);
+      toast.error(error || "Không thể thêm vào giỏ hàng");
+    }
   };
 
   return (
@@ -176,13 +207,16 @@ const DishDetail = () => {
             <Box className={styles.addSection}>
               <QuantityInput quantity={quantity} onChange={setQuantity} />
 
-              <Button className={styles.addBtn}>
+              <Button className={styles.addBtn} onClick={handleAddToCart}>
                 Thêm • {totalPrice.toLocaleString()} ₫
               </Button>
             </Box>
           </div>
         </Grid>
       </Grid>
+      {/* REVIEWS SECTION */}
+      <ReviewList dishId={id} />
+
       <Box mt={6}>
         <Typography className={styles.sectionTitle}>
           Món bạn có thể thích
@@ -197,9 +231,6 @@ const DishDetail = () => {
         </Box>
       </Box>
     </Container>
-
-    
-
   );
 };
 

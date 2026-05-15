@@ -1,0 +1,47 @@
+.reviewList {
+    margin-top: 32px;
+    padding: 24px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #333;
+}
+
+.writeButton {
+    background: linear-gradient(135deg, #ff6b00 0%, #ff8c00 100%);
+    color: white;
+    text-transform: none;
+    padding: 8px 20px;
+    border-radius: 8px;
+}
+
+.writeButton:hover {
+    background: linear-gradient(135deg, #ff5500 0%, #ff7700 100%);
+}
+
+.loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px;
+}
+
+.empty {
+    padding: 40px;
+    text-align: center;
+}
+
+.list {
+    margin-top: 16px;
+}

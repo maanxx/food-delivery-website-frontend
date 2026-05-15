@@ -1,0 +1,108 @@
+.headerCard {
+  background: white;
+  border-radius: 12px;
+  padding: 2rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  border-bottom: 4px solid #ff914c;
+}
+
+.profileSection {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.avatarWrapper {
+  position: relative;
+}
+
+.avatar {
+  border: 3px solid #ff914c;
+  background: #fff8f2;
+}
+
+.editAvatarBtn {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  background: #ff914c !important;
+  color: white !important;
+  border: 2px solid white !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.userMeta {
+  display: flex;
+  flex-direction: column;
+}
+
+.username {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #333;
+}
+
+.contactInfo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.infoItem {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.dot {
+  color: #ccc;
+}
+
+.statsSection {
+  display: flex;
+  gap: 2rem;
+}
+
+.statItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 1rem;
+}
+
+.statValue {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #ff914c;
+}
+
+.statLabel {
+  font-size: 0.8rem;
+  color: #999;
+  text-transform: uppercase;
+}
+
+@media (max-width: 768px) {
+  .headerCard {
+    flex-direction: column;
+    text-align: center;
+    gap: 1.5rem;
+  }
+  
+  .profileSection {
+    flex-direction: column;
+  }
+  
+  .contactInfo {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+}

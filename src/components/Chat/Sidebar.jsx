@@ -27,6 +27,7 @@ import {
     deleteConversation,
 } from "@features/chat/chatSlice";
 import useWebSocket from "@hooks/useWebSocket";
+import callService from "@services/callService";
 import { getFirstLetterOfEachWord } from "@helpers/stringHelper";
 
 const Sidebar = () => {
@@ -288,7 +289,7 @@ const Sidebar = () => {
                 createGroupConversation({
                     name: groupName,
                     participantIds,
-                })
+                }),
             ).unwrap();
 
             handleSelectConversation(result.conversationId);
@@ -581,7 +582,7 @@ const Sidebar = () => {
                                             opacity: isCreatingConversation ? 0.5 : 1,
                                             pointerEvents: isCreatingConversation ? "none" : "auto",
                                             backgroundColor: selectedMembers.find(
-                                                (m) => (m.user_id || m.userId) === (user.user_id || user.userId)
+                                                (m) => (m.user_id || m.userId) === (user.user_id || user.userId),
                                             )
                                                 ? "#e6f7ff"
                                                 : "transparent",
@@ -725,17 +726,56 @@ const ConversationItem = ({ conv, isSelected, onSelect }) => {
                 // TODO: Implement mute notifications
                 break;
             case "call":
-                console.log("Call:", conv.name);
-                // TODO: Implement voice call
+                handleInitiateCall("voice", conv);
+                setShowMenu(false);
                 break;
             case "video":
-                console.log("Video call:", conv.name);
-                // TODO: Implement video call
+                handleInitiateCall("video", conv);
+                setShowMenu(false);
                 break;
             default:
                 break;
         }
-        setShowMenu(false);
+    };
+
+    // Handle initiating calls from conversation menu
+    const handleInitiateCall = async (callType, conversation) => {
+        try {
+            const isGroup = conversation?.type === "group" || conversation?.conversationType === "group";
+
+            if (isGroup) {
+                console.log(`📞 Initiating ${callType} group call`);
+                const participantIds =
+                    conversation?.participants?.map((p) => p.id || p.userId || p.user_id).filter(Boolean) || [];
+
+                if (participantIds.length === 0) {
+                    message.error("No participants in this group");
+                    return;
+                }
+
+                const response = await callService.initiateGroupCall(
+                    conversation.conversationId,
+                    callType,
+                    participantIds,
+                );
+                console.log(`📞 ${callType} group call initiated:`, response.data);
+                message.success(`Group ${callType} call started`);
+            } else {
+                console.log(`📞 Initiating ${callType} call with ${conversation.name}`);
+                // For 1-1 calls, navigate to chat and trigger call
+                window.dispatchEvent(
+                    new CustomEvent("initiateCall", {
+                        detail: {
+                            conversationId: conversation.conversationId,
+                            callType: callType,
+                        },
+                    }),
+                );
+            }
+        } catch (error) {
+            console.error(`❌ Failed to initiate ${callType} call:`, error);
+            message.error(`Failed to initiate ${callType} call: ${error.message}`);
+        }
     };
 
     // Close menu when clicking outside

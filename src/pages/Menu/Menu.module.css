@@ -589,3 +589,109 @@
   justify-content: space-between;
   align-items: center;
 }
+
+/* Filter Bar */
+.filter-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  background: white;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.filter-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.filter-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.filter-dropdown {
+  position: relative;
+  min-width: 180px;
+}
+
+.filter-select-box {
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  padding: 10px 14px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.filter-select-box:hover {
+  border-color: #ff6b2c;
+  background: #fff8f5;
+}
+
+.filter-panel {
+  position: absolute;
+  top: 110%;
+  right: 0;
+  width: 100%;
+  min-width: 200px;
+  background: white;
+  border: 1px solid #eee;
+  border-radius: 10px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+  z-index: 1000;
+  overflow: hidden;
+}
+
+.filter-option {
+  padding: 12px 16px;
+  cursor: pointer;
+  transition: 0.2s;
+  font-size: 14px;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.filter-option:last-child {
+  border-bottom: none;
+}
+
+.filter-option:hover {
+  background: #fff3ec;
+}
+
+.filter-option.active {
+  background: #fff3ec;
+  color: #ff6b2c;
+  font-weight: 600;
+}
+
+.price-panel {
+  min-width: 160px;
+}
+
+@media (max-width: 768px) {
+  .filter-bar {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  .filter-left,
+  .filter-right {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .filter-dropdown {
+    flex: 1;
+  }
+}

@@ -26,7 +26,6 @@ import Employees from "@pages/Admin/Employees";
 import Products from "@pages/Admin/Products";
 import Reports from "@pages/Admin/Reports";
 import Settings from "@pages/Admin/Settings";
-import AdminChatPage from "@pages/Admin/Chat/AdminChatPage";
 import {
     Authentication,
     FormForgotPasswordOTP,
@@ -166,7 +165,7 @@ const adminRoutes = [
         path: "/admin",
         element: (
             // <RoleGuard allowedRoles={["Admin"]}>
-                <AdminLayout />
+            <AdminLayout />
             // </RoleGuard>
         ),
         children: [
@@ -176,11 +175,11 @@ const adminRoutes = [
             },
             {
                 path: "chat",
-                element: <AdminChatPage />,
+                element: <ChatPage />,
             },
             {
                 path: "chat/:conversationId",
-                element: <AdminChatPage />,
+                element: <ChatPage />,
             },
             {
                 path: "employees",

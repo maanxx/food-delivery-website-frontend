@@ -6,6 +6,7 @@ import { getSimplePeer } from "@utils/SimplePeerShim";
 
 const useCall = (socket) => {
     const userInfo = useSelector((state) => state.auth.user);
+    const conversations = useSelector((state) => state.chat.conversations.byId);
     const userId = userInfo?.sub || userInfo?.user_id || userInfo?.userId || userInfo?.id;
 
     const [callState, setCallState] = useState({
@@ -23,6 +24,7 @@ const useCall = (socket) => {
         isMuted: false,
         isCameraOff: false,
         error: null,
+        participants: [], // Array of { userId, name, avatar, stream, isMuted, isCameraOff }
     });
 
     const peerRef = useRef(null);
@@ -40,21 +42,18 @@ const useCall = (socket) => {
     const answerRetryCountRef = useRef(0); // Track answer retry attempts
     const signalsProcessedRef = useRef({ offers: 0, answers: 0, iceCandidates: 0 }); // Track signal counts
     const offerProcessedRef = useRef(false); // Guard: prevent processing same offer twice per call
+    const localStreamRef = useRef(null); // Reference to local stream for peer creation
+    const isGroupCallRef = useRef(false); // Track if current call is a group call
+    const peersRef = useRef({}); // Store multiple peer connections for group calls: { userId: peer }
+    const incomingCallRef = useRef(null); // Track latest incoming call to avoid stale closures
+    const conversationsRef = useRef({}); // Ref for conversations to avoid stale closures in socket listeners
 
     // Process queued signals when peer is ready
     const processPendingSignals = useCallback(() => {
         console.log(
-            `🔄 [processPendingSignals] CALLED - peer: ${!!peerRef.current}, ready: ${peerReadyRef.current}, cleaning: ${isCleaningUpRef.current}, pending: ${pendingSignalsRef.current.length}`,
+            `🔄 [processPendingSignals] CALLED - peers: ${Object.keys(peersRef.current).length}, ready: ${peerReadyRef.current}, cleaning: ${isCleaningUpRef.current}, pending: ${pendingSignalsRef.current.length}`,
         );
 
-        if (!peerRef.current) {
-            console.warn("   ❌ No peer yet!");
-            return;
-        }
-        if (!peerReadyRef.current) {
-            console.warn("   ❌ Peer not ready yet!");
-            return;
-        }
         if (isCleaningUpRef.current) {
             console.warn("   ❌ Cleanup in progress!");
             return;
@@ -62,80 +61,99 @@ const useCall = (socket) => {
 
         console.log(`   ✅ Processing ${pendingSignalsRef.current.length} pending signals...`);
 
+        const remainingSignals = [];
+
         while (pendingSignalsRef.current.length > 0) {
             const signal = pendingSignalsRef.current.shift();
-            console.log(`   📤 Processing: ${signal.type} (received ${Date.now() - signal.receivedAt}ms ago)`);
+            const targetUserId = signal.fromUserId;
+            
+            // Find the correct peer: 
+            // 1. By userId in peersRef
+            // 2. Fallback to peerRef.current if only one peer exists or for 1-on-1
+            let targetPeer = targetUserId ? peersRef.current[targetUserId] : null;
+            if (!targetPeer && !targetUserId) {
+                targetPeer = peerRef.current;
+            }
+            
+            if (!targetPeer) {
+                console.warn(`   ❌ No peer found for signal ${signal.type} from ${targetUserId || 'unknown'} - re-queuing`);
+                remainingSignals.push(signal);
+                continue;
+            }
+
+            console.log(`   📤 Processing: ${signal.type} for ${targetUserId || 'default'} (received ${Date.now() - signal.receivedAt}ms ago)`);
 
             try {
                 if (signal.type === "offer") {
-                    console.log("      Signaling OFFER to peer...");
-                    if (!signal.data || !signal.data.sdp) {
-                        console.error("      ❌ OFFER missing SDP!");
+                    // GUARD: Skip duplicate offers
+                    if (offerProcessedRef.current && !isGroupCallRef.current) {
+                        console.warn("      ⚠️ Duplicate offer detected — skipping");
                         continue;
                     }
 
-                    // GUARD: Skip duplicate offers — processing the same offer twice causes
-                    // 'setLocalDescription called in wrong state: stable' error.
-                    if (offerProcessedRef.current) {
-                        console.warn("      ⚠️ Duplicate offer detected — skipping (already processed for this call)");
-                        signalsProcessedRef.current.offers++;
-                        continue;
-                    }
-
-                    console.log(
-                        `      ✅ About to call peer.signal(offer) - offer SDP length: ${signal.data.sdp.length}`,
-                    );
-
-                    // CRITICAL: This should trigger peer.on('signal') with answer for non-initiator
-                    peerRef.current.signal(signal.data);
-                    offerProcessedRef.current = true; // Mark offer as processed for this call
-
+                    targetPeer.signal(signal.data);
+                    if (!isGroupCallRef.current) offerProcessedRef.current = true;
                     signalsProcessedRef.current.offers++;
-                    console.log(`      ✅ OFFER signaled successfully!`);
-                    console.log(`         ⏳ Waiting for SimplePeer to generate answer...`);
                 } else if (signal.type === "answer") {
-                    console.log("      Signaling ANSWER to peer...");
-                    if (!signal.data || !signal.data.sdp) {
-                        console.error("      ❌ ANSWER missing SDP!");
-                        continue;
-                    }
-                    peerRef.current.signal(signal.data);
+                    targetPeer.signal(signal.data);
                     signalsProcessedRef.current.answers++;
-                    answerRetryCountRef.current = 0;
-                    console.log("      ✅ ANSWER signaled successfully");
                 } else if (signal.type === "ice") {
-                    console.log("      Signaling ICE candidate to peer...");
-                    if (!signal.data || !signal.data.candidate) {
-                        console.error("      ❌ ICE candidate missing data!");
-                        continue;
-                    }
-                    peerRef.current.signal(signal.data);
+                    targetPeer.signal(signal.data);
                     signalsProcessedRef.current.iceCandidates++;
-                    console.log("      ✅ ICE candidate signaled successfully");
                 } else {
-                    // Generic signal handling
-                    console.log("      Signaling generic signal...");
-                    peerRef.current.signal(signal.data);
-                    console.log("      ✅ Generic signal processed");
+                    targetPeer.signal(signal.data);
                 }
+                console.log(`      ✅ ${signal.type} signaled successfully`);
             } catch (error) {
                 console.error(`      ❌ Error signaling ${signal.type}:`, error.message);
-                console.error(`      Stack: ${error.stack}`);
-                // Re-queue for retry (only for important signals)
-                if ((signal.type === "answer" || signal.type === "offer") && answerRetryCountRef.current < 3) {
+                // Simple retry logic
+                if (answerRetryCountRef.current < 3) {
                     answerRetryCountRef.current++;
-                    pendingSignalsRef.current.unshift(signal);
-                    console.warn(
-                        `      📋 Re-queuing ${signal.type} for retry (attempt ${answerRetryCountRef.current})`,
-                    );
-                    break; // Stop processing, try again later
+                    remainingSignals.push(signal);
                 }
             }
         }
+        
+        pendingSignalsRef.current = remainingSignals;
+    }, []);
 
-        console.log(
-            `🔄 [processPendingSignals] DONE - signals: ${signalsProcessedRef.current.offers} offers, ${signalsProcessedRef.current.answers} answers`,
-        );
+    // Helper to cleanup all peers
+    const cleanupPeers = useCallback(() => {
+        console.log("📵 [cleanupPeers] Destroying all peer connections...", Object.keys(peersRef.current));
+        
+        Object.keys(peersRef.current).forEach(uid => {
+            try {
+                const peer = peersRef.current[uid];
+                if (peer) {
+                    console.log(`   📵 Destroying peer for user: ${uid}`);
+                    // Use setTimeout to allow any in-flight operations to complete
+                    setTimeout(() => {
+                        try {
+                            peer.destroy?.();
+                        } catch (e) {
+                            console.warn(`      ⚠️ Error destroying peer ${uid}:`, e);
+                        }
+                    }, 0);
+                }
+            } catch (err) {
+                console.error(`   ⚠️ Error accessing peer ${uid}:`, err);
+            }
+        });
+        
+        // Also cleanup the primary peerRef if it's not in the map
+        if (peerRef.current) {
+            try {
+                const isManaged = Object.values(peersRef.current).includes(peerRef.current);
+                if (!isManaged) {
+                    console.log("   📵 Destroying primary peerRef (not in map)");
+                    const p = peerRef.current;
+                    setTimeout(() => p.destroy?.(), 0);
+                }
+            } catch (e) {}
+        }
+        
+        peersRef.current = {};
+        peerRef.current = null;
     }, []);
 
     // Helper to format call message content
@@ -166,183 +184,158 @@ const useCall = (socket) => {
     };
 
     // End call function - defined early to avoid temporal dead zone
-    const endCall = useCallback((options = {}) => {
-        const { skipMessage = false } = options;
-        console.log("📵 Ending call...", options);
+    const endCall = useCallback(
+        (options = {}) => {
+            const { skipMessage = false } = options;
+            console.log("📵 Ending call...", options);
 
-        // Prevent recursive cleanup
-        if (isCleaningUpRef.current) {
-            console.log("📵 Cleanup already in progress, skipping");
-            return;
-        }
-        isCleaningUpRef.current = true;
-
-        // Store reference to stream before destroying peer (SimplePeer might be using it)
-        const streamToCleanup = streamRef.current;
-
-        // Close peer connection - with proper error handling
-        if (peerRef.current) {
-            try {
-                console.log("📵 Destroying peer connection...");
-                if (typeof peerRef.current.destroy === "function") {
-                    // Wrap destroy in setTimeout to allow any in-flight operations to complete
-                    setTimeout(() => {
-                        try {
-                            peerRef.current?.destroy?.();
-                            console.log("📵 Peer connection destroyed (async)");
-                        } catch (asyncError) {
-                            console.error("⚠️ Async error destroying peer:", asyncError);
-                        }
-                    }, 0);
-                } else {
-                    console.warn("⚠️ Peer doesn't have destroy method");
-                }
-            } catch (peerError) {
-                console.error("⚠️ Error destroying peer connection:", peerError);
-            } finally {
-                peerRef.current = null;
+            // Prevent recursive cleanup
+            if (isCleaningUpRef.current) {
+                console.log("📵 Cleanup already in progress, skipping");
+                return;
             }
-        }
+            isCleaningUpRef.current = true;
 
-        // Stop media tracks AFTER destroying peer (to avoid SimplePeer errors)
-        // Use setTimeout to prevent race conditions
-        setTimeout(() => {
-            if (streamToCleanup) {
-                try {
-                    console.log("📵 Stopping media tracks...");
-                    // Check if it's a real MediaStream with getTracks
-                    if (typeof streamToCleanup.getTracks === "function") {
-                        streamToCleanup.getTracks().forEach((track) => {
-                            try {
-                                if (track && typeof track.stop === "function") {
-                                    track.stop();
-                                    console.log(`📵 Stopped ${track.kind} track`);
+            // Store reference to stream before destroying peer (SimplePeer might be using it)
+            const streamToCleanup = streamRef.current;
+
+            // Close peer connection - with proper error handling
+            // Close peer connections
+            cleanupPeers();
+
+            // Stop media tracks AFTER destroying peer (to avoid SimplePeer errors)
+            // Use setTimeout to prevent race conditions
+            setTimeout(() => {
+                if (streamToCleanup) {
+                    try {
+                        console.log("📵 Stopping media tracks...");
+                        // Check if it's a real MediaStream with getTracks
+                        if (typeof streamToCleanup.getTracks === "function") {
+                            streamToCleanup.getTracks().forEach((track) => {
+                                try {
+                                    if (track && typeof track.stop === "function") {
+                                        track.stop();
+                                        console.log(`📵 Stopped ${track.kind} track`);
+                                    }
+                                } catch (trackError) {
+                                    console.error("⚠️ Error stopping track:", trackError);
                                 }
-                            } catch (trackError) {
-                                console.error("⚠️ Error stopping track:", trackError);
-                            }
-                        });
-                    } else {
-                        console.warn("⚠️ Stream object doesn't have getTracks method");
-                    }
-                } catch (streamError) {
-                    console.error("⚠️ Error accessing stream tracks:", streamError);
-                }
-            }
-            // Clear reference after cleanup
-            streamRef.current = null;
-        }, 50);
-
-        // Emit end call signal BEFORE resetting state - use refs for current values with fallback to state
-        try {
-            setCallState((prev) => {
-                const callIdToEnd = callIdRef.current || prev.callId || prev.outgoingCallId;
-                const remoteUserId = remoteUserIdRef.current || prev.remoteUserId;
-                const conversationId = callConversationIdRef.current;
-                const callType = callTypeRef.current || prev.callType;
-                const wasInCall = prev.inCall;
-
-                console.log(
-                    `📞 [endCall] Using: callId=${callIdToEnd}, remoteUserId=${remoteUserId}, socket.connected=${socket?.connected}`,
-                );
-
-                if (callIdToEnd && remoteUserId && socket && socket.connected) {
-                    console.log(`📞 [endCall] Emitting call end signals...`);
-
-                    // Try both event names for compatibility
-                    try {
-                        socket.emit("cancel_call", {
-                            callId: callIdToEnd,
-                            toUserId: remoteUserId,
-                        });
-                        console.log(`✅ [endCall] cancel_call emitted`);
-                    } catch (err) {
-                        console.error(`❌ [endCall] Error emitting cancel_call:`, err);
-                    }
-
-                    // Also try call_cancelled as backup
-                    try {
-                        socket.emit("call_cancelled", {
-                            callId: callIdToEnd,
-                            toUserId: remoteUserId,
-                        });
-                        console.log(`✅ [endCall] call_cancelled emitted`);
-                    } catch (err) {
-                        console.error(`❌ [endCall] Error emitting call_cancelled:`, err);
-                    }
-                } else {
-                    console.warn(
-                        `⚠️ [endCall] Cannot emit: callId=${callIdToEnd}, remoteUserId=${remoteUserId}, socket=${socket?.connected ? "connected" : "disconnected"}`,
-                    );
-                }
-
-                // Determine call status and save message
-                if (conversationId && callType && !skipMessage) {
-                    const duration = wasInCall ? prev.callDuration : 0; // Only count duration if call was active
-                    const status = wasInCall ? "ended" : "cancelled"; // "cancelled" if never entered active call
-
-                    console.log(`💬 [endCall] Will save call message: status=${status}, duration=${duration}s`);
-                    // Save call message after state update completes
-                    setTimeout(() => {
-                        if (socket && socket.connected) {
-                            socket.emit("save_call_message", {
-                                conversationId,
-                                content: formatCallMessage(callType, duration, status),
-                                type: "system_call",
-                                callData: {
-                                    callId: callIdToEnd,
-                                    callType,
-                                    duration,
-                                    status,
-                                },
                             });
-                            console.log("✅ [endCall] Call message emitted");
+                        } else {
+                            console.warn("⚠️ Stream object doesn't have getTracks method");
                         }
-                    }, 100);
+                    } catch (streamError) {
+                        console.error("⚠️ Error accessing stream tracks:", streamError);
+                    }
                 }
+                // Clear reference after cleanup
+                streamRef.current = null;
+            }, 50);
 
-                return prev;
-            });
-        } catch (error) {
-            console.error("⚠️ Error in endCall emit logic:", error);
-        }
+            // Emit end call signal BEFORE resetting state - use refs for current values with fallback to state
+            try {
+                setCallState((prev) => {
+                    const callIdToEnd = callIdRef.current || prev.callId || prev.outgoingCallId;
+                    const remoteUserId = remoteUserIdRef.current || prev.remoteUserId;
+                    const conversationId = callConversationIdRef.current;
+                    const callType = callTypeRef.current || prev.callType;
+                    const wasInCall = prev.inCall;
 
-        // Reset state
-        setCallState((prev) => ({
-            ...prev,
-            inCall: false,
-            callId: null,
-            incomingCall: null,
-            outgoingCallId: null,
-            remoteStream: null,
-            localStream: null,
-            callDuration: 0,
-            callType: null,
-            remoteUserId: null,
-        }));
+                    console.log(
+                        `📞 [endCall] Using: callId=${callIdToEnd}, remoteUserId=${remoteUserId}, socket.connected=${socket?.connected}`,
+                    );
 
-        remoteUserIdRef.current = null;
-        callIdRef.current = null;
-        recipientIdRef.current = null;
-        callStartTimeRef.current = null;
-        callConversationIdRef.current = null;
-        callTypeRef.current = null;
+                    if (callIdToEnd && socket && socket.connected) {
+                        console.log(`📞 [endCall] Emitting call termination signals...`);
 
-        // Reset WebRTC signal state for next call
-        pendingSignalsRef.current = [];
-        peerReadyRef.current = false;
-        offerProcessedRef.current = false; // Allow next call to process its offer
-        signalsProcessedRef.current = { offers: 0, answers: 0, iceCandidates: 0 };
-        answerRetryCountRef.current = 0;
-        console.log("📵 [endCall] Signal state reset for next call");
+                        const terminationData = {
+                            callId: callIdToEnd,
+                            toUserId: remoteUserId,
+                            conversationId: conversationId,
+                            duration: wasInCall ? prev.callDuration : 0,
+                        };
 
-        if (callTimerRef.current) {
-            clearInterval(callTimerRef.current);
-        }
+                        if (wasInCall) {
+                            socket.emit("end_call", terminationData);
+                        } else {
+                            socket.emit("cancel_call", terminationData);
+                            socket.emit("call_cancelled", terminationData);
+                        }
+                    } else {
+                        console.warn(
+                            `⚠️ [endCall] Cannot emit: callId=${callIdToEnd}, socket=${socket?.connected ? "connected" : "disconnected"}`,
+                        );
+                    }
 
-        // Allow cleanup to be called again
-        isCleaningUpRef.current = false;
-    }, [socket]);
+                    // Determine call status and save message
+                    if (conversationId && callType && !skipMessage) {
+                        const duration = wasInCall ? prev.callDuration : 0; // Only count duration if call was active
+                        const status = wasInCall ? "ended" : "cancelled"; // "cancelled" if never entered active call
+
+                        console.log(`💬 [endCall] Will save call message: status=${status}, duration=${duration}s`);
+                        // Save call message after state update completes
+                        setTimeout(() => {
+                            if (socket && socket.connected) {
+                                socket.emit("save_call_message", {
+                                    conversationId,
+                                    content: formatCallMessage(callType, duration, status),
+                                    type: "system_call",
+                                    callData: {
+                                        callId: callIdToEnd,
+                                        callType,
+                                        duration,
+                                        status,
+                                    },
+                                });
+                                console.log("✅ [endCall] Call message emitted");
+                            }
+                        }, 100);
+                    }
+
+                    return prev;
+                });
+            } catch (error) {
+                console.error("⚠️ Error in endCall emit logic:", error);
+            }
+
+            // Reset state
+            setCallState((prev) => ({
+                ...prev,
+                inCall: false,
+                callId: null,
+                incomingCall: null,
+                outgoingCallId: null,
+                remoteStream: null,
+                localStream: null,
+                callDuration: 0,
+                callType: null,
+                remoteUserId: null,
+            }));
+
+            remoteUserIdRef.current = null;
+            callIdRef.current = null;
+            recipientIdRef.current = null;
+            callStartTimeRef.current = null;
+            callConversationIdRef.current = null;
+            callTypeRef.current = null;
+
+            // Reset WebRTC signal state for next call
+            pendingSignalsRef.current = [];
+            peerReadyRef.current = false;
+            offerProcessedRef.current = false; // Allow next call to process its offer
+            signalsProcessedRef.current = { offers: 0, answers: 0, iceCandidates: 0 };
+            answerRetryCountRef.current = 0;
+            console.log("📵 [endCall] Signal state reset for next call");
+
+            if (callTimerRef.current) {
+                clearInterval(callTimerRef.current);
+            }
+
+            // Allow cleanup to be called again
+            isCleaningUpRef.current = false;
+        },
+        [socket],
+    );
 
     // Timer for call duration
     useEffect(() => {
@@ -366,6 +359,10 @@ const useCall = (socket) => {
         };
     }, [callState.inCall]);
 
+    useEffect(() => {
+        conversationsRef.current = conversations;
+    }, [conversations]);
+
     // Listen for incoming calls
     useEffect(() => {
         if (!socket) {
@@ -382,19 +379,57 @@ const useCall = (socket) => {
             console.log("📞 [useCall] Incoming call event received from socket:", data);
             console.log("   Call ID:", data.callId || data.id);
             console.log("   From:", data.callerName || data.caller_name);
-            // Normalize field names from backend (callerId → fromUserId, callerName → fromUserName)
+            console.log("   Group ID:", data.conversationId || data.conversation_id);
+
+            // Determine if it's a group call and get group metadata
+            const convId = data.conversationId || data.conversation_id || data.groupId;
+            const conversation = convId ? conversationsRef.current[convId] : null;
+            const isGroupCall =
+                data.isGroupCall || 
+                data.group_call || 
+                data.type === "group" ||
+                conversation?.type === "group" || 
+                conversation?.conversationType === "group";
+
+            console.log(`📞 [socket.incoming_call] Group: ${isGroupCall}, Conv: ${convId}`);
+
+            // Normalize field names from backend
+            isGroupCallRef.current = isGroupCall;
+            const fromUserId = data.callerId || data.initiator_id || data.initiatorId || data.userId || data.fromUserId || data.from_user_id;
+            const fromUserName = data.callerName || data.caller_name || data.initiatorName || data.fromUserName || data.userName || "User";
+            const fromUserAvatar = data.callerAvatar || data.caller_avatar || data.initiatorAvatar || data.fromUserAvatar;
+            
+            const incomingData = {
+                callId: data.callId || data.id,
+                fromUserId,
+                fromUserName,
+                fromUserAvatar,
+                callType: data.callType || data.call_type || "voice",
+                conversationId: convId,
+                timestamp: data.timestamp || Date.now(),
+                // Group call additions
+                isGroupCall,
+                groupName: data.groupName || data.group_name || conversation?.name || fromUserName,
+                groupAvatar: data.groupAvatar || data.group_avatar || conversation?.avatarPath || conversation?.avatar_path || fromUserAvatar,
+                participants: [
+                    {
+                        userId: fromUserId,
+                        name: fromUserName,
+                        avatar: fromUserAvatar,
+                        isInitiator: true,
+                        isMuted: false,
+                        isCameraOff: false,
+                    },
+                ],
+            };
+            
+            incomingCallRef.current = incomingData;
+            
             setCallState((prev) => ({
                 ...prev,
-                callId: data.callId || data.id,
-                incomingCall: {
-                    callId: data.callId || data.id,
-                    fromUserId: data.callerId || data.initiator_id,
-                    fromUserName: data.callerName || data.caller_name,
-                    fromUserAvatar: data.callerAvatar || data.caller_avatar,
-                    callType: data.callType || data.call_type,
-                    conversationId: data.conversationId || data.conversation_id,
-                    timestamp: data.timestamp,
-                },
+                callId: incomingData.callId,
+                isGroupCall: incomingData.isGroupCall, // Ensure state matches
+                incomingCall: incomingData,
             }));
         });
 
@@ -428,6 +463,37 @@ const useCall = (socket) => {
                 }
             }
 
+            // Determine the call ID
+            const activeCallId = data.callId || data.id || callIdRef.current;
+
+            // For group calls, initiator creates multiple peers
+            if (localStreamRef.current && isGroupCallRef.current) {
+                const recipientId = data.recipientId || data.userId || data.fromUserId;
+                
+                // If we already have a peer for this user, destroy it first (shouldn't happen usually)
+                if (peersRef.current[recipientId]) {
+                    console.log(`👥 [socket.call_accepted] Group call: Replacing existing peer for ${recipientId}`);
+                    try { peersRef.current[recipientId].destroy?.(); } catch(e) {}
+                }
+
+                console.log("👥 [socket.call_accepted] Group call: Creating peer for recipient:", recipientId);
+                (async () => {
+                    try {
+                        const peer = await createPeerConnection(
+                            localStreamRef.current,
+                            true,
+                            activeCallId,
+                            recipientId,
+                        );
+                        peersRef.current[recipientId] = peer;
+                        // For 1-on-1 logic fallback, also set peerRef if it's the first one
+                        if (!peerRef.current) peerRef.current = peer;
+                    } catch (err) {
+                        console.error("❌ [socket.call_accepted] Error creating group peer:", err);
+                    }
+                })();
+            }
+
             setCallState((prev) => {
                 console.log("🔍 [socket.call_accepted] Previous state:", {
                     callId: prev.callId,
@@ -445,11 +511,33 @@ const useCall = (socket) => {
                     console.log("⏱️ [socket.call_accepted] Call start time recorded");
                 }
 
+                // Update participants list for group calls
+                const newParticipant = {
+                    userId: data.recipientId || data.userId || data.fromUserId,
+                    name: data.recipientName || data.recipient_name || "User",
+                    avatar: data.recipientAvatar || data.recipient_avatar,
+                    isMuted: false,
+                    isCameraOff: false,
+                    isInitiator: false,
+                };
+                
+                const isGroup = prev.isGroupCall || isGroupCallRef.current;
+
                 return {
                     ...prev,
                     inCall: true,
+                    isGroupCall: isGroup, // Ensure state matches
                     outgoingCallId: newOutgoingCallId,
-                    remoteUserName: data.recipientName || data.recipient_name || prev.remoteUserName,
+                    // If it's a group call, keep the group name, otherwise use recipient's name
+                    remoteUserName: isGroup
+                        ? prev.remoteUserName
+                        : data.recipientName || data.recipient_name || prev.remoteUserName,
+                    // Update participants array
+                    participants: isGroup
+                        ? prev.participants.some((p) => String(p.userId) === String(newParticipant.userId))
+                            ? prev.participants
+                            : [...prev.participants, newParticipant]
+                        : prev.participants,
                 };
             });
         });
@@ -532,6 +620,7 @@ const useCall = (socket) => {
                         sdpMLineIndex: data.sdpMLineIndex !== undefined ? data.sdpMLineIndex : 0,
                         sdpMid: data.sdpMid || "0",
                     },
+                    fromUserId: data.fromUserId || data.userId || data.senderId,
                     type: "ice",
                     receivedAt: Date.now(),
                 });
@@ -557,6 +646,7 @@ const useCall = (socket) => {
                 // Queue offer for processing when peer is ready
                 pendingSignalsRef.current.push({
                     data: data.offer,
+                    fromUserId: data.fromUserId || data.userId || data.callerId || data.initiatorId,
                     type: "offer",
                     receivedAt: Date.now(),
                 });
@@ -589,6 +679,7 @@ const useCall = (socket) => {
                 if (data.answer) {
                     pendingSignalsRef.current.push({
                         data: data.answer,
+                        fromUserId: data.fromUserId || data.userId || data.recipientId,
                         type: "answer",
                         receivedAt: Date.now(),
                     });
@@ -638,7 +729,6 @@ const useCall = (socket) => {
                 console.log(`📡 [socket.onAny] Unhandled socket event: ${eventName}`, data);
             }
         });
-
 
         return () => {
             console.log("🧹 Cleaning up call listeners");
@@ -720,6 +810,7 @@ const useCall = (socket) => {
                 localStream: stream,
                 error: null,
             }));
+            localStreamRef.current = stream; // Store in ref for listeners
             return stream;
         } catch (error) {
             console.error(`❌ Media stream error (${type}):`, error);
@@ -730,19 +821,20 @@ const useCall = (socket) => {
                 try {
                     const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
                     streamRef.current = audioStream;
-                    
+
                     setCallState((prev) => ({
                         ...prev,
                         localStream: audioStream,
-                        callType: "voice", // Downgrade to voice call
-                        error: `Camera issue: ${error.name === "NotReadableError" ? "Already in use" : "Not found"}. Switched to voice call.`,
+                        callType: "video", // Stay in video call mode
+                        isCameraOff: true, // Mark camera as off
+                        error: `Camera issue: ${error.name === "NotReadableError" ? "Already in use" : "Not found"}. Your camera is disabled, but you can see the caller's video.`,
                     }));
-                    
-                    // Clear error after 5 seconds but keep the voice call going
+
+                    // Clear error after 5 seconds but keep the video call going with camera off
                     setTimeout(() => {
-                        setCallState(prev => ({ ...prev, error: null }));
+                        setCallState((prev) => ({ ...prev, error: null }));
                     }, 5000);
-                    
+
                     return audioStream;
                 } catch (audioError) {
                     console.error("❌ Audio fallback also failed:", audioError);
@@ -887,6 +979,33 @@ const useCall = (socket) => {
                     });
                     console.log("✅ [createPeerConnection] SimplePeer created successfully");
 
+                    // CRITICAL FIX: If we don't have a local video track (e.g., camera unavailable),
+                    // add a video transceiver with 'recv' only so we can still RECEIVE video from remote peer
+                    if (peer._pc && callTypeRef.current === "video") {
+                        const videoTracks = stream.getVideoTracks?.() || [];
+                        if (videoTracks.length === 0) {
+                            console.log(
+                                "📹 [CRITICAL] No local video track found. Adding video transceiver for RECEIVING only...",
+                            );
+                            try {
+                                if (peer._pc.addTransceiver && typeof peer._pc.addTransceiver === "function") {
+                                    peer._pc.addTransceiver("video", { send: false, recv: true });
+                                    console.log(
+                                        "✅ Video transceiver added (recv only) - remote video will be received",
+                                    );
+                                } else {
+                                    console.warn("⚠️ addTransceiver not available in this browser");
+                                }
+                            } catch (transceiverError) {
+                                console.error("❌ Error adding video transceiver:", transceiverError);
+                            }
+                        } else {
+                            console.log(
+                                `✅ Local stream has ${videoTracks.length} video track(s), video negotiation normal`,
+                            );
+                        }
+                    }
+
                     // Verify that audio tracks are being sent
                     if (peer._pc) {
                         console.log("🎤 [CRITICAL] Verifying audio is being SENT:");
@@ -988,6 +1107,7 @@ const useCall = (socket) => {
                                 callId: signalCallId,
                                 offer: data,
                                 toUserId: signalRecipientId,
+                                fromUserId: userId,
                             });
                             console.log("   ✅ 'offer' emitted to backend");
                         } else if (data.type === "answer") {
@@ -1006,6 +1126,7 @@ const useCall = (socket) => {
                                 callId: signalCallId,
                                 answer: data,
                                 toUserId: signalRecipientId,
+                                fromUserId: userId,
                             });
                             console.log(
                                 "   ✅ 'answer' emitted to backend - waiting for backend to forward to initiator",
@@ -1018,6 +1139,7 @@ const useCall = (socket) => {
                                 sdpMLineIndex: data.sdpMLineIndex,
                                 sdpMid: data.sdpMid,
                                 toUserId: signalRecipientId,
+                                fromUserId: userId,
                             });
                             console.log("   ✅ 'ice_candidate' emitted");
                         }
@@ -1067,10 +1189,37 @@ const useCall = (socket) => {
                             console.log(`✅ [peer.on.stream] Remote stream has ${audioTracks.length} audio track(s)`);
                         }
 
-                        setCallState((prev) => ({
-                            ...prev,
-                            remoteStream,
-                        }));
+                        setCallState((prev) => {
+                            console.log(`   📝 Updating participants for ${capturedRecipientId}... Current count: ${prev.participants.length}`);
+                            
+                            // Check if participant exists, if not add them (race condition fix)
+                            const participantExists = prev.participants.some(p => String(p.userId) === String(capturedRecipientId));
+                            
+                            let updatedParticipants;
+                            if (participantExists) {
+                                updatedParticipants = prev.participants.map((p) =>
+                                    String(p.userId) === String(capturedRecipientId) ? { ...p, stream: remoteStream } : p,
+                                );
+                            } else {
+                                console.log(`   ⚠️ Participant ${capturedRecipientId} not found in state, adding them now...`);
+                                updatedParticipants = [
+                                    ...prev.participants, 
+                                    { 
+                                        userId: capturedRecipientId, 
+                                        stream: remoteStream, 
+                                        name: `User ${capturedRecipientId}`,
+                                        isMuted: false,
+                                        isCameraOff: false
+                                    }
+                                ];
+                            }
+
+                            return {
+                                ...prev,
+                                remoteStream,
+                                participants: updatedParticipants,
+                            };
+                        });
                     } catch (streamError) {
                         console.error("⚠️ [peer.on.stream] Error handling remote stream:", streamError);
                     }
@@ -1079,7 +1228,9 @@ const useCall = (socket) => {
                 peer.on("error", (error) => {
                     // CRITICAL FIX: Ignore events from replaced/old peers
                     if (peerRef.current !== peer) {
-                        console.warn("❌ [peer.on.error] Ignoring error from old/replaced peer - preventing new call teardown");
+                        console.warn(
+                            "❌ [peer.on.error] Ignoring error from old/replaced peer - preventing new call teardown",
+                        );
                         return;
                     }
                     console.error("❌ [peer.on.error] WebRTC peer error:", error);
@@ -1099,7 +1250,9 @@ const useCall = (socket) => {
                     // the old peer fires 'close' asynchronously AFTER peerRef.current already points
                     // to the new peer. Without this check, endCall() would destroy the new connection.
                     if (peerRef.current !== peer) {
-                        console.warn("🔌 [peer.on.close] Ignoring close from old/replaced peer - this is expected on second+ calls");
+                        console.warn(
+                            "🔌 [peer.on.close] Ignoring close from old/replaced peer - this is expected on second+ calls",
+                        );
                         return;
                     }
                     console.log("🔌 [peer.on.close] Peer connection closed");
@@ -1241,6 +1394,7 @@ const useCall = (socket) => {
                     // Store in ref for use in endCall and saveCallMessage
                     callIdRef.current = callId;
                     recipientIdRef.current = recipientId;
+                    remoteUserIdRef.current = recipientId; // Crucial for endCall
                     callConversationIdRef.current = conversationId; // Store conversation ID
                     callTypeRef.current = callType; // Store call type
                     console.log(
@@ -1253,6 +1407,16 @@ const useCall = (socket) => {
                         outgoingCallId: callId, // Replace pending with real ID
                         inCall: false,
                         error: null,
+                        participants: [
+                            {
+                                userId: recipientId,
+                                name: prev.remoteUserName,
+                                avatar: null, // Will be updated if possible
+                                isInitiator: false,
+                                isMuted: false,
+                                isCameraOff: false,
+                            },
+                        ],
                     }));
                     console.log("✅ [makeCall] Updated with real callId:", callId);
                 } else {
@@ -1280,8 +1444,11 @@ const useCall = (socket) => {
                         }
                     }
 
+                    // Initialize peer connection as initiator
+                    isGroupCallRef.current = false;
                     const peer = await createPeerConnection(stream, true, callId, recipientId);
                     peerRef.current = peer;
+                    peersRef.current[recipientId] = peer;
                     console.log("✅ [makeCall] Peer connection initialized");
                     console.log("✅ [makeCall] callKey passed to peer:", callId);
                 } catch (peerError) {
@@ -1304,6 +1471,81 @@ const useCall = (socket) => {
         [getMediaStream, socket, userId, userInfo, createPeerConnection],
     );
 
+    // Initiate a group call
+    const makeGroupCall = useCallback(
+        async (conversationId, callType = "voice", groupName = "Group", participantIds = []) => {
+            console.log(`📞 [makeGroupCall] Starting ${callType} group call for ${conversationId}`);
+
+            try {
+                // Reset state
+                peerReadyRef.current = false;
+                pendingSignalsRef.current = [];
+                answerRetryCountRef.current = 0;
+                signalsProcessedRef.current = { offers: 0, answers: 0, iceCandidates: 0 };
+
+                // Set initial outgoing state
+                setCallState((prev) => ({
+                    ...prev,
+                    outgoingCallId: `pending_${Date.now()}`,
+                    callType,
+                    remoteUserId: conversationId,
+                    remoteUserName: groupName,
+                    isGroupCall: true,
+                    error: null,
+                }));
+
+                isGroupCallRef.current = true;
+                // Get media stream
+                let stream;
+                try {
+                    stream = await getMediaStream(callType);
+                } catch (mediaError) {
+                    setCallState((prev) => ({ ...prev, error: mediaError.message }));
+                    throw mediaError;
+                }
+
+                // Call API
+                const response = await callService.initiateGroupCall(conversationId, callType, participantIds);
+                const callData = response.data?.data || response.data;
+                const callId = callData.call_id || callData.callId || callData.id;
+
+                if (callId) {
+                    callIdRef.current = callId;
+                    callConversationIdRef.current = conversationId;
+                    remoteUserIdRef.current = conversationId; // For group calls, send to group room
+                    callTypeRef.current = callType;
+
+                    setCallState((prev) => ({
+                        ...prev,
+                        callId: callId,
+                        outgoingCallId: callId,
+                        remoteUserId: conversationId,
+                        isGroupCall: true,
+                        participants: [], // Will be filled as people accept
+                    }));
+
+                    // Emit socket event
+                    if (socket?.connected) {
+                        socket.emit("group_call_initiated", {
+                            callId,
+                            conversationId,
+                            callType,
+                            initiatorId: userId,
+                            participantIds,
+                        });
+                    }
+                }
+
+                return callId;
+            } catch (error) {
+                console.error("❌ Failed to initiate group call:", error);
+                setCallState((prev) => ({ ...prev, error: error.message }));
+                throw error;
+            }
+        },
+        [getMediaStream, socket, userId],
+    );
+
     // Accept a call
     const acceptCall = useCallback(
         async (callType = "voice") => {
@@ -1317,18 +1559,54 @@ const useCall = (socket) => {
                 offerProcessedRef.current = false; // Reset so incoming offer can be processed
                 answerRetryCountRef.current = 0;
                 signalsProcessedRef.current = { offers: 0, answers: 0, iceCandidates: 0 };
-                console.log("🔄 [acceptCall] Reset peer state - preserving any pre-queued signals:", pendingSignalsRef.current.length);
+                console.log(
+                    "🔄 [acceptCall] Reset peer state - preserving any pre-queued signals:",
+                    pendingSignalsRef.current.length,
+                );
 
                 console.log(`✅ [acceptCall] START - callType: ${callType}`);
-                console.log(`   incomingCall:`, callState.incomingCall);
+                const incomingCall = incomingCallRef.current || callState.incomingCall;
+                console.log(`   incomingCall:`, incomingCall);
+                
+                if (!incomingCall) {
+                    console.error("❌ [acceptCall] No incoming call data found!");
+                    throw new Error("No incoming call to accept");
+                }
+
+                const fromUserId = incomingCall.fromUserId;
+                const incomingCallId = incomingCall.callId;
+                const conversationId = incomingCall.conversationId;
+                const isGroupCall = incomingCall.isGroupCall;
+                const groupName = incomingCall.groupName;
+                const fromUserName = incomingCall.fromUserName;
+
+                remoteUserIdRef.current = fromUserId;
+
+                // 🔑 CRITICAL: Update state IMMEDIATELY to transition UI from "Incoming" to "In Call"
+                // This prevents the UI from staying on the "Incoming" screen while media/connection is being set up.
                 setCallState((prev) => ({
                     ...prev,
+                    inCall: true,
+                    callId: incomingCallId,
+                    callType,
+                    isGroupCall: isGroupCall, // Ensure state matches
+                    remoteUserId: fromUserId,
+                    remoteUserName: isGroupCall ? groupName : fromUserName,
+                    incomingCall: null,
                     error: null,
+                    participants: [
+                        {
+                            userId: fromUserId,
+                            name: isGroupCall ? groupName : fromUserName,
+                            avatar: isGroupCall
+                                ? incomingCall?.groupAvatar
+                                : incomingCall?.fromUserAvatar,
+                            isInitiator: true,
+                            isMuted: false,
+                            isCameraOff: false,
+                        },
+                    ],
                 }));
-
-                const fromUserId = callState.incomingCall?.fromUserId;
-                const incomingCallId = callState.incomingCall?.callId;
-                remoteUserIdRef.current = fromUserId;
 
                 // 🔑 CRITICAL: Notify backend about acceptance FIRST
                 try {
@@ -1357,26 +1635,20 @@ const useCall = (socket) => {
                 // Initialize peer connection as non-initiator with callId from incoming call
                 const peer = await createPeerConnection(stream, false, incomingCallId, fromUserId);
                 peerRef.current = peer;
+                peersRef.current[fromUserId] = peer;
 
-                // Emit acceptance - use 'call_accepted' to match listener
-                console.log(`📤 [acceptCall] Emitting call_accepted event...`);
-                socket?.emit("call_accepted", {
-                    toUserId: fromUserId,
-                    conversationId: callState.incomingCall?.conversationId,
+                // Emit acceptance - Backend listens for 'accept_call'
+                console.log(`📤 [acceptCall] Emitting accept_call event...`);
+                socket?.emit("accept_call", {
+                    callerId: fromUserId, // initiator's ID
+                    initiatorId: fromUserId, // alternative field name
+                    fromUserId: userId, // current user ID
+                    conversationId: incomingCall?.conversationId,
                     callId: incomingCallId,
                 });
-                console.log("✅ [acceptCall] call_accepted event emitted");
+                console.log("✅ [acceptCall] accept_call event emitted");
 
-                setCallState((prev) => ({
-                    ...prev,
-                    inCall: true,
-                    callId: incomingCallId,
-                    callType,
-                    remoteUserId: fromUserId,
-                    remoteUserName: prev.incomingCall?.fromUserName,
-                    incomingCall: null,
-                }));
-                console.log("✅ [acceptCall] State updated - inCall: true");
+                console.log("✅ [acceptCall] State fully updated and connection established");
             } catch (error) {
                 console.error("❌ Failed to accept call:", error);
                 setCallState((prev) => ({
@@ -1413,15 +1685,15 @@ const useCall = (socket) => {
                     });
             }
 
-            // Emit rejection event
-            console.log(`📤 [rejectCall] Emitting call_rejected event...`);
-            socket?.emit("call_rejected", {
-                toUserId: recipientId,
+            // Emit rejection event - Backend listens for 'reject_call'
+            console.log(`📤 [rejectCall] Emitting reject_call event...`);
+            socket?.emit("reject_call", {
+                callerId: recipientId, // initiator's ID
                 conversationId: conversationId,
                 callId: callIdToReject,
                 reason: "user_declined",
             });
-            console.log("✅ [rejectCall] call_rejected event emitted");
+            console.log("✅ [rejectCall] reject_call event emitted");
 
             // Save missed call message
             if (conversationId && callType && socket && socket.connected) {
@@ -1442,12 +1714,17 @@ const useCall = (socket) => {
                 }, 100);
             }
 
-            // Clear the incoming call state immediately
-            console.log("📵 [rejectCall] Clearing incoming call state");
+            // Clear ALL call-related state immediately
+            console.log("📵 [rejectCall] Clearing all call state");
             return {
                 ...prev,
                 incomingCall: null,
+                outgoingCallId: null,
+                inCall: false,
+                callId: null,
                 error: null,
+                remoteStream: null,
+                localStream: null,
             };
         });
     }, [socket]);
@@ -1584,6 +1861,7 @@ const useCall = (socket) => {
     return {
         callState,
         makeCall,
+        makeGroupCall,
         acceptCall,
         rejectCall,
         endCall,
