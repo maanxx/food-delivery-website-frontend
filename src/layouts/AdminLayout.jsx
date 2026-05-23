@@ -1,6 +1,6 @@
-import React, { useState } from "react";
-import { Layout, Menu, Button, Dropdown, Avatar } from "antd";
-import { Outlet } from "react-router-dom";
+import React, { useState } from 'react';
+import { Layout, Menu, Button, Dropdown, Avatar } from 'antd';
+import { Outlet } from 'react-router-dom';
 import {
     BarChartOutlined,
     ShoppingOutlined,
@@ -12,11 +12,12 @@ import {
     FileTextOutlined,
     BgColorsOutlined,
     WechatOutlined,
-} from "@ant-design/icons";
-import { useNavigate } from "react-router-dom";
-import { useSelector } from "react-redux";
-import { getFirstLetterOfEachWord } from "@helpers/stringHelper";
-import styles from "./AdminLayout.module.css";
+    DollarOutlined,
+} from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import { getFirstLetterOfEachWord } from '@helpers/stringHelper';
+import styles from './AdminLayout.module.css';
 
 const { Header, Sider, Content } = Layout;
 
@@ -26,77 +27,83 @@ const AdminLayout = ({ children }) => {
     const user = useSelector((state) => state.auth.user);
 
     // ✅ PRIORITY 6: Frontend Debug Logs
-    console.log("--- ADMIN LAYOUT DEBUG ---");
-    console.log("USER:", user);
-    console.log("ROLE:", user?.role);
-    console.log("TOKEN:", localStorage.getItem("access_token"));
+    console.log('--- ADMIN LAYOUT DEBUG ---');
+    console.log('USER:', user);
+    console.log('ROLE:', user?.role);
+    console.log('TOKEN:', localStorage.getItem('access_token'));
 
     const menuItems = [
         {
-            key: "/admin",
+            key: '/admin',
             icon: <BarChartOutlined />,
-            label: "Dashboard",
-            onClick: () => navigate("/admin"),
+            label: 'Dashboard',
+            onClick: () => navigate('/admin'),
         },
         {
-            key: "/admin/chat",
+            key: '/admin/chat',
             icon: <WechatOutlined />,
-            label: "Chat",
-            onClick: () => navigate("/admin/chat"),
+            label: 'Chat',
+            onClick: () => navigate('/admin/chat'),
         },
         {
-            key: "/admin/orders",
+            key: '/admin/orders',
             icon: <ShoppingOutlined />,
-            label: "Orders",
-            onClick: () => navigate("/admin/orders"),
+            label: 'Orders',
+            onClick: () => navigate('/admin/orders'),
         },
         {
-            key: "/admin/employees",
+            key: '/admin/payments',
+            icon: <DollarOutlined />,
+            label: 'Payments',
+            onClick: () => navigate('/admin/payments'),
+        },
+        {
+            key: '/admin/employees',
             icon: <UserOutlined />,
-            label: "Employees",
-            onClick: () => navigate("/admin/employees"),
+            label: 'Employees',
+            onClick: () => navigate('/admin/employees'),
         },
         {
-            key: "/admin/products",
+            key: '/admin/products',
             icon: <BgColorsOutlined />,
-            label: "Products",
-            onClick: () => navigate("/admin/products"),
+            label: 'Products',
+            onClick: () => navigate('/admin/products'),
         },
         {
-            key: "/admin/reports",
+            key: '/admin/reports',
             icon: <FileTextOutlined />,
-            label: "Reports",
-            onClick: () => navigate("/admin/reports"),
+            label: 'Reports',
+            onClick: () => navigate('/admin/reports'),
         },
         {
-            key: "/admin/settings",
+            key: '/admin/settings',
             icon: <SettingOutlined />,
-            label: "Settings",
-            onClick: () => navigate("/admin/settings"),
+            label: 'Settings',
+            onClick: () => navigate('/admin/settings'),
         },
     ];
 
     const userMenu = [
         {
-            key: "profile",
-            label: "Profile",
+            key: 'profile',
+            label: 'Profile',
             icon: <UserOutlined />,
         },
         {
-            key: "settings",
-            label: "Settings",
+            key: 'settings',
+            label: 'Settings',
             icon: <SettingOutlined />,
         },
         {
-            type: "divider",
+            type: 'divider',
         },
         {
-            key: "logout",
-            label: "Logout",
+            key: 'logout',
+            label: 'Logout',
             icon: <LogoutOutlined />,
             onClick: () => {
                 // Logout logic
-                navigate("/login");
+                navigate('/login');
             },
         },
     ];
@@ -104,17 +111,26 @@ const AdminLayout = ({ children }) => {
     return (
         <Layout className={styles.adminLayout}>
             {/* Sidebar */}
-            <Sider trigger={null} collapsible collapsed={collapsed} className={styles.sidebar} theme="dark" width={250}>
+            <Sider
+                trigger={null}
+                collapsible
+                collapsed={collapsed}
+                className={styles.sidebar}
+                theme="dark"
+                width={250}
+            >
                 <div className={styles.logo}>
                     <span style={{ fontSize: 22 }}>🍊</span>
-                    {!collapsed && <span className={styles.logoText}>Eatsy Admin</span>}
+                    {!collapsed && (
+                        <span className={styles.logoText}>Eatsy Admin</span>
+                    )}
                 </div>
                 <Menu
                     theme="dark"
                     mode="inline"
                     items={menuItems}
                     className={styles.menu}
-                    defaultSelectedKeys={["/admin"]}
+                    defaultSelectedKeys={['/admin']}
                 />
             </Sider>
 
@@ -125,14 +141,23 @@ const AdminLayout = ({ children }) => {
                     <div className={styles.headerContent}>
                         <Button
                             type="text"
-                            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+                            icon={
+                                collapsed ? (
+                                    <MenuUnfoldOutlined />
+                                ) : (
+                                    <MenuFoldOutlined />
+                                )
+                            }
                             onClick={() => setCollapsed(!collapsed)}
                             className={styles.toggleBtn}
                         />
                     </div>
 
                     <div className={styles.headerRight}>
-                        <Dropdown menu={{ items: userMenu }} trigger={["click"]}>
+                        <Dropdown
+                            menu={{ items: userMenu }}
+                            trigger={['click']}
+                        >
                             <div className={styles.userSection}>
                                 <Avatar
                                     size={36}
@@ -140,13 +165,19 @@ const AdminLayout = ({ children }) => {
                                     className={styles.avatar}
                                 >
                                     {!user?.avatar_path && user?.fullname
-                                        ? getFirstLetterOfEachWord(user.fullname).children
+                                        ? getFirstLetterOfEachWord(
+                                              user.fullname,
+                                          ).children
                                         : !user?.avatar_path && user?.username
-                                          ? getFirstLetterOfEachWord(user.username).children
-                                          : "A"}
+                                          ? getFirstLetterOfEachWord(
+                                                user.username,
+                                            ).children
+                                          : 'A'}
                                 </Avatar>
                                 <span className={styles.userName}>
-                                    {user?.fullname || user?.username || "Admin User"}
+                                    {user?.fullname ||
+                                        user?.username ||
+                                        'Admin User'}
                                 </span>
                             </div>
                         </Dropdown>
@@ -154,7 +185,9 @@ const AdminLayout = ({ children }) => {
                 </Header>
 
                 {/* Content Area */}
-                <Content className={styles.content}>{children || <Outlet />}</Content>
+                <Content className={styles.content}>
+                    {children || <Outlet />}
+                </Content>
             </Layout>
         </Layout>
     );
