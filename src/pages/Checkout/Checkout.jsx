@@ -323,7 +323,6 @@ function Checkout() {
                         </div>
                     </div>
 
-                    {/* Sidebar Summary */}
                     <div className={styles.sidebar}>
                         <div className={styles.summaryCard}>
                             <h2 className={styles.sectionTitle}>

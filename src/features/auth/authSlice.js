@@ -5,7 +5,7 @@ import { fetchAddresses } from "@features/address/addressSlice";
 export const initializeAuth = createAsyncThunk(
     "auth/initialize",
     async (_, { dispatch, rejectWithValue }) => {
-        const token = localStorage.getItem("access_token");
+        const token = sessionStorage.getItem("access_token");
         if (!token) {
             return rejectWithValue("No token found");
         }
@@ -23,6 +23,8 @@ export const initializeAuth = createAsyncThunk(
             if (error.response?.status === 401 || error.response?.status === 403) {
                 localStorage.removeItem("access_token");
                 localStorage.removeItem("refresh_token");
+                sessionStorage.removeItem("access_token");
+                sessionStorage.removeItem("refresh_token");
             }
             return rejectWithValue(error.response?.data?.message || "Initialization failed");
         }
@@ -48,30 +50,31 @@ const authSlice = createSlice({
             // SAFE ACCESS: Support both { accessToken, user } and direct user object
             state.user = action.payload?.user || action.payload || null;
             state.isInitialized = true;
-            
+
             const tokenSource = action.payload?.token || action.payload?.accessToken;
             const refreshSource = action.payload?.refreshToken;
-            
+            const rememberMe = action.payload?.rememberMe;
+
+            const storage = rememberMe ? localStorage : sessionStorage;
+
             if (tokenSource) {
-                localStorage.setItem("access_token", tokenSource);
+                storage.setItem("access_token", tokenSource);
             }
             if (refreshSource) {
-                localStorage.setItem("refresh_token", refreshSource);
+                storage.setItem("refresh_token", refreshSource);
             }
 
-            // ✅ PRIORITY 6: Frontend Debug Logs
-            console.log("--- AUTH LOGIN DEBUG ---");
-            console.log("USER:", state.user);
-            console.log("ACCESS_TOKEN:", tokenSource);
-            console.log("REFRESH_TOKEN:", refreshSource);
+            if (rememberMe) {
+                sessionStorage.removeItem("access_token");
+                sessionStorage.removeItem("refresh_token");
+            }
         },
         logout: (state) => {
             state.isAuthenticated = false;
             state.user = null;
             state.isInitialized = true;
-            localStorage.removeItem("access_token");
-            localStorage.removeItem("refresh_token");
-            console.log("--- USER LOGGED OUT ---");
+            sessionStorage.removeItem("access_token");
+            sessionStorage.removeItem("refresh_token");
         },
         setInitialized: (state) => {
             state.isInitialized = true;
@@ -79,7 +82,6 @@ const authSlice = createSlice({
         updateUser: (state, action) => {
             if (state.user && action.payload) {
                 state.user = { ...state.user, ...action.payload };
-                console.log("--- AUTH USER SYNCED ---", state.user);
             }
         }
     },
@@ -90,7 +92,6 @@ const authSlice = createSlice({
             })
             .addCase(initializeAuth.fulfilled, (state, action) => {
                 state.isAuthenticated = true;
-                // SAFE ACCESS
                 state.user = action.payload?.user || null;
                 state.isInitialized = true;
                 state.isLoading = false;
@@ -98,7 +99,7 @@ const authSlice = createSlice({
             .addCase(initializeAuth.rejected, (state) => {
                 state.isAuthenticated = false;
                 state.user = null;
-                state.isInitialized = true; // Still initialized even if failed
+                state.isInitialized = true;
                 state.isLoading = false;
             });
     },

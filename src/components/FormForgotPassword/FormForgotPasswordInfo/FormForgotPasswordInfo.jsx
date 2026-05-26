@@ -62,12 +62,6 @@ function FormForgetPasswordInfo() {
             });
 
             if (response.data.success) {
-                if (response.data.otp) {
-                    toast.info(`[DEV MODE] OTP: ${response.data.otp}`, {
-                        autoClose: false,
-                        closeOnClick: false,
-                    });
-                }
                 navigate("/api/forgot-password/verify-otp");
             } else {
                 console.log("Failed");

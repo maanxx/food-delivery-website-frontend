@@ -250,12 +250,6 @@ const FormForgotPasswordOTP = () => {
             });
 
             if (res.data.success) {
-                if (res.data.otp) {
-                    toast.info(`[DEV MODE] New OTP: ${res.data.otp}`, {
-                        autoClose: false,
-                        closeOnClick: false,
-                    });
-                }
                 setLoading(false);
             }
         } catch (error) {

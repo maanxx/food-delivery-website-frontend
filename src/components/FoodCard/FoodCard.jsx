@@ -1,7 +1,10 @@
 import React, { memo, useCallback } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { addToCart, selectItemQuantity } from '@features/cart/cartSlice';
+import useFavorites from '@hooks/useFavorites';
 import { message } from 'antd';
+import FavoriteIcon from '@mui/icons-material/Favorite';
+import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import styles from './FoodCard.module.css';
 
 const FoodCard = memo(({ dish = {} }) => {
@@ -20,6 +23,7 @@ const FoodCard = memo(({ dish = {} }) => {
 
   const quantityInCart = useSelector(selectItemQuantity(dish_id));
   const [isAdding, setIsAdding] = React.useState(false);
+  const { isFavorite, isMutating, toggleFavorite } = useFavorites(dish_id);
 
   const displayImage = image || thumbnail_path || "/images/dishes/pizza/pizza1.jpg";
 
@@ -49,6 +53,18 @@ const FoodCard = memo(({ dish = {} }) => {
     }
   }, [dispatch, dish_id, isAdding, isAuthenticated]);
 
+  const handleToggleFavorite = useCallback(async (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (!isAuthenticated) {
+      message.warning("Vui lòng đăng nhập để lưu món yêu thích!");
+      return;
+    }
+
+    await toggleFavorite();
+  }, [isAuthenticated, toggleFavorite]);
+
   const isLoading = isAdding || (cartStatus === 'loading' && isAdding);
 
   return (
@@ -64,6 +80,15 @@ const FoodCard = memo(({ dish = {} }) => {
           alt={name}
           className={styles.image}
         />
+        <button
+          type="button"
+          className={`${styles.favoriteBtn} ${isFavorite ? styles.favoriteActive : ""}`}
+          onClick={handleToggleFavorite}
+          disabled={isMutating}
+          aria-label={isFavorite ? "Bỏ yêu thích" : "Thêm vào yêu thích"}
+        >
+          {isFavorite ? <FavoriteIcon fontSize="inherit" /> : <FavoriteBorderIcon fontSize="inherit" />}
+        </button>
         {quantityInCart > 0 && (
           <div className={styles.quantityBadge}>
             x{quantityInCart}

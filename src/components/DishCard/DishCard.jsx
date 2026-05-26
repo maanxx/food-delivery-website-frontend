@@ -2,12 +2,15 @@ import React, { memo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { addToCart, updateItemQuantity, selectCartItems } from "@features/cart/cartSlice";
+import useFavorites from "@hooks/useFavorites";
 import { message } from "antd";
 import { 
   Add as AddIcon, 
   Remove as RemoveIcon, 
   Star as StarIcon,
-  ShoppingCart as CartIcon
+  ShoppingCart as CartIcon,
+  Favorite as FavoriteIcon,
+  FavoriteBorder as FavoriteBorderIcon,
 } from "@mui/icons-material";
 import classNames from "classnames/bind";
 import styles from "./DishCard.module.css";
@@ -40,6 +43,8 @@ const DishCard = memo(({ dish = {} }) => {
   } = dish;
 
   const dishId = dish_id; // Standardized internal name
+  const { isAuthenticated, isFavorite, isMutating, toggleFavorite } =
+    useFavorites(dishId);
   const finalPrice = price - discount_amount;
   const hasDiscount = discount_amount > 0;
   const isOutOfStock = stock <= 0;
@@ -62,6 +67,18 @@ const DishCard = memo(({ dish = {} }) => {
   const handleCardClick = () => {
     navigate(`/dish/${dishId}`);
   };
+
+  const handleToggleFavorite = useCallback(async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!isAuthenticated) {
+      message.warning("Vui lòng đăng nhập để lưu món yêu thích");
+      return;
+    }
+
+    await toggleFavorite();
+  }, [isAuthenticated, toggleFavorite]);
 
   /**
    * Add to Cart logic with logs
@@ -129,6 +146,16 @@ const DishCard = memo(({ dish = {} }) => {
             {Number(rating_avg).toFixed(1)}
           </div>
         </div>
+
+        <button
+          type="button"
+          className={cx("favoriteBtn", isFavorite && "favoriteActive")}
+          onClick={handleToggleFavorite}
+          disabled={isMutating}
+          aria-label={isFavorite ? "Bỏ yêu thích" : "Thêm vào yêu thích"}
+        >
+          {isFavorite ? <FavoriteIcon fontSize="inherit" /> : <FavoriteBorderIcon fontSize="inherit" />}
+        </button>
 
         {isOutOfStock && (
           <div className={styles.stockLabel}>Hết hàng</div>
