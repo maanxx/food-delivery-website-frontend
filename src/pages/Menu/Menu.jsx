@@ -1,25 +1,15 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import classNames from "classnames/bind";
-import { Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import {
-  addToCart,
-  updateItemQuantity,
-  selectCartItems,
-  selectItemQuantity,
-} from "@features/cart/cartSlice";
+import { fetchUserFavorites, selectFavoritesLoaded } from "@features/user/userSlice";
 import {
   Container,
   Grid,
   Typography,
   Button,
   TextField,
-  Chip,
 } from "@mui/material";
-import {
-  Search as SearchIcon,
-  ShoppingCart as CartIcon,
-} from "@mui/icons-material";
+import { Search as SearchIcon } from "@mui/icons-material";
 import DishCard from "@components/DishCard/DishCard";
 import styles from "./Menu.module.css";
 import axiosInstance from "@config/axiosInstance";
@@ -30,7 +20,8 @@ const cx = classNames.bind(styles);
 
 function Menu() {
   const dispatch = useDispatch();
-  const cartItems = useSelector(selectCartItems);
+  const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
+  const favoritesLoaded = useSelector(selectFavoritesLoaded);
 
   const [selectedCategoryId, setSelectedCategoryId] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
@@ -71,6 +62,12 @@ function Menu() {
   useEffect(() => {
     setCurrentPage(1);
   }, [selectedCategoryId, searchTerm, sortBy, priceRange]);
+
+  useEffect(() => {
+    if (isAuthenticated && !favoritesLoaded) {
+      dispatch(fetchUserFavorites());
+    }
+  }, [dispatch, favoritesLoaded, isAuthenticated]);
 
   const safeDishes = Array.isArray(dishes) ? dishes : [];
 
@@ -113,11 +110,6 @@ function Menu() {
     startIndex,
     startIndex + itemsPerPage,
   );
-
-  // Get total items in cart from Redux
-  const getTotalCartItems = () => {
-    return cartItems.reduce((total, item) => total + item.quantity, 0);
-  };
 
   return (
     <div className={cx("menu")}>

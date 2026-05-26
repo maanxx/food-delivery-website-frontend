@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import {
   Container,
   Typography,
@@ -12,10 +13,14 @@ import styles from "./Offers.module.css";
 import { toast } from "react-toastify";
 
 import FoodCard from "../../components/FoodCard/FoodCard";
+import { fetchUserFavorites, selectFavoritesLoaded } from "@features/user/userSlice";
 import { getAllDishes } from "../../services/dishService";
 import { getVouchers } from "../../services/voucherService";
 
 const Offers = () => {
+  const dispatch = useDispatch();
+  const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
+  const favoritesLoaded = useSelector(selectFavoritesLoaded);
   const [dishes, setDishes] = useState([]);
   const [vouchers, setVouchers] = useState([]);
   const [filter, setFilter] = useState("all");
@@ -29,6 +34,12 @@ const Offers = () => {
     };
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (isAuthenticated && !favoritesLoaded) {
+      dispatch(fetchUserFavorites());
+    }
+  }, [dispatch, favoritesLoaded, isAuthenticated]);
 
   useEffect(() => {
     const fetchVouchers = async () => {
