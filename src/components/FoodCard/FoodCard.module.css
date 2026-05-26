@@ -49,6 +49,40 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
+.favoriteBtn {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 2;
+  width: 38px;
+  height: 38px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.94);
+  color: #60656b;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+  transition: all 0.25s ease;
+}
+
+.favoriteBtn:hover:not(:disabled) {
+  transform: scale(1.06);
+  color: #ff6b35;
+}
+
+.favoriteBtn:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.favoriteActive {
+  color: #ff5a5f;
+  background: rgba(255, 245, 246, 0.98);
+}
+
 
 .originalPrice {
   text-decoration: line-through;
