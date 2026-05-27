@@ -6,6 +6,11 @@ import { message } from "antd";
 
 import styles from "./VNPayCheckout.module.css";
 import { createPaymentUrl } from "@services/vnpayService";
+import {
+    beginRateLimitedAction,
+    finishRateLimitedAction,
+    RATE_LIMIT_DEFAULTS,
+} from "@utils/requestRateLimiter";
 
 const METHOD_META = {
     QR: {
@@ -35,10 +40,27 @@ function VNPayCheckout() {
     const methodMeta = useMemo(() => METHOD_META[method] || METHOD_META.QR, [method]);
 
     const canPay = Boolean(orderId) && amount > 0;
+    const vnpayRateLimitKey = `vnpay-redirect-${orderId || "unknown"}`;
 
     const handlePayWithVNPay = useCallback(async () => {
         if (!canPay) {
             message.error("Thiếu thông tin đơn hàng để tạo thanh toán VNPay");
+            return;
+        }
+
+        const rateLimitAttempt = beginRateLimitedAction(
+            vnpayRateLimitKey,
+            RATE_LIMIT_DEFAULTS.VNPAY_REDIRECT,
+        );
+
+        if (!rateLimitAttempt.allowed) {
+            const waitSeconds = Math.ceil(rateLimitAttempt.remainingMs / 1000);
+            const warnMessage =
+                rateLimitAttempt.reason === "in_flight"
+                    ? "Yêu cầu thanh toán đang được xử lý. Vui lòng chờ."
+                    : `Vui lòng chờ ${waitSeconds} giây trước khi thử lại.`;
+
+            message.warning(warnMessage);
             return;
         }
 
@@ -71,9 +93,10 @@ function VNPayCheckout() {
             const msg = error?.response?.data?.message || "Không thể kết nối VNPay sandbox";
             message.error(msg);
         } finally {
+            finishRateLimitedAction(vnpayRateLimitKey, rateLimitAttempt.requestId);
             setLoading(false);
         }
-    }, [amount, canPay, methodMeta.bankCode, orderId]);
+    }, [amount, canPay, methodMeta.bankCode, orderId, vnpayRateLimitKey]);
 
     return (
         <div className={styles.wrapper}>

@@ -1,0 +1,29 @@
+FROM node:20-bullseye AS build
+
+WORKDIR /app
+
+ARG REACT_APP_SERVER_BASE_URL=http://localhost:5678
+ARG REACT_APP_CLIENT_BASE_URL=http://localhost:1234
+ARG REACT_APP_SOCKET_URL=http://localhost:5678
+ARG REACT_APP_SERVER_PORT=5678
+ARG PORT=1234
+
+ENV REACT_APP_SERVER_BASE_URL=$REACT_APP_SERVER_BASE_URL
+ENV REACT_APP_CLIENT_BASE_URL=$REACT_APP_CLIENT_BASE_URL
+ENV REACT_APP_SOCKET_URL=$REACT_APP_SOCKET_URL
+ENV REACT_APP_SERVER_PORT=$REACT_APP_SERVER_PORT
+ENV PORT=$PORT
+
+COPY package*.json ./
+RUN npm ci
+
+COPY . .
+ENV NODE_ENV=production
+RUN npm run build
+
+FROM nginx:1.27-alpine
+
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/dist /usr/share/nginx/html
+
+EXPOSE 80
