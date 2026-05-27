@@ -27,7 +27,10 @@ export const createOrder = createAsyncThunk(
         try {
             const response = await orderService.createOrder(orderData);
             if (response.success) {
-                return response.data;
+                return {
+                    order: response.data,
+                    idempotentReplay: Boolean(response.idempotent_replay),
+                };
             }
             return rejectWithValue(response.message);
         } catch (error) {
@@ -45,7 +48,10 @@ export const createPaymentSession = createAsyncThunk(
             const response =
                 await orderService.createPaymentSession(paymentData);
             if (response.success) {
-                return response.data;
+                return {
+                    paymentSession: response.data,
+                    idempotentReplay: Boolean(response.idempotent_replay),
+                };
             }
             return rejectWithValue(response.message);
         } catch (error) {
@@ -143,9 +149,9 @@ const orderSlice = createSlice({
             })
             .addCase(createOrder.fulfilled, (state, action) => {
                 state.loading = false;
-                state.currentOrder = action.payload;
+                state.currentOrder = action.payload.order;
                 // Prepend new order to list
-                state.orders.unshift(action.payload);
+                state.orders.unshift(action.payload.order);
                 syncActiveIds(state);
             })
             .addCase(createOrder.rejected, (state, action) => {
@@ -159,7 +165,7 @@ const orderSlice = createSlice({
             })
             .addCase(createPaymentSession.fulfilled, (state, action) => {
                 state.loading = false;
-                state.paymentSession = action.payload;
+                state.paymentSession = action.payload.paymentSession;
             })
             .addCase(createPaymentSession.rejected, (state, action) => {
                 state.loading = false;

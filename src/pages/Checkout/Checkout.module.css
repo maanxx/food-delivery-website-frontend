@@ -296,6 +296,14 @@
     cursor: not-allowed;
 }
 
+.cooldownHint {
+    margin-top: 12px;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #777;
+    text-align: center;
+}
+
 @media (max-width: 992px) {
     .checkoutGrid {
         grid-template-columns: 1fr;

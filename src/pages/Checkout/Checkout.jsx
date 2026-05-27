@@ -16,6 +16,12 @@ import { resetCartState } from '@features/cart/cartSlice';
 
 import styles from './Checkout.module.css';
 import profileService from '@services/profileService';
+import {
+    beginRateLimitedAction,
+    finishRateLimitedAction,
+    getRateLimitRemainingMs,
+    RATE_LIMIT_DEFAULTS,
+} from '@utils/requestRateLimiter';
 
 const CHECKOUT_TEXT = {
     TITLE: 'Thanh toán',
@@ -39,6 +45,7 @@ const CHECKOUT_TEXT = {
 };
 
 function Checkout() {
+    const checkoutRateLimitKey = 'checkout-submit';
     const location = useLocation();
     const navigate = useNavigate();
     const dispatch = useDispatch();
@@ -52,6 +59,8 @@ function Checkout() {
     const [qrModalOpen, setQrModalOpen] = useState(false);
     const [qrInfo, setQrInfo] = useState(null);
     const [paymentId, setPaymentId] = useState(null);
+    const [cooldownRemainingMs, setCooldownRemainingMs] = useState(0);
+    const [isSubmittingCheckout, setIsSubmittingCheckout] = useState(false);
 
     // Redirect if no data from cart
     useEffect(() => {
@@ -87,17 +96,60 @@ function Checkout() {
         fetchAddresses();
     }, [fetchAddresses]);
 
+    useEffect(() => {
+        if (!cooldownRemainingMs) {
+            return undefined;
+        }
+
+        const timer = setInterval(() => {
+            const remaining = getRateLimitRemainingMs(checkoutRateLimitKey);
+            setCooldownRemainingMs(remaining);
+
+            if (!remaining) {
+                clearInterval(timer);
+            }
+        }, 250);
+
+        return () => {
+            clearInterval(timer);
+        };
+    }, [cooldownRemainingMs, checkoutRateLimitKey]);
+
     const handlePlaceOrder = useCallback(async () => {
         if (!selectedAddressId) {
             message.warning('Vui lòng chọn địa chỉ giao hàng');
             return;
         }
 
+        const rateLimitAttempt = beginRateLimitedAction(
+            checkoutRateLimitKey,
+            RATE_LIMIT_DEFAULTS.CHECKOUT_SUBMIT,
+        );
+
+        if (!rateLimitAttempt.allowed) {
+            const waitSeconds = Math.ceil(rateLimitAttempt.remainingMs / 1000);
+            setCooldownRemainingMs(rateLimitAttempt.remainingMs);
+
+            if (rateLimitAttempt.reason === 'in_flight') {
+                message.warning('Đơn hàng đang được xử lý. Vui lòng chờ.');
+                return;
+            }
+
+            message.warning(
+                `Vui lòng chờ ${waitSeconds} giây trước khi đặt hàng lại.`,
+            );
+            return;
+        }
+
+        setIsSubmittingCheckout(true);
+        setCooldownRemainingMs(RATE_LIMIT_DEFAULTS.CHECKOUT_SUBMIT);
+
         try {
             const payload = {
                 address_id: selectedAddressId,
                 note: note,
                 payment_method: paymentMethod,
+                request_id: rateLimitAttempt.requestId,
             };
 
             if (checkoutData.voucher_code) {
@@ -109,11 +161,17 @@ function Checkout() {
                     createPaymentSession(payload),
                 );
                 if (createPaymentSession.fulfilled.match(resultAction)) {
-                    message.success(
-                        'Đã tạo phiên thanh toán. Vui lòng chuyển khoản để hoàn tất.',
+                    const { paymentSession, idempotentReplay } =
+                        resultAction.payload;
+                    message[
+                        idempotentReplay ? 'info' : 'success'
+                    ](
+                        idempotentReplay
+                            ? 'Đã dùng lại phiên thanh toán trước đó. Vui lòng tiếp tục chuyển khoản.'
+                            : 'Đã tạo phiên thanh toán. Vui lòng chuyển khoản để hoàn tất.',
                     );
-                    setQrInfo(resultAction.payload.qr_info);
-                    setPaymentId(resultAction.payload.payment_id);
+                    setQrInfo(paymentSession.qr_info);
+                    setPaymentId(paymentSession.payment_id);
                     setQrModalOpen(true);
                     return;
                 }
@@ -125,8 +183,13 @@ function Checkout() {
 
             const resultAction = await dispatch(createOrder(payload));
             if (createOrder.fulfilled.match(resultAction)) {
-                const orderId = resultAction.payload.order_id;
-                message.success('Đặt hàng thành công!');
+                const { order, idempotentReplay } = resultAction.payload;
+                const orderId = order.order_id;
+                message[idempotentReplay ? 'info' : 'success'](
+                    idempotentReplay
+                        ? 'Đơn hàng trước đó đã được ghi nhận. Chúng tôi đang mở lại kết quả cho bạn.'
+                        : 'Đặt hàng thành công!',
+                );
                 dispatch(resetCartState());
                 navigate(`/checkout/success?orderId=${orderId}`);
             } else {
@@ -135,8 +198,18 @@ function Checkout() {
         } catch (error) {
             console.error('Order error:', error);
             message.error('Lỗi hệ thống khi đặt hàng');
+        } finally {
+            finishRateLimitedAction(
+                checkoutRateLimitKey,
+                rateLimitAttempt.requestId,
+            );
+            setIsSubmittingCheckout(false);
+            setCooldownRemainingMs(
+                getRateLimitRemainingMs(checkoutRateLimitKey),
+            );
         }
     }, [
+        checkoutRateLimitKey,
         selectedAddressId,
         note,
         navigate,
@@ -192,6 +265,20 @@ function Checkout() {
         ),
         [checkoutData.items],
     );
+
+    const placeOrderDisabled = !selectedAddressId;
+
+    const placeOrderLabel = useMemo(() => {
+        if (orderLoading || isSubmittingCheckout) {
+            return 'Đang xử lý...';
+        }
+
+        if (cooldownRemainingMs > 0) {
+            return `Vui lòng chờ ${Math.ceil(cooldownRemainingMs / 1000)}s`;
+        }
+
+        return CHECKOUT_TEXT.PLACE_ORDER;
+    }, [cooldownRemainingMs, isSubmittingCheckout, orderLoading]);
 
     if (!checkoutData) return null;
 
@@ -385,12 +472,18 @@ function Checkout() {
                             <button
                                 className={styles.placeOrderBtn}
                                 onClick={handlePlaceOrder}
-                                disabled={orderLoading || !selectedAddressId}
+                                disabled={placeOrderDisabled}
                             >
-                                {orderLoading
-                                    ? 'Đang xử lý...'
-                                    : CHECKOUT_TEXT.PLACE_ORDER}
+                                {placeOrderLabel}
                             </button>
+                            {cooldownRemainingMs > 0 &&
+                                !orderLoading &&
+                                !isSubmittingCheckout && (
+                                    <p className={styles.cooldownHint}>
+                                        Hệ thống đang giới hạn thao tác đặt hàng
+                                        để tránh gửi trùng yêu cầu.
+                                    </p>
+                                )}
                         </div>
                     </div>
                 </div>
