@@ -1,5 +1,14 @@
 import axios from "axios";
 
+const getAccessToken = () => sessionStorage.getItem("access_token") || localStorage.getItem("access_token");
+const getRefreshToken = () => sessionStorage.getItem("refresh_token") || localStorage.getItem("refresh_token");
+const clearTokens = () => {
+    localStorage.removeItem("access_token");
+    localStorage.removeItem("refresh_token");
+    sessionStorage.removeItem("access_token");
+    sessionStorage.removeItem("refresh_token");
+};
+
 const axiosInstance = axios.create({
     baseURL: process.env.REACT_APP_SERVER_BASE_URL,
     withCredentials: true,
@@ -9,13 +18,7 @@ const axiosInstance = axios.create({
 });
 
 axiosInstance.interceptors.request.use((config) => {
-    const token = localStorage.getItem("access_token");
-
-    // ✅ DEBUG LOGGING
-    console.log("--- AXIOS REQUEST DEBUG ---");
-    console.log("URL:", config.url);
-    console.log("METHOD:", config.method);
-    console.log("TOKEN PRESENT:", !!token);
+    const token = getAccessToken();
 
     config.headers = config.headers || {};
 
@@ -53,7 +56,6 @@ axiosInstance.interceptors.response.use(
 
         if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
             
-            // If already refreshing, queue the pending requests so they don't simultaneously refresh
             if (isRefreshing) {
                 return new Promise(function(resolve, reject) {
                     failedQueue.push({ resolve, reject });
@@ -67,41 +69,34 @@ axiosInstance.interceptors.response.use(
 
             originalRequest._retry = true;
             isRefreshing = true;
-            const refreshToken = localStorage.getItem("refresh_token");
+            const refreshToken = getRefreshToken();
 
             if (!refreshToken) {
-                console.log("--- LOGOUT TRIGGERED: No refresh token ---");
-                localStorage.removeItem("access_token");
-                localStorage.removeItem("refresh_token");
+                clearTokens();
                 if (window.location.pathname !== "/login") window.location.href = "/login";
                 return Promise.reject(error);
             }
 
-            console.log("--- REFRESH TOKEN USED ---");
 
             try {
-                // Must use standard axios to avoid recursive interceptor loops
                 const { data } = await axios.post(`${process.env.REACT_APP_SERVER_BASE_URL}/auth/refresh`, {
                     refreshToken
                 });
 
                 if (data.success) {
-                    console.log("--- TOKEN REFRESHED ---");
                     const newAccessToken = data.accessToken;
-                    localStorage.setItem("access_token", newAccessToken);
                     
-                    // Resolve queued requests
+                    const storage = localStorage.getItem("refresh_token") ? localStorage : sessionStorage;
+                    storage.setItem("access_token", newAccessToken);
+                    
                     processQueue(null, newAccessToken);
-                    
-                    // Proceed with original request
+
                     originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;
                     return axiosInstance(originalRequest);
                 }
             } catch (refreshError) {
                 processQueue(refreshError, null);
-                console.log("--- LOGOUT TRIGGERED: Refresh token failed or expired ---");
-                localStorage.removeItem("access_token");
-                localStorage.removeItem("refresh_token");
+                clearTokens();
                 if (window.location.pathname !== "/login") window.location.href = "/login";
                 return Promise.reject(refreshError);
             } finally {

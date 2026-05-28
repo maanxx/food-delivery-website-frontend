@@ -5,7 +5,7 @@ import { fetchAddresses } from "@features/address/addressSlice";
 export const initializeAuth = createAsyncThunk(
     "auth/initialize",
     async (_, { dispatch, rejectWithValue }) => {
-        const token = sessionStorage.getItem("access_token");
+        const token = sessionStorage.getItem("access_token") || localStorage.getItem("access_token");
         if (!token) {
             return rejectWithValue("No token found");
         }
