@@ -8,7 +8,7 @@ import useLoading from "@hooks/useLoading";
 import { regexNumbers } from "@constants/constants";
 import styles from "@pages/Login/Login.module.css";
 import axiosInstance from "@config/axiosInstance";
-import { useNavigate, useOutletContext } from "react-router-dom";
+import { useNavigate, useOutletContext, Link } from "react-router-dom";
 
 import { toast } from "react-toastify";
 
@@ -31,6 +31,7 @@ function OTP({ separator, length, value, onChange, formData, setFormData, setIsE
             if (res.data.success) {
                 setIsValidOTP(true);
                 setLoading(false);
+                toast.success("Xác thực OTP thành công!");
 
                 if (res.data.existUser) {
                     setIsExistUser(true);
@@ -43,6 +44,8 @@ function OTP({ separator, length, value, onChange, formData, setFormData, setIsE
         } catch (error) {
             setIsValidOTP(false);
             console.log(error);
+            const errorMsg = error.response?.data?.message || "Mã OTP chưa chính xác hoặc đã hết hạn.";
+            toast.error(errorMsg);
         } finally {
             setLoading(false);
         }
@@ -234,27 +237,34 @@ function FormLoginOTP() {
     const [otp, setOtp] = useState("");
     const [disabledBtn, setDisabledBtn] = useState(true);
     const resendOTPBtn = useRef();
+    const countdownIntervalRef = useRef(null);
     const { setLoading } = useLoading();
 
-    const countdownTimetoResend = () => {
-        let currentSecond = 29;
-        const countdown = setInterval(() => {
+    const startCountdown = (seconds = 59) => {
+        if (countdownIntervalRef.current) {
+            clearInterval(countdownIntervalRef.current);
+        }
+        let currentSecond = seconds;
+        setDisabledBtn(true);
+        countdownIntervalRef.current = setInterval(() => {
             if (resendOTPBtn.current) {
                 resendOTPBtn.current.innerText = `Gửi lại OTP sau 00:${
                     currentSecond < 10 ? "0" + currentSecond : currentSecond
                 } giây`;
-                setDisabledBtn(true);
                 currentSecond -= 1;
             }
             if (currentSecond < 0) {
-                resendOTPBtn.current.innerText = `Gửi lại OTP`;
+                if (resendOTPBtn.current) {
+                    resendOTPBtn.current.innerText = `Gửi lại OTP`;
+                }
                 setDisabledBtn(false);
-                clearInterval(countdown);
+                clearInterval(countdownIntervalRef.current);
             }
         }, 1000);
     };
+
     const handleResendOTPBtnClick = async () => {
-        countdownTimetoResend();
+        startCountdown(59);
         setLoading(true);
         try {
             const res = await axiosInstance({
@@ -268,34 +278,29 @@ function FormLoginOTP() {
 
             if (res.data.success) {
                 setLoading(false);
+                toast.success("Mã OTP đã được gửi lại!");
             }
         } catch (error) {
             console.log(error);
+            const errorMsg = error.response?.data?.message || "Không thể gửi lại OTP. Vui lòng thử lại sau.";
+            toast.error(errorMsg);
         } finally {
             setLoading(false);
         }
     };
 
     useEffect(() => {
-        let currentSecond = 29;
-        const countdown = setInterval(() => {
-            if (resendOTPBtn.current) {
-                resendOTPBtn.current.innerText = `Gửi lại OTP sau 00:${
-                    currentSecond < 10 ? "0" + currentSecond : currentSecond
-                } giây`;
-                setDisabledBtn(true);
-                currentSecond -= 1;
-            }
-            if (currentSecond < 0) {
-                resendOTPBtn.current.innerText = `Gửi lại OTP`;
-                setDisabledBtn(false);
-                clearInterval(countdown);
-            }
-        }, 1000);
+        startCountdown(59);
 
         if (!formData.phone) {
             navigate("/login");
         }
+
+        return () => {
+            if (countdownIntervalRef.current) {
+                clearInterval(countdownIntervalRef.current);
+            }
+        };
     }, []);
 
     return (
@@ -331,8 +336,16 @@ function FormLoginOTP() {
                 ref={resendOTPBtn}
                 type="button"
             >
-                Gửi lại OTP sau 00:30 giây
+                Gửi lại OTP sau 01:00 giây
             </button>
+            <div style={{ marginTop: "15px" }}>
+                <Link 
+                    to="/login/input-password" 
+                    style={{ color: "var(--primaryColor)", fontWeight: "600", textDecoration: "none", fontSize: "14px" }}
+                >
+                    Đăng nhập bằng Mật khẩu thay thế
+                </Link>
+            </div>
         </Box>
     );
 }
