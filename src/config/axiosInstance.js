@@ -9,15 +9,26 @@ const axiosInstance = axios.create({
 });
 
 axiosInstance.interceptors.request.use((config) => {
-    const token = localStorage.getItem("access_token");
+    config.headers = config.headers || {};
+    
+    // Check if custom auth type was requested, then clean it up
+    const authType = config.headers["x-auth-type"];
+    delete config.headers["x-auth-type"];
 
-    // ✅ DEBUG LOGGING
+    const isAdminRequest = authType === "admin" || config.url.includes("/api/admin") || window.location.pathname.startsWith("/admin");
+
+    let token = null;
+    if (isAdminRequest) {
+        token = sessionStorage.getItem("admin_token") || localStorage.getItem("admin_token");
+    } else {
+        token = sessionStorage.getItem("customer_token") || localStorage.getItem("customer_token");
+    }
+
     console.log("--- AXIOS REQUEST DEBUG ---");
     console.log("URL:", config.url);
     console.log("METHOD:", config.method);
+    console.log("CONTEXT:", isAdminRequest ? "ADMIN" : "CUSTOMER");
     console.log("TOKEN PRESENT:", !!token);
-
-    config.headers = config.headers || {};
 
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
@@ -53,6 +64,12 @@ axiosInstance.interceptors.response.use(
 
         if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
             
+            // Determine context
+            const isAdminRequest = originalRequest.url.includes("/api/admin") || window.location.pathname.startsWith("/admin");
+            const tokenKey = isAdminRequest ? "admin_token" : "customer_token";
+            const refreshKey = isAdminRequest ? "admin_refresh_token" : "customer_refresh_token";
+            const redirectPath = isAdminRequest ? "/admin/login" : "/login";
+
             // If already refreshing, queue the pending requests so they don't simultaneously refresh
             if (isRefreshing) {
                 return new Promise(function(resolve, reject) {
@@ -67,17 +84,23 @@ axiosInstance.interceptors.response.use(
 
             originalRequest._retry = true;
             isRefreshing = true;
-            const refreshToken = localStorage.getItem("refresh_token");
+
+            const refreshToken = sessionStorage.getItem(refreshKey) || localStorage.getItem(refreshKey);
 
             if (!refreshToken) {
-                console.log("--- LOGOUT TRIGGERED: No refresh token ---");
-                localStorage.removeItem("access_token");
-                localStorage.removeItem("refresh_token");
-                if (window.location.pathname !== "/login") window.location.href = "/login";
+                console.log(`--- LOGOUT TRIGGERED: No refresh token for ${isAdminRequest ? 'Admin' : 'Customer'} ---`);
+                localStorage.removeItem(tokenKey);
+                localStorage.removeItem(refreshKey);
+                localStorage.removeItem(isAdminRequest ? "admin_info" : "customer_info");
+                sessionStorage.removeItem(tokenKey);
+                sessionStorage.removeItem(refreshKey);
+                sessionStorage.removeItem(isAdminRequest ? "admin_info" : "customer_info");
+                
+                if (window.location.pathname !== redirectPath) window.location.href = redirectPath;
                 return Promise.reject(error);
             }
 
-            console.log("--- REFRESH TOKEN USED ---");
+            console.log(`--- REFRESH TOKEN USED: ${isAdminRequest ? 'Admin' : 'Customer'} ---`);
 
             try {
                 // Must use standard axios to avoid recursive interceptor loops
@@ -86,9 +109,13 @@ axiosInstance.interceptors.response.use(
                 });
 
                 if (data.success) {
-                    console.log("--- TOKEN REFRESHED ---");
+                    console.log(`--- ${isAdminRequest ? 'Admin' : 'Customer'} TOKEN REFRESHED ---`);
                     const newAccessToken = data.accessToken;
-                    localStorage.setItem("access_token", newAccessToken);
+                    
+                    // Store in the correct active storage type
+                    const isPersistent = !!localStorage.getItem(refreshKey);
+                    const storage = isPersistent ? localStorage : sessionStorage;
+                    storage.setItem(tokenKey, newAccessToken);
                     
                     // Resolve queued requests
                     processQueue(null, newAccessToken);
@@ -99,10 +126,16 @@ axiosInstance.interceptors.response.use(
                 }
             } catch (refreshError) {
                 processQueue(refreshError, null);
-                console.log("--- LOGOUT TRIGGERED: Refresh token failed or expired ---");
-                localStorage.removeItem("access_token");
-                localStorage.removeItem("refresh_token");
-                if (window.location.pathname !== "/login") window.location.href = "/login";
+                console.log(`--- LOGOUT TRIGGERED: Refresh token failed or expired for ${isAdminRequest ? 'Admin' : 'Customer'} ---`);
+                
+                localStorage.removeItem(tokenKey);
+                localStorage.removeItem(refreshKey);
+                localStorage.removeItem(isAdminRequest ? "admin_info" : "customer_info");
+                sessionStorage.removeItem(tokenKey);
+                sessionStorage.removeItem(refreshKey);
+                sessionStorage.removeItem(isAdminRequest ? "admin_info" : "customer_info");
+
+                if (window.location.pathname !== redirectPath) window.location.href = redirectPath;
                 return Promise.reject(refreshError);
             } finally {
                 isRefreshing = false;

@@ -7,7 +7,8 @@ import "react-toastify/dist/ReactToastify.css";
 import { useDispatch } from "react-redux";
 import router from "@router/router";
 import useLoading from "@hooks/useLoading";
-import { initializeAuth } from "@features/auth/authSlice";
+import { initializeAuth } from "@features/auth/customerAuthSlice";
+import { initializeAdminAuth } from "@features/auth/adminAuthSlice";
 
 //hello
 function App() {
@@ -16,6 +17,7 @@ function App() {
 
   React.useEffect(() => {
     dispatch(initializeAuth());
+    dispatch(initializeAdminAuth());
   }, [dispatch]);
 
     return (

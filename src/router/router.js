@@ -19,6 +19,7 @@ import {
     ForgotPassword,
     DishDetail,
     Admin,
+    AdminLogin,
     OrderSuccess,
 } from "@pages/index";
 import Orders from "@pages/Admin/Orders";
@@ -122,6 +123,10 @@ const publicRoutes = [
             },
         ],
     },
+    {
+        path: "/admin/login",
+        element: <AdminLogin />,
+    },
 ];
 
 const privateRoutes = [
@@ -164,9 +169,9 @@ const adminRoutes = [
     {
         path: "/admin",
         element: (
-            // <RoleGuard allowedRoles={["Admin"]}>
-            <AdminLayout />
-            // </RoleGuard>
+            <RoleGuard allowedRoles={["Admin"]}>
+                <AdminLayout />
+            </RoleGuard>
         ),
         children: [
             {

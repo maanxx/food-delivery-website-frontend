@@ -14,7 +14,8 @@ import {
     WechatOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
+import { logout } from "@auth/adminAuthSlice";
 import { getFirstLetterOfEachWord } from "@helpers/stringHelper";
 import styles from "./AdminLayout.module.css";
 
@@ -23,13 +24,14 @@ const { Header, Sider, Content } = Layout;
 const AdminLayout = ({ children }) => {
     const [collapsed, setCollapsed] = useState(false);
     const navigate = useNavigate();
-    const user = useSelector((state) => state.auth.user);
+    const dispatch = useDispatch();
+    const user = useSelector((state) => state.adminAuth.user);
 
     // ✅ PRIORITY 6: Frontend Debug Logs
     console.log("--- ADMIN LAYOUT DEBUG ---");
     console.log("USER:", user);
     console.log("ROLE:", user?.role);
-    console.log("TOKEN:", localStorage.getItem("access_token"));
+    console.log("TOKEN:", sessionStorage.getItem("admin_token") || localStorage.getItem("admin_token"));
 
     const menuItems = [
         {
@@ -95,8 +97,8 @@ const AdminLayout = ({ children }) => {
             label: "Logout",
             icon: <LogoutOutlined />,
             onClick: () => {
-                // Logout logic
-                navigate("/login");
+                dispatch(logout());
+                navigate("/admin/login");
             },
         },
     ];

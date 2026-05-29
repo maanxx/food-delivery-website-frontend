@@ -2,7 +2,8 @@ import { configureStore, combineReducers } from "@reduxjs/toolkit";
 import { persistStore, persistReducer } from "redux-persist";
 import storage from "redux-persist/lib/storage";
 
-import authReducer from "@features/auth/authSlice";
+import customerAuthReducer from "@features/auth/customerAuthSlice";
+import adminAuthReducer from "@features/auth/adminAuthSlice";
 import chatReducer from "@features/chat/chatSlice";
 import orderReducer from "@features/order/orderSlice";
 import cartReducer from "@features/cart/cartSlice";
@@ -13,11 +14,16 @@ import userReducer from "@features/user/userSlice";
 const persistConfig = {
     key: "root",
     storage,
-    blacklist: ["order", "voucher", "address"], 
+    blacklist: ["auth",
+        "adminAuth",
+        "order",
+        "voucher",
+        "address"], 
 };
 
 const rootReducer = combineReducers({
-    auth: authReducer,
+    customerAuth: customerAuthReducer,
+    adminAuth: adminAuthReducer,
     chat: chatReducer,
     order: orderReducer,
     cart: cartReducer,
