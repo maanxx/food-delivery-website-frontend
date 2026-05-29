@@ -1,4 +1,5 @@
 import axios from "axios";
+import { toast } from "react-toastify";
 
 const getAccessToken = () => sessionStorage.getItem("access_token") || localStorage.getItem("access_token");
 const getRefreshToken = () => sessionStorage.getItem("refresh_token") || localStorage.getItem("refresh_token");
@@ -9,8 +10,13 @@ const clearTokens = () => {
     sessionStorage.removeItem("refresh_token");
 };
 
+const normalizeApiBaseUrl = (url) => (url || "").replace(/\/+$/, "").replace(/\/api$/, "");
+const apiBaseUrl = normalizeApiBaseUrl(
+    process.env.REACT_APP_API_URL || process.env.REACT_APP_SERVER_BASE_URL || "http://localhost:5678",
+);
+
 const axiosInstance = axios.create({
-    baseURL: process.env.REACT_APP_SERVER_BASE_URL,
+    baseURL: apiBaseUrl,
     withCredentials: true,
     headers: {
         "Content-Type": "application/json",
@@ -54,6 +60,11 @@ axiosInstance.interceptors.response.use(
     async (error) => {
         const originalRequest = error.config;
 
+        if (error.response?.status === 429) {
+            toast.error("Ban dang thao tac qua nhanh, vui long thu lai sau 1 phut");
+            return Promise.reject(error);
+        }
+
         if (error.response?.status === 401 && originalRequest && !originalRequest._retry) {
             
             if (isRefreshing) {
@@ -79,7 +90,7 @@ axiosInstance.interceptors.response.use(
 
 
             try {
-                const { data } = await axios.post(`${process.env.REACT_APP_SERVER_BASE_URL}/auth/refresh`, {
+                const { data } = await axios.post(`${apiBaseUrl}/api/auth/refresh`, {
                     refreshToken
                 });
 
