@@ -43,7 +43,7 @@ const useWebSocket = () => {
             return;
         }
 
-        const socket = io(process.env.REACT_APP_SOCKET_URL || "http://localhost:5678", {
+        const socket = io(process.env.REACT_APP_SOCKET_URL || "http://localhost:8000", {
             auth: {
                 token: authToken,
             },
