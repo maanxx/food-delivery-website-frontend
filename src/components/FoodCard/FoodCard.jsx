@@ -11,7 +11,9 @@ import { getDishImageUrl, handleDishImageError } from '@utils/dishImage';
 const FoodCard = memo(({ dish = {} }) => {
   const dispatch = useDispatch();
   const cartStatus = useSelector((state) => state.cart.status);
-  const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
+  const isAuthenticated = useSelector(
+    (state) => state?.customerAuth?.isAuthenticated ?? state?.auth?.isAuthenticated ?? false,
+  );
   
   const {
     dish_id,

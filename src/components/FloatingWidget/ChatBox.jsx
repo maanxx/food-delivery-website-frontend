@@ -26,7 +26,9 @@ const DEFAULT_AI_MESSAGES = [
 
 const ChatBox = ({ onClose }) => {
     const dispatch = useDispatch();
-    const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
+    const isAuthenticated = useSelector(
+        (state) => state?.customerAuth?.isAuthenticated ?? state?.auth?.isAuthenticated ?? false,
+    );
     const [tab, setTab] = useState(0);
     const [message, setMessage] = useState("");
     const [isAiLoading, setIsAiLoading] = useState(false);

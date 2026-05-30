@@ -11,7 +11,10 @@ import VoiceRecorder from "./VoiceRecorder";
 
 const MessageInput = ({ conversationId }) => {
     const dispatch = useDispatch();
-    const currentUser = useSelector((state) => state.auth.user);
+    const isAdmin = window.location.pathname.startsWith("/admin");
+    const customerUser = useSelector((state) => state?.customerAuth?.user || state?.auth?.user || null);
+    const adminUser = useSelector((state) => state?.adminAuth?.user || null);
+    const currentUser = isAdmin ? adminUser : customerUser;
     const { sendMessage: emitMessage, emitTyping } = useWebSocket();
     const {
         isRecording,
