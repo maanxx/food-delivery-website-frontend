@@ -1,10 +1,10 @@
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import * as orderService from "@services/orderService";
+import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import * as orderService from '@services/orderService';
 
 // ========== ASYNC THUNKS ==========
 
 export const fetchMyOrders = createAsyncThunk(
-    "order/fetchMyOrders",
+    'order/fetchMyOrders',
     async (_, { rejectWithValue }) => {
         try {
             const response = await orderService.fetchMyOrders();
@@ -13,28 +13,58 @@ export const fetchMyOrders = createAsyncThunk(
             }
             return rejectWithValue(response.message);
         } catch (error) {
-            return rejectWithValue(error.response?.data?.message || "Không thể tải danh sách đơn hàng");
+            return rejectWithValue(
+                error.response?.data?.message ||
+                    'Không thể tải danh sách đơn hàng',
+            );
         }
-    }
+    },
 );
 
 export const createOrder = createAsyncThunk(
-    "order/create",
+    'order/create',
     async (orderData, { rejectWithValue }) => {
         try {
             const response = await orderService.createOrder(orderData);
             if (response.success) {
-                return response.data;
+                return {
+                    order: response.data,
+                    idempotentReplay: Boolean(response.idempotent_replay),
+                };
             }
             return rejectWithValue(response.message);
         } catch (error) {
-            return rejectWithValue(error.response?.data?.message || "Lỗi khi tạo đơn hàng");
+            return rejectWithValue(
+                error.response?.data?.message || 'Lỗi khi tạo đơn hàng',
+            );
         }
-    }
+    },
+);
+
+export const createPaymentSession = createAsyncThunk(
+    'order/createPaymentSession',
+    async (paymentData, { rejectWithValue }) => {
+        try {
+            const response =
+                await orderService.createPaymentSession(paymentData);
+            if (response.success) {
+                return {
+                    paymentSession: response.data,
+                    idempotentReplay: Boolean(response.idempotent_replay),
+                };
+            }
+            return rejectWithValue(response.message);
+        } catch (error) {
+            return rejectWithValue(
+                error.response?.data?.message ||
+                    'Không thể tạo phiên thanh toán',
+            );
+        }
+    },
 );
 
 export const fetchOrderDetails = createAsyncThunk(
-    "order/fetchDetails",
+    'order/fetchDetails',
     async (orderId, { rejectWithValue }) => {
         try {
             const response = await orderService.fetchOrderById(orderId);
@@ -43,9 +73,12 @@ export const fetchOrderDetails = createAsyncThunk(
             }
             return rejectWithValue(response.message);
         } catch (error) {
-            return rejectWithValue(error.response?.data?.message || "Không thể tải chi tiết đơn hàng");
+            return rejectWithValue(
+                error.response?.data?.message ||
+                    'Không thể tải chi tiết đơn hàng',
+            );
         }
-    }
+    },
 );
 
 // ========== INITIAL STATE ==========
@@ -53,6 +86,7 @@ export const fetchOrderDetails = createAsyncThunk(
 const initialState = {
     orders: [],
     currentOrder: null,
+    paymentSession: null,
     loading: false,
     error: null,
     // Socket reactivity fields
@@ -61,28 +95,31 @@ const initialState = {
 };
 
 // ========== HELPERS ==========
-const TERMINAL_STATUSES = ["delivered", "cancelled"];
+const TERMINAL_STATUSES = ['delivered', 'cancelled'];
 const isTerminal = (status) => TERMINAL_STATUSES.includes(status);
 
 const syncActiveIds = (state) => {
     state.activeOrderIds = state.orders
-        .filter(o => !isTerminal(o.status))
-        .map(o => o.order_id);
+        .filter((o) => !isTerminal(o.status))
+        .map((o) => o.order_id);
 };
 
 // ========== SLICE ==========
 
 const orderSlice = createSlice({
-    name: "order",
+    name: 'order',
     initialState,
     reducers: {
         orderStatusUpdated: (state, action) => {
             const { order_id, status } = action.payload;
-            const order = state.orders.find(o => o.order_id === order_id);
+            const order = state.orders.find((o) => o.order_id === order_id);
             if (order) {
                 order.status = status;
             }
-            if (state.currentOrder && state.currentOrder.order_id === order_id) {
+            if (
+                state.currentOrder &&
+                state.currentOrder.order_id === order_id
+            ) {
                 state.currentOrder.status = status;
             }
             syncActiveIds(state);
@@ -112,12 +149,25 @@ const orderSlice = createSlice({
             })
             .addCase(createOrder.fulfilled, (state, action) => {
                 state.loading = false;
-                state.currentOrder = action.payload;
+                state.currentOrder = action.payload.order;
                 // Prepend new order to list
-                state.orders.unshift(action.payload);
+                state.orders.unshift(action.payload.order);
                 syncActiveIds(state);
             })
             .addCase(createOrder.rejected, (state, action) => {
+                state.loading = false;
+                state.error = action.payload;
+            })
+            // Create Payment Session
+            .addCase(createPaymentSession.pending, (state) => {
+                state.loading = true;
+                state.error = null;
+            })
+            .addCase(createPaymentSession.fulfilled, (state, action) => {
+                state.loading = false;
+                state.paymentSession = action.payload.paymentSession;
+            })
+            .addCase(createPaymentSession.rejected, (state, action) => {
                 state.loading = false;
                 state.error = action.payload;
             })

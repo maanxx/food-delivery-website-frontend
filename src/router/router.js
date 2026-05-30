@@ -1,5 +1,5 @@
-import React from "react";
-import { createBrowserRouter } from "react-router-dom";
+import React from 'react';
+import { createBrowserRouter } from 'react-router-dom';
 
 import {
     Home,
@@ -21,12 +21,13 @@ import {
     Admin,
     AdminLogin,
     OrderSuccess,
-} from "@pages/index";
-import Orders from "@pages/Admin/Orders";
-import Employees from "@pages/Admin/Employees";
-import Products from "@pages/Admin/Products";
-import Reports from "@pages/Admin/Reports";
-import Settings from "@pages/Admin/Settings";
+} from '@pages/index';
+import Orders from '@pages/Admin/Orders';
+import PendingPayments from '@pages/Admin/PendingPayments';
+import Employees from '@pages/Admin/Employees';
+import Products from '@pages/Admin/Products';
+import Reports from '@pages/Admin/Reports';
+import Settings from '@pages/Admin/Settings';
 import {
     Authentication,
     FormForgotPasswordOTP,
@@ -36,15 +37,15 @@ import {
     FormUserName,
     LoginStatus,
     RoleGuard,
-} from "@components/index";
-import DefaultLayout from "@layouts/DefaultLayout";
-import AdminLayout from "@layouts/AdminLayout";
-import FormForgetPasswordInfo from "@components/FormForgotPassword/FormForgotPasswordInfo/FormForgotPasswordInfo";
-import FormLoginOTP from "@components/FormLogin/FormLoginOTP/FormLoginOTP";
+} from '@components/index';
+import DefaultLayout from '@layouts/DefaultLayout';
+import AdminLayout from '@layouts/AdminLayout';
+import FormForgetPasswordInfo from '@components/FormForgotPassword/FormForgotPasswordInfo/FormForgotPasswordInfo';
+import FormLoginOTP from '@components/FormLogin/FormLoginOTP/FormLoginOTP';
 
 const publicRoutes = [
     {
-        path: "/",
+        path: '/',
         element: <DefaultLayout />,
         errorElement: <Error />,
         children: [
@@ -53,34 +54,34 @@ const publicRoutes = [
                 element: <Home />,
             },
             {
-                path: "about",
+                path: 'about',
                 element: <About />,
             },
             {
-                path: "search",
+                path: 'search',
                 element: <Search />,
             },
             {
-                path: "menu",
+                path: 'menu',
                 element: <Menu />,
             },
             {
-                path: "contact",
+                path: 'contact',
                 element: <Contact />,
             },
             {
-                path: "offers",
+                path: 'offers',
                 element: <Offers />,
             },
             {
-                path: "dish/:id",
+                path: 'dish/:id',
                 element: <DishDetail />,
             },
         ],
     },
 
     {
-        path: "/login",
+        path: '/login',
         element: <Login />,
         children: [
             {
@@ -88,25 +89,25 @@ const publicRoutes = [
                 element: <FormPhoneNumber />,
             },
             {
-                path: "input-username",
+                path: 'input-username',
                 element: <FormUserName />,
             },
             {
-                path: "verify-otp",
+                path: 'verify-otp',
                 element: <FormLoginOTP />,
             },
             {
-                path: "input-password",
+                path: 'input-password',
                 element: <FormPassword />,
             },
             {
-                path: "status",
+                path: 'status',
                 element: <LoginStatus />,
             },
         ],
     },
     {
-        path: "/forgot-password",
+        path: '/forgot-password',
         element: <ForgotPassword />,
         children: [
             {
@@ -114,11 +115,11 @@ const publicRoutes = [
                 element: <FormForgetPasswordInfo />,
             },
             {
-                path: "verify-otp",
+                path: 'verify-otp',
                 element: <FormForgotPasswordOTP />,
             },
             {
-                path: "reset-password",
+                path: 'reset-password',
                 element: <FormResetPassword />,
             },
         ],
@@ -138,27 +139,27 @@ const privateRoutes = [
         ),
         children: [
             {
-                path: "/dashboard",
+                path: '/dashboard',
                 element: <Dashboard />,
             },
             {
-                path: "/cart",
+                path: '/cart',
                 element: <Cart />,
             },
             {
-                path: "/checkout",
+                path: '/checkout',
                 element: <Checkout />,
             },
             {
-                path: "/checkout/success",
+                path: '/checkout/success',
                 element: <OrderSuccess />,
             },
             {
-                path: "/profile",
+                path: '/profile',
                 element: <Profile />,
             },
             {
-                path: "/order",
+                path: '/order',
                 element: <Order />,
             },
         ],
@@ -167,7 +168,7 @@ const privateRoutes = [
 
 const adminRoutes = [
     {
-        path: "/admin",
+        path: '/admin',
         element: (
             <RoleGuard allowedRoles={["Admin"]}>
                 <AdminLayout />
@@ -179,37 +180,45 @@ const adminRoutes = [
                 element: <Admin />,
             },
             {
-                path: "chat",
+                path: 'chat',
                 element: <ChatPage />,
             },
             {
-                path: "chat/:conversationId",
+                path: 'chat/:conversationId',
                 element: <ChatPage />,
             },
             {
-                path: "employees",
+                path: 'employees',
                 element: <Employees />,
             },
             {
-                path: "products",
+                path: 'products',
                 element: <Products />,
             },
             {
-                path: "reports",
+                path: 'reports',
                 element: <Reports />,
             },
             {
-                path: "settings",
+                path: 'settings',
                 element: <Settings />,
             },
             {
-                path: "orders",
+                path: 'orders',
                 element: <Orders />,
+            },
+            {
+                path: 'payments',
+                element: <PendingPayments />,
             },
         ],
     },
 ];
 
-const router = createBrowserRouter([...publicRoutes, ...privateRoutes, ...adminRoutes]);
+const router = createBrowserRouter([
+    ...publicRoutes,
+    ...privateRoutes,
+    ...adminRoutes,
+]);
 
 export default router;

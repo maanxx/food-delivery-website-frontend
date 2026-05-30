@@ -27,7 +27,7 @@ import axiosInstance from "@config/axiosInstance";
  *   Backend tự áp dụng Sliding Window (giữ 5 tin cuối) và
  *   convert sang Gemini format (role "model", parts[]).
  *
- * @returns {Promise<string>} - Chuỗi reply của AI
+ * @returns {Promise<{reply: string, cards: Array}>} - Nội dung text và danh sách card món ăn fallback
  * @throws {Error} - Nếu API thất bại, ném lỗi có message thân thiện
  *
  * @example
@@ -47,7 +47,7 @@ import axiosInstance from "@config/axiosInstance";
  *     }
  *   };
  */
-const sendChatMessage = async (message, chatHistory = []) => {
+const sendChatMessage = async (message, chatHistory = [], options = {}) => {
     try {
         // ── Validate client-side ──────────────────────────────
         if (!message || message.trim() === "") {
@@ -61,19 +61,24 @@ const sendChatMessage = async (message, chatHistory = []) => {
             data: {
                 // Tin nhắn mới nhất
                 message: message.trim(),
+                sessionId: options.sessionId || "",
 
                 // Lịch sử chat — giữ nguyên format OpenAI-style,
                 // backend tự xử lý convert và sliding window
-                chatHistory: chatHistory.map(({ role, content }) => ({
+                chatHistory: chatHistory.map(({ role, content, dishes = [] }) => ({
                     role,    // "user" hoặc "assistant"
                     content, // chuỗi văn bản
+                    dishes,
                 })),
             },
         });
 
         // ── Kiểm tra response ─────────────────────────────────
         if (response.data?.success && response.data?.data?.reply) {
-            return response.data.data.reply;
+            return {
+                reply: response.data.data.reply,
+                cards: Array.isArray(response.data.data.cards) ? response.data.data.cards : [],
+            };
         }
 
         throw new Error(

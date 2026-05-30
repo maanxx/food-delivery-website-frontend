@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from "react";
+import { useDispatch } from "react-redux";
 import { useSearchParams } from "react-router-dom";
-import { message, Spin } from "antd";
+import { message } from "antd";
 import useAuth from "@hooks/useAuth";
 import profileService from "@services/profileService";
 import useLoading from "@hooks/useLoading";
+import { fetchUserFavorites } from "@features/user/userSlice";
 
 // New Components
 import ProfileLayout from "@components/ProfileLayout/ProfileLayout";
@@ -11,11 +13,10 @@ import ProfileInfo from "@components/ProfileInfo/ProfileInfo";
 import ProfileSkeleton from "@components/ProfileSkeleton/ProfileSkeleton";
 import ProfileAddresses from "@components/ProfileAddresses/ProfileAddresses";
 import ProfileOrders from "@components/ProfileOrders/ProfileOrders";
-import ProfilePassword from "@components/ProfilePassword/ProfilePassword";
-
-import styles from "./Profile.module.css";
+import ProfileFavorites from "@components/ProfileFavorites/ProfileFavorites";
 
 const Profile = () => {
+  const dispatch = useDispatch();
   const { isAuthenticated } = useAuth();
   const { loading, setLoading } = useLoading();
   const [profile, setProfile] = useState(null);
@@ -31,8 +32,9 @@ const Profile = () => {
   useEffect(() => {
     if (isAuthenticated) {
       fetchProfile();
+      dispatch(fetchUserFavorites());
     }
-  }, [isAuthenticated]);
+  }, [dispatch, isAuthenticated]);
 
   const fetchProfile = async () => {
     setLoading(true);
@@ -57,7 +59,7 @@ const Profile = () => {
       case "payment":
         return <div>Payment Component (Coming soon)</div>;
       case "favorites":
-        return <div>Favorites Component (Coming soon)</div>;
+        return <ProfileFavorites />;
       case "password":
         return <div>Password Component (Migrating...)</div>;
       default:

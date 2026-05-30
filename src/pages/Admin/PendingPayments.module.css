@@ -1,0 +1,131 @@
+.page {
+    width: 100%;
+}
+
+.pageHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.pageTitle {
+    font-size: 22px;
+    font-weight: 800;
+    color: #111827;
+    margin: 0 0 4px;
+    letter-spacing: -0.4px;
+}
+
+.pageSub {
+    font-size: 13px;
+    color: #6b7280;
+    margin: 0;
+}
+
+.headerActions :global(.ant-btn) {
+    border-radius: 10px !important;
+}
+
+.toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 0;
+    flex-wrap: wrap;
+}
+
+.toolbarLeft {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex: 1;
+    flex-wrap: wrap;
+}
+
+.searchInput {
+    min-width: 220px;
+    max-width: 320px;
+}
+
+.searchInput :global(.ant-input-affix-wrapper) {
+    border-radius: 9px !important;
+    border: 1.5px solid #e5e7eb !important;
+    height: 38px !important;
+    background: #f9fafb !important;
+}
+
+.filterSelect :global(.ant-select-selector) {
+    border-radius: 9px !important;
+    border: 1.5px solid #e5e7eb !important;
+    height: 38px !important;
+    background: #f9fafb !important;
+}
+
+.table :global(.ant-table) {
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.codeCell {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.codePrimary {
+    font-weight: 700;
+    color: #111827;
+}
+
+.codeSub {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.customerCell {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.customerName {
+    font-weight: 600;
+    color: #111827;
+}
+
+.customerPhone {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.amountText {
+    font-weight: 700;
+    color: #111827;
+}
+
+.noteText {
+    font-size: 12px;
+    color: #4b5563;
+}
+
+.statusTag {
+    border: none !important;
+    border-radius: 999px !important;
+    padding: 2px 10px !important;
+    font-weight: 600 !important;
+}
+
+.dateCell {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.dateTime {
+    font-size: 12px;
+    color: #6b7280;
+}

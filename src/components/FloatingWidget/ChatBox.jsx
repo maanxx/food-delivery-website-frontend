@@ -1,17 +1,51 @@
 import React, { useState, useRef, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { Box, Paper, Typography, IconButton, Tabs, Tab, TextField, InputAdornment, Avatar, CircularProgress, Button } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import SendIcon from "@mui/icons-material/Send";
 import AddShoppingCartIcon from "@mui/icons-material/AddShoppingCart";
 import SmartToyIcon from "@mui/icons-material/SmartToy";
 import SupportAgentIcon from "@mui/icons-material/SupportAgent";
+import { message as antMessage } from "antd";
 import styles from "./ChatBox.module.css";
 import { sendChatMessage } from "@services/chatbotService";
+import { addToCart } from "@features/cart/cartSlice";
+
+const AI_CHAT_STORAGE_KEY = "eatsy_ai_chat_history";
+const AI_CHAT_SESSION_KEY = "eatsy_ai_chat_session_id";
+const DEFAULT_AI_MESSAGES = [
+    {
+        id: 1,
+        role: "assistant",
+        content: "Xin chào! Tôi là trợ lý AI thông minh của Eatsy. Tôi có thể tư vấn món ăn ngon và giải đáp mọi thắc mắc của bạn hôm nay. Bạn muốn tìm món gì nào?",
+        dishes: [],
+    },
+];
 
 const ChatBox = ({ onClose }) => {
+    const dispatch = useDispatch();
+    const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
     const [tab, setTab] = useState(0);
     const [message, setMessage] = useState("");
     const [isAiLoading, setIsAiLoading] = useState(false);
+    const [addingDishIds, setAddingDishIds] = useState([]);
+    const [sessionId] = useState(() => {
+        try {
+            const existingSessionId = localStorage.getItem(AI_CHAT_SESSION_KEY);
+            if (existingSessionId) {
+                return existingSessionId;
+            }
+
+            const newSessionId = typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+                ? crypto.randomUUID()
+                : `session_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+
+            localStorage.setItem(AI_CHAT_SESSION_KEY, newSessionId);
+            return newSessionId;
+        } catch (_error) {
+            return `session_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+        }
+    });
     const messagesEndRef = useRef(null);
 
     /**
@@ -39,9 +73,24 @@ const ChatBox = ({ onClose }) => {
     };
 
     // AI Messages sử dụng format role/content theo chuẩn API
-    const [aiMessages, setAiMessages] = useState([
-        { id: 1, role: "assistant", content: "Xin chào! Tôi là trợ lý AI thông minh của Eatsy. Tôi có thể tư vấn món ăn ngon và giải đáp mọi thắc mắc của bạn hôm nay. Bạn muốn tìm món gì nào?" }
-    ]);
+    const [aiMessages, setAiMessages] = useState(() => {
+        try {
+            const savedMessages = localStorage.getItem(AI_CHAT_STORAGE_KEY);
+            if (!savedMessages) {
+                return DEFAULT_AI_MESSAGES;
+            }
+
+            const parsedMessages = JSON.parse(savedMessages);
+            if (!Array.isArray(parsedMessages) || parsedMessages.length === 0) {
+                return DEFAULT_AI_MESSAGES;
+            }
+
+            return parsedMessages;
+        } catch (error) {
+            console.error("Không thể đọc lịch sử chat AI từ localStorage:", error);
+            return DEFAULT_AI_MESSAGES;
+        }
+    });
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -52,11 +101,42 @@ const ChatBox = ({ onClose }) => {
         scrollToBottom();
     }, [aiMessages, tab]);
 
+    useEffect(() => {
+        try {
+            localStorage.setItem(AI_CHAT_STORAGE_KEY, JSON.stringify(aiMessages));
+        } catch (error) {
+            console.error("Không thể lưu lịch sử chat AI vào localStorage:", error);
+        }
+    }, [aiMessages]);
+
     const adminMessages = [
         { id: 1, role: "assistant", content: "Chào bạn, mình là nhân viên hỗ trợ của hệ thống thực phẩm Eatery. Bạn đang gặp khó khăn gì ạ?" }
     ];
 
     const messages = tab === 0 ? aiMessages : adminMessages;
+
+    const handleAddDishToCart = async (dish) => {
+        const dishId = dish?.id;
+        if (!dishId || addingDishIds.includes(dishId)) {
+            return;
+        }
+
+        if (!isAuthenticated) {
+            antMessage.warning("Vui lòng đăng nhập để thêm món vào giỏ hàng!");
+            return;
+        }
+
+        setAddingDishIds((prev) => [...prev, dishId]);
+
+        try {
+            await dispatch(addToCart({ dishId, quantity: 1 })).unwrap();
+            antMessage.success(`Đã thêm ${dish.name || "món ăn"} vào giỏ hàng`);
+        } catch (_error) {
+            // Error toast/message is already handled by cart slice.
+        } finally {
+            setAddingDishIds((prev) => prev.filter((id) => id !== dishId));
+        }
+    };
 
     const handleSend = async () => {
         if (!message.trim()) return;
@@ -75,11 +155,16 @@ const ChatBox = ({ onClose }) => {
             try {
                 // Formatting history, chỉ gửi array có { role, content }
                 const historyForApi = aiMessages.map(msg => ({ role: msg.role, content: msg.content }));
-                const reply = await sendChatMessage(userText, historyForApi);
+                const response = await sendChatMessage(userText, historyForApi, { sessionId });
 
                 setAiMessages((prev) => [
                     ...prev,
-                    { id: Date.now() + 1, role: "assistant", content: reply }
+                    {
+                        id: Date.now() + 1,
+                        role: "assistant",
+                        content: response.reply,
+                        dishes: response.cards,
+                    },
                 ]);
             } catch (error) {
                 setAiMessages((prev) => [
@@ -144,7 +229,11 @@ const ChatBox = ({ onClose }) => {
                     const bubbleClass = isUser ? styles.messageBubbleUser : styles.messageBubbleBot;
 
                     // Parse tin nhắn để lấy card nếu có
-                    const { text, dishes } = isUser ? { text: msg.content, dishes: [] } : parseAIDishCards(msg.content);
+                    const parsedMessage = isUser
+                        ? { text: msg.content, dishes: [] }
+                        : parseAIDishCards(msg.content);
+                    const dishes = parsedMessage.dishes.length > 0 ? parsedMessage.dishes : (msg.dishes || []);
+                    const text = parsedMessage.text;
 
                     return (
                         <Box key={msg.id} sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
@@ -170,13 +259,19 @@ const ChatBox = ({ onClose }) => {
                                             <Box className={styles.aiDishInfo}>
                                                 <Typography className={styles.aiDishName} noWrap>{dish.name}</Typography>
                                                 <Typography className={styles.aiDishPrice}>{dish.price.toLocaleString()}đ</Typography>
+                                                {addingDishIds.includes(dish.id) && (
+                                                    <Typography variant="caption" sx={{ color: "text.secondary", mb: 0.5 }}>
+                                                        Đang thêm vào giỏ...
+                                                    </Typography>
+                                                )}
                                                 <Button 
                                                     fullWidth 
                                                     variant="contained" 
                                                     size="small"
+                                                    disabled={addingDishIds.includes(dish.id)}
                                                     startIcon={<AddShoppingCartIcon sx={{ fontSize: "0.9rem !important" }} />}
                                                     className={styles.atcButton}
-                                                    onClick={() => console.log("Add to cart:", dish.id)}
+                                                    onClick={() => handleAddDishToCart(dish)}
                                                 >
                                                     Thêm vào giỏ
                                                 </Button>

@@ -21,6 +21,8 @@ import ReviewList from "../../components/ReviewList/ReviewList";
 import { getDishById } from "../../services/dishService";
 import FavoriteIcon from "@mui/icons-material/Favorite";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
+import { fetchUserFavorites, selectFavoritesLoaded } from "@features/user/userSlice";
+import useFavorites from "@hooks/useFavorites";
 import axiosInstance from "@config/axiosInstance";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useNavigate } from "react-router-dom";
@@ -31,7 +33,6 @@ const DishDetail = () => {
   const { id } = useParams();
   const [dish, setDish] = useState(null);
   const [quantity, setQuantity] = useState(1);
-  const [isFavorite, setIsFavorite] = useState(false);
   const [rating] = useState(0);
   const [similarDishes, setSimilarDishes] = useState([]);
   const [selectedVariant, setSelectedVariant] = useState('v1');
@@ -50,6 +51,8 @@ const DishDetail = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
+  const favoritesLoaded = useSelector(selectFavoritesLoaded);
+  const { isFavorite, isMutating, toggleFavorite } = useFavorites(id);
   // nay la lay mon an
   useEffect(() => {
     const fetchDish = async () => {
@@ -69,6 +72,12 @@ const DishDetail = () => {
 
     fetchSimilar();
   }, [id]);
+
+  useEffect(() => {
+    if (user && !favoritesLoaded) {
+      dispatch(fetchUserFavorites());
+    }
+  }, [dispatch, favoritesLoaded, user]);
 
   if (!dish) return <Typography>Loading...</Typography>;
 
@@ -110,6 +119,16 @@ const DishDetail = () => {
     }
   };
 
+  const handleToggleFavorite = async () => {
+    if (!user) {
+      toast.warning("Vui lòng đăng nhập để lưu món yêu thích");
+      navigate("/login");
+      return;
+    }
+
+    await toggleFavorite();
+  };
+
   return (
     <Container maxWidth="lg" className={styles.detailPage}>
       <Box mb={2}>
@@ -140,7 +159,7 @@ const DishDetail = () => {
             <Box className={styles.rowBetween}>
               <Typography className={styles.name}>{dish.name}</Typography>
 
-              <Button onClick={() => setIsFavorite(!isFavorite)}>
+              <Button onClick={handleToggleFavorite} disabled={isMutating}>
                 {isFavorite ? (
                   <FavoriteIcon color="error" />
                 ) : (
