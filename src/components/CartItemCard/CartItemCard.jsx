@@ -3,6 +3,7 @@ import { Checkbox } from '@mui/material';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { QuantityInput } from '@components/index';
 import styles from './CartItemCard.module.css';
+import { getDishImageUrl, handleDishImageError } from '@utils/dishImage';
 
 const CartItemCard = memo(({ 
   item, 
@@ -42,7 +43,12 @@ const CartItemCard = memo(({
       />
       
       <div className={styles.imageContainer}>
-        <img src={thumbnail_path} alt={name} className={styles.image} />
+        <img
+          src={getDishImageUrl(thumbnail_path)}
+          alt={name}
+          className={styles.image}
+          onError={handleDishImageError}
+        />
         {isInvalid && <div className={styles.overlay}>Không khả dụng</div>}
       </div>
 

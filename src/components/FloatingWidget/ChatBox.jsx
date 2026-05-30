@@ -10,9 +10,11 @@ import { message as antMessage } from "antd";
 import styles from "./ChatBox.module.css";
 import { sendChatMessage } from "@services/chatbotService";
 import { addToCart } from "@features/cart/cartSlice";
+import { getDishImageUrl, handleDishImageError } from "@utils/dishImage";
 
 const AI_CHAT_STORAGE_KEY = "eatsy_ai_chat_history";
 const AI_CHAT_SESSION_KEY = "eatsy_ai_chat_session_id";
+const MAX_VISIBLE_AGENT_MESSAGES = 10;
 const DEFAULT_AI_MESSAGES = [
     {
         id: 1,
@@ -24,7 +26,9 @@ const DEFAULT_AI_MESSAGES = [
 
 const ChatBox = ({ onClose }) => {
     const dispatch = useDispatch();
-    const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
+    const isAuthenticated = useSelector(
+        (state) => state?.customerAuth?.isAuthenticated ?? state?.auth?.isAuthenticated ?? false,
+    );
     const [tab, setTab] = useState(0);
     const [message, setMessage] = useState("");
     const [isAiLoading, setIsAiLoading] = useState(false);
@@ -85,7 +89,7 @@ const ChatBox = ({ onClose }) => {
                 return DEFAULT_AI_MESSAGES;
             }
 
-            return parsedMessages;
+            return parsedMessages.slice(-MAX_VISIBLE_AGENT_MESSAGES);
         } catch (error) {
             console.error("Không thể đọc lịch sử chat AI từ localStorage:", error);
             return DEFAULT_AI_MESSAGES;
@@ -103,7 +107,8 @@ const ChatBox = ({ onClose }) => {
 
     useEffect(() => {
         try {
-            localStorage.setItem(AI_CHAT_STORAGE_KEY, JSON.stringify(aiMessages));
+            const trimmedMessages = aiMessages.slice(-MAX_VISIBLE_AGENT_MESSAGES);
+            localStorage.setItem(AI_CHAT_STORAGE_KEY, JSON.stringify(trimmedMessages));
         } catch (error) {
             console.error("Không thể lưu lịch sử chat AI vào localStorage:", error);
         }
@@ -113,7 +118,9 @@ const ChatBox = ({ onClose }) => {
         { id: 1, role: "assistant", content: "Chào bạn, mình là nhân viên hỗ trợ của hệ thống thực phẩm Eatery. Bạn đang gặp khó khăn gì ạ?" }
     ];
 
-    const messages = tab === 0 ? aiMessages : adminMessages;
+    const messages = tab === 0
+        ? aiMessages.slice(-MAX_VISIBLE_AGENT_MESSAGES)
+        : adminMessages;
 
     const handleAddDishToCart = async (dish) => {
         const dishId = dish?.id;
@@ -153,8 +160,13 @@ const ChatBox = ({ onClose }) => {
             setIsAiLoading(true);
 
             try {
-                // Formatting history, chỉ gửi array có { role, content }
-                const historyForApi = aiMessages.map(msg => ({ role: msg.role, content: msg.content }));
+                // Preserve assistant dish cards so backend can resolve follow-up
+                // references like "món đó" or "món thứ 2" reliably.
+                const historyForApi = aiMessages.map((msg) => ({
+                    role: msg.role,
+                    content: msg.content,
+                    dishes: Array.isArray(msg.dishes) ? msg.dishes : [],
+                }));
                 const response = await sendChatMessage(userText, historyForApi, { sessionId });
 
                 setAiMessages((prev) => [
@@ -254,8 +266,13 @@ const ChatBox = ({ onClose }) => {
                             {!isUser && dishes.length > 0 && (
                                 <Box sx={{ ml: 5, mb: 1, display: "flex", flexWrap: "wrap", gap: 1 }}>
                                     {dishes.map((dish, idx) => (
-                                        <Box key={idx} className={styles.aiDishCard}>
-                                            <img src={dish.image} alt={dish.name} className={styles.aiDishImage} />
+                                            <Box key={idx} className={styles.aiDishCard}>
+                                                <img
+                                                    src={getDishImageUrl(dish.image)}
+                                                    alt={dish.name}
+                                                    className={styles.aiDishImage}
+                                                    onError={handleDishImageError}
+                                                />
                                             <Box className={styles.aiDishInfo}>
                                                 <Typography className={styles.aiDishName} noWrap>{dish.name}</Typography>
                                                 <Typography className={styles.aiDishPrice}>{dish.price.toLocaleString()}đ</Typography>

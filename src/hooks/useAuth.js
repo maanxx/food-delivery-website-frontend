@@ -3,7 +3,9 @@ import { login, logout } from "@auth/customerAuthSlice";
 import { resetChatState } from "@features/chat/chatSlice";
 
 const useAuth = () => {
-    const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
+    const isAuthenticated = useSelector(
+        (state) => state?.customerAuth?.isAuthenticated ?? state?.auth?.isAuthenticated ?? false,
+    );
     const dispatch = useDispatch();
 
     const handleLogin = (payload) => {

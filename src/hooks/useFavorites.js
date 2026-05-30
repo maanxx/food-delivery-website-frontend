@@ -8,7 +8,9 @@ import {
 
 const useFavorites = (dishId = null) => {
     const dispatch = useDispatch();
-    const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
+    const isAuthenticated = useSelector(
+        (state) => state?.customerAuth?.isAuthenticated ?? state?.auth?.isAuthenticated ?? false,
+    );
     const isFavorite = useSelector(
         dishId ? selectIsFavorite(dishId) : () => false,
     );

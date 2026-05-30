@@ -6,11 +6,14 @@ import { message } from 'antd';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import styles from './FoodCard.module.css';
+import { getDishImageUrl, handleDishImageError } from '@utils/dishImage';
 
 const FoodCard = memo(({ dish = {} }) => {
   const dispatch = useDispatch();
   const cartStatus = useSelector((state) => state.cart.status);
-  const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
+  const isAuthenticated = useSelector(
+    (state) => state?.customerAuth?.isAuthenticated ?? state?.auth?.isAuthenticated ?? false,
+  );
   
   const {
     dish_id,
@@ -25,7 +28,7 @@ const FoodCard = memo(({ dish = {} }) => {
   const [isAdding, setIsAdding] = React.useState(false);
   const { isFavorite, isMutating, toggleFavorite } = useFavorites(dish_id);
 
-  const displayImage = image || thumbnail_path || "/images/dishes/pizza/pizza1.jpg";
+  const displayImage = getDishImageUrl(image || thumbnail_path);
 
   const discountPercent = discount;
   const originalPrice =
@@ -79,6 +82,7 @@ const FoodCard = memo(({ dish = {} }) => {
           src={displayImage}
           alt={name}
           className={styles.image}
+          onError={handleDishImageError}
         />
         <button
           type="button"
