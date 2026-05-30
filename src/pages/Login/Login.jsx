@@ -36,7 +36,7 @@ function Login() {
     useEffect(() => {
         const authenticate = async () => {
             try {
-                const token = localStorage.getItem("access_token");
+                const token = sessionStorage.getItem("customer_token") || localStorage.getItem("customer_token");
                 if (token) {
                     const res = await axiosInstance({
                         url: "/api/auth",

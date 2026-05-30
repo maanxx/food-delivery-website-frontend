@@ -2,16 +2,15 @@ import React from "react";
 import { Navigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { CircularProgress, Box } from "@mui/material";
-import useAuth from "@hooks/useAuth";
 
 const RoleGuard = ({ children, allowedRoles }) => {
-    const { isAuthenticated } = useAuth();
-    const { user, isInitialized, isLoading } = useSelector((state) => state.auth);
+    const { isAuthenticated, user, isInitialized, isLoading } = useSelector((state) => state.adminAuth);
 
-    console.log("--- ROLE GUARD DEBUG ---");
+    console.log("--- ADMIN ROLE GUARD DEBUG ---");
+    console.log("IS AUTHENTICATED:", isAuthenticated);
     console.log("USER:", user);
-    console.log("TOKEN:", localStorage.getItem("access_token"));
     console.log("ALLOWED ROLES:", allowedRoles);
+
     if (!isInitialized || isLoading) {
         return (
             <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', width: '100%' }}>
@@ -21,12 +20,13 @@ const RoleGuard = ({ children, allowedRoles }) => {
     }
 
     if (!isAuthenticated) {
-        return <Navigate to="/login" replace />;
+        return <Navigate to="/admin/login" replace />;
     }
 
-    if (allowedRoles && !allowedRoles.includes(user?.role)) {
-        console.warn(`Access Denied: User role '${user?.role}' is not in allowed roles:`, allowedRoles);
-        return <Navigate to="/" replace />;
+    const role = user?.role;
+    if (allowedRoles && !allowedRoles.some(r => r.toLowerCase() === role?.toLowerCase())) {
+        console.warn(`Access Denied: User role '${role}' is not in allowed roles:`, allowedRoles);
+        return <Navigate to="/admin/login" replace />;
     }
 
     // 3. Authorized -> Render children

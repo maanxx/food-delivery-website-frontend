@@ -19,6 +19,7 @@
         "dotenv": "^16.4.5",
         "eatsy_food_delivery_frontend": "file:",
         "emoji-picker-react": "^4.18.0",
+        "firebase": "^12.13.0",
         "jwt-decode": "^4.0.0",
         "lodash": "^4.17.21",
         "peerjs": "^1.5.5",

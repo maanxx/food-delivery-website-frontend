@@ -1,15 +1,14 @@
 import React, { useEffect, useState } from "react";
 import classNames from "classnames/bind";
 import { Link, Outlet, useNavigate } from "react-router-dom";
-import { ArrowBack, CopyrightRounded } from "@mui/icons-material";
+import { CopyrightRounded } from "@mui/icons-material";
 import { Container } from "@mui/material";
 
 import styles from "./ForgotPassword.module.css";
 import axiosInstance from "@config/axiosInstance";
 import useAuth from "@hooks/useAuth";
 import { Divider } from "antd";
-import { regexEmail, regexVietnamPhoneNumber } from "@constants/constants";
-import useLoading from "@hooks/useLoading";
+
 
 const cx = classNames.bind(styles);
 
@@ -21,7 +20,7 @@ function ForgotPassword() {
     useEffect(() => {
         const authenticate = async () => {
             try {
-                const token = localStorage.getItem("access_token");
+                const token = sessionStorage.getItem("customer_token") || localStorage.getItem("customer_token");
                 if (token) {
                     const res = await axiosInstance({
                         url: "/api/auth",
