@@ -1,5 +1,5 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import addressService from "../../services/addressService";
+import addressService from "@services/addressService";
 import { message } from "antd";
 
 // ─── Thunks ───────────────────────────────────────────────

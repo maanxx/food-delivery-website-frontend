@@ -16,6 +16,15 @@ const NumberInput = React.forwardRef(function CustomNumberInput(props, ref) {
                 decrementButton: StyledButton,
             }}
             slotProps={{
+                input: {
+                    onKeyDown: (event) => {
+                        const allowedKeys = ['Backspace', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Delete', 'Tab', 'Enter'];
+                        if (event.ctrlKey || event.metaKey) return;
+                        if (!/^[0-9]$/.test(event.key) && !allowedKeys.includes(event.key)) {
+                            event.preventDefault();
+                        }
+                    }
+                },
                 incrementButton: {
                     children: <AddIcon fontSize="small" />,
                     className: "increment",
@@ -31,20 +40,38 @@ const NumberInput = React.forwardRef(function CustomNumberInput(props, ref) {
     );
 });
 
-export default function QuantityInput({ min, max, currentValue, cartItemId, setOpenModal, disabled }) {
+export default function QuantityInput({ 
+    min = 1, 
+    max = 9999, 
+    currentValue, 
+    quantity, 
+    onChange: customOnChange, 
+    cartItemId, 
+    setOpenModal, 
+    disabled 
+}) {
     const dispatch = useDispatch();
 
+    // Lấy giá trị từ currentValue (trong Cart) hoặc quantity (trong DishDetail). Mặc định là 1 nếu rỗng.
+    const val = currentValue !== undefined ? currentValue : (quantity !== undefined ? quantity : 1);
+
     const handleChange = async (event, newValue) => {
-        if (newValue !== null && newValue >= 0 && newValue <= max) {
-            if (newValue === 0) {
-                setOpenModal(true);
-            } else {
-                await dispatch(updateItemQuantity({ cartItemId, quantity: newValue }));
+        if (newValue !== null && newValue >= min && newValue <= max) {
+            if (cartItemId) {
+                // Dùng trong CartItemCard
+                if (newValue === 0) {
+                    if (setOpenModal) setOpenModal(true);
+                } else {
+                    await dispatch(updateItemQuantity({ cartItemId, quantity: newValue }));
+                }
+            } else if (customOnChange) {
+                // Dùng trong DishDetail
+                customOnChange(newValue);
             }
         }
     };
 
-    return <NumberInput aria-label="Quantity Input" min={min} max={max} value={currentValue} onChange={handleChange} disabled={disabled} />;
+    return <NumberInput aria-label="Quantity Input" min={min} max={max} value={val} onChange={handleChange} disabled={disabled} />;
 }
 
 const orange = {

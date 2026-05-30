@@ -11,8 +11,7 @@ import {
     addConversation,
     loadConversations,
 } from "@features/chat/chatSlice";
-import { orderStatusUpdated } from "@features/order/orderSlice";
-import { toast } from "react-toastify";
+
 
 let socketInstance = null;
 
@@ -23,15 +22,22 @@ const useWebSocket = () => {
 
     // Get conversations data to look up user names
     const conversations = useSelector((state) => state.chat.conversations.byId);
-    const currentUser = useSelector((state) => state.auth.user);
+    
+    // Dynamically select customer vs admin auth state based on path
+    const isAdmin = window.location.pathname.startsWith("/admin");
+    const customerUser = useSelector((state) => state.auth.user);
+    const adminUser = useSelector((state) => state.adminAuth.user);
+    const currentUser = isAdmin ? adminUser : customerUser;
 
     // Update ref whenever conversations change (without triggering re-mount)
     useEffect(() => {
         conversationsRef.current = conversations;
     }, [conversations]);
 
-    // Get token from localStorage
-    const authToken = localStorage.getItem("access_token");
+    // Get token dynamically from localStorage or sessionStorage
+    const customerToken = sessionStorage.getItem("customer_token") || localStorage.getItem("customer_token");
+    const adminToken = sessionStorage.getItem("admin_token");
+    const authToken = isAdmin ? adminToken : customerToken;
 
     // Initialize WebSocket connection
     useEffect(() => {
@@ -58,18 +64,18 @@ const useWebSocket = () => {
 
         // Connection events
         socket.on("connect", () => {
-            console.log("✅ WebSocket connected", { socketId: socket.id });
+            console.log("WebSocket connected", { socketId: socket.id });
 
-            // ✅ Join personal room for user so they receive conversation updates even when Sidebar is open
+            // Join personal room for user so they receive conversation updates even when Sidebar is open
             const userId = currentUser?.sub || currentUser?.user_id || currentUser?.userId || currentUser?.id;
             if (userId) {
                 socket.emit("join_personal_room", { userId });
-                console.log(`📍 Joined personal room: user:${userId}`);
+                console.log(`Joined personal room: user:${userId}`);
             }
         });
 
         socket.on("disconnect", () => {
-            console.log("❌ WebSocket disconnected");
+            console.log("WebSocket disconnected");
         });
 
         socket.on("connect_error", (error) => {

@@ -20,7 +20,8 @@
                     "@features": "./src/features",
                     "@store": "./src/store",
                     "@assets": "./src/assets",
-                    "@utils": "./src/utils"
+                    "@utils": "./src/utils",
+                    "@auth": "./src/features/auth"
                 },
                 "extensions": [".js", ".jsx", ".ts", ".tsx"]
             }

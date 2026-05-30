@@ -1,5 +1,5 @@
 import { useSelector, useDispatch } from "react-redux";
-import { login, logout } from "@features/auth/authSlice";
+import { login, logout } from "@auth/customerAuthSlice";
 import { resetChatState } from "@features/chat/chatSlice";
 
 const useAuth = () => {
