@@ -14,7 +14,7 @@ import reviewService from "@services/reviewService";
 import styles from "./ReviewList.module.css";
 
 const ReviewList = ({ dishId }) => {
-    const { isAuthenticated, user } = useSelector((state) => state.auth);
+    const { isAuthenticated, user } = useSelector((state) => state?.customerAuth || state?.auth || {});
     const [reviews, setReviews] = useState([]);
     const [loading, setLoading] = useState(true);
     const [formOpen, setFormOpen] = useState(false);

@@ -3,7 +3,6 @@ import classNames from "classnames/bind";
 import { ExpandMore } from "@mui/icons-material";
 import { Checkbox, Divider } from "@mui/material";
 import PropTypes from "prop-types";
-import { screen } from '@testing-library/react';
 
 import styles from "@pages/Login/Login.module.css";
 import countryService from "@services/countryService";
@@ -130,13 +129,11 @@ function FormPhoneNumber() {
     const handleLoginWithGoogle = async () => {
         const width = 500;
         const height = 800;
-        console.log(screen);
-
-        const left = screen.width / 2 - width / 2;
-        const top = screen.height / 2 - height / 2;
+        const left = window.screen.width / 2 - width / 2;
+        const top = window.screen.height / 2 - height / 2;
 
         const popup = window.open(
-            `${serverBaseUrl}/api/auth/google`,
+            `${serverBaseUrl}/api/auth/google?memorizedLogin=${formData.memorizedLogin}`,
             "_blank",
             `width=${width},height=${height},top=${top},left=${left}`,
         );
@@ -144,18 +141,6 @@ function FormPhoneNumber() {
         if (!popup) {
             console.error("Failed to open pop-up window");
             return;
-        }
-
-        try {
-            await axiosInstance({
-                url: "/api/auth/google",
-                params: {
-                    memorizedLogin: formData.memorizedLogin,
-                },
-                method: "get",
-            });
-        } catch (error) {
-            console.log(error);
         }
 
         const checkPopup = setInterval(() => {
@@ -167,12 +152,12 @@ function FormPhoneNumber() {
     const handleLoginWithFacebook = async () => {
         const width = 500;
         const height = 800;
-        const left = screen.width / 2 - width / 2;
-        const top = screen.height / 2 - height / 2;
+        const left = window.screen.width / 2 - width / 2;
+        const top = window.screen.height / 2 - height / 2;
 
         // Open facebook login popup
         const popup = window.open(
-            `${serverBaseUrl}/api/auth/facebook`,
+            `${serverBaseUrl}/api/auth/facebook?memorizedLogin=${formData.memorizedLogin}`,
             "_blank",
             `width=${width},height=${height},top=${top},left=${left}`,
         );
@@ -180,18 +165,6 @@ function FormPhoneNumber() {
         if (!popup) {
             console.error("Failed to open pop-up window");
             return;
-        }
-
-        try {
-            await axiosInstance({
-                url: "/api/auth/facebook",
-                params: {
-                    memorizedLogin: formData.memorizedLogin,
-                },
-                method: "get",
-            });
-        } catch (error) {
-            console.log(error);
         }
 
         const checkPopup = setInterval(() => {
