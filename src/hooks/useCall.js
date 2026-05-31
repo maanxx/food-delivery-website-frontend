@@ -5,8 +5,15 @@ import callService from "@services/callService";
 import { getSimplePeer } from "@utils/SimplePeerShim";
 
 const useCall = (socket) => {
-    const userInfo = useSelector((state) => state.auth.user);
-    const conversations = useSelector((state) => state.chat.conversations.byId);
+    const isAdmin = window.location.pathname.startsWith("/admin");
+    const customerUser = useSelector(
+        (state) => state?.customerAuth?.user || state?.auth?.user || null,
+    );
+    const adminUser = useSelector((state) => state?.adminAuth?.user || null);
+    const userInfo = isAdmin ? adminUser : customerUser;
+    const conversations = useSelector(
+        (state) => state?.chat?.conversations?.byId || {},
+    );
     const userId = userInfo?.sub || userInfo?.user_id || userInfo?.userId || userInfo?.id;
 
     const [callState, setCallState] = useState({

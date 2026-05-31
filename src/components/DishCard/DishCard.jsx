@@ -14,6 +14,7 @@ import {
 } from "@mui/icons-material";
 import classNames from "classnames/bind";
 import styles from "./DishCard.module.css";
+import { getDishImageUrl, handleDishImageError } from "@utils/dishImage";
 
 const cx = classNames.bind(styles);
 
@@ -129,10 +130,11 @@ const DishCard = memo(({ dish = {} }) => {
       {/* Image Container */}
       <div className={styles.imageContainer}>
         <img 
-          src={thumbnail_path || "/images/dishes/placeholder.jpg"} 
+          src={getDishImageUrl(thumbnail_path)} 
           alt={name} 
           className={styles.image}
           loading="lazy"
+          onError={handleDishImageError}
         />
         
         <div className={styles.badges}>

@@ -29,6 +29,7 @@ import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { addToCart } from "@features/cart/cartSlice";
 import { toast } from "react-toastify";
+import { getDishImageUrl, handleDishImageError } from "@utils/dishImage";
 const DishDetail = () => {
   const { id } = useParams();
   const [dish, setDish] = useState(null);
@@ -146,9 +147,10 @@ const DishDetail = () => {
         <Grid item xs={12} md={6}>
           <div className={styles.imageWrapper}>
             <img
-              src={dish.thumbnail_path}
+              src={getDishImageUrl(dish.thumbnail_path)}
               alt={dish.name || "dish image"}
               className={styles.image}
+              onError={handleDishImageError}
             />
           </div>
         </Grid>

@@ -43,7 +43,10 @@ const ChatWindow = () => {
     const typingUsers = useSelector((state) => state.chat.typing[conversationId] || []);
 
     // Get currentUserId from Redux
-    const user = useSelector((state) => state.auth.user);
+    const isAdmin = window.location.pathname.startsWith("/admin");
+    const customerUser = useSelector((state) => state?.customerAuth?.user || state?.auth?.user || null);
+    const adminUser = useSelector((state) => state?.adminAuth?.user || null);
+    const user = isAdmin ? adminUser : customerUser;
     const currentUserId = user?.sub || user?.user_id || user?.userId || user?.id;
 
     const [isLoadingMessages, setIsLoadingMessages] = useState(false);

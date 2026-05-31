@@ -36,7 +36,9 @@ const Sidebar = () => {
     const { updateStatus } = useWebSocket();
 
     // Track auth state to reload conversations when user changes
-    const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
+    const isAuthenticated = useSelector(
+        (state) => state?.adminAuth?.isAuthenticated ?? state?.customerAuth?.isAuthenticated ?? state?.auth?.isAuthenticated ?? false,
+    );
 
     const conversations = useSelector((state) =>
         state.chat.conversations.allIds.map((id) => state.chat.conversations.byId[id]).filter(Boolean),

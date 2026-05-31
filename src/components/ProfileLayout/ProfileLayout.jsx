@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { Drawer, Button } from 'antd';
 import { MenuOutlined } from '@ant-design/icons';
 import ProfileSidebar from '../ProfileSidebar/ProfileSidebar';
+import ProfileHeader from '../ProfileHeader/ProfileHeader';
 import styles from './ProfileLayout.module.css';
 
-const ProfileLayout = ({ children, activeTab, onTabSelect }) => {
+const ProfileLayout = ({ children, activeTab, onTabSelect, profileData }) => {
   const [drawerVisible, setDrawerVisible] = useState(false);
 
   const toggleDrawer = () => {
@@ -52,6 +53,7 @@ const ProfileLayout = ({ children, activeTab, onTabSelect }) => {
 
         {/* Main Content Area */}
         <div className={styles.contentWrapper}>
+          <ProfileHeader profile={profileData} />
           {children}
         </div>
       </div>
