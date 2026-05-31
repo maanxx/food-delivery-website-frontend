@@ -51,7 +51,7 @@ const DishDetail = () => {
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { user } = useSelector((state) => state.auth);
+  const { user } = useSelector((state) => state?.customerAuth || state?.auth || {});
   const favoritesLoaded = useSelector(selectFavoritesLoaded);
   const { isFavorite, isMutating, toggleFavorite } = useFavorites(id);
   // nay la lay mon an
