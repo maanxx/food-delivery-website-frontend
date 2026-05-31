@@ -32,7 +32,7 @@ function Login() {
         };
     }, [login, logout, navigate]);
 
-    const { isInitialized, isLoading } = useSelector((state) => state.auth);
+    const { isInitialized, isLoading } = useSelector((state) => state?.customerAuth || state?.auth || {});
 
     useEffect(() => {
         if (isInitialized && !isLoading && isAuthenticated) {
