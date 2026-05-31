@@ -1,15 +1,20 @@
 import React from 'react';
 import { Avatar, Button, Upload } from 'antd';
-import { UserOutlined, EditOutlined, CameraOutlined } from '@ant-design/icons';
+import { UserOutlined, CameraOutlined } from '@ant-design/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import { updateUserAvatar } from '@features/user/userSlice';
 import { getAvatarUrl } from '@utils/urlHelper';
 import styles from './ProfileHeader.module.css';
 
-const ProfileHeader = () => {
-  const { user } = useSelector((state) => state.auth);
+const ProfileHeader = ({ profile }) => {
+  const { user } = useSelector((state) => state?.customerAuth || state?.auth || {});
   const { avatarLoading } = useSelector((state) => state.user);
   const dispatch = useDispatch();
+  const profileData = profile || user;
+  const phoneLabel =
+    profileData?.phoneNumber && /[a-zA-Z]/.test(profileData.phoneNumber)
+      ? 'Chưa cập nhật SĐT'
+      : (profileData?.phoneNumber || 'Chưa cập nhật SĐT');
 
   const handleAvatarUpload = async (info) => {
     if (info.file.status === 'uploading') return;
@@ -24,7 +29,7 @@ const ProfileHeader = () => {
         <div className={styles.avatarWrapper}>
           <Avatar 
             size={100} 
-            src={getAvatarUrl(user?.avatarPath)} 
+            src={getAvatarUrl(profileData?.avatarPath || profileData?.avatar_path)} 
             icon={<UserOutlined />} 
             className={styles.avatar}
           />
@@ -43,11 +48,11 @@ const ProfileHeader = () => {
           </Upload>
         </div>
         <div className={styles.userMeta}>
-          <h2 className={styles.username}>{user?.fullname || user?.username || 'Eatsy User'}</h2>
+          <h2 className={styles.username}>{profileData?.fullname || profileData?.username || 'Eatsy User'}</h2>
           <div className={styles.contactInfo}>
-            <span className={styles.infoItem}>{user?.email || 'No email provided'}</span>
+            <span className={styles.infoItem}>{profileData?.email || 'Chưa cập nhật email'}</span>
             <span className={styles.dot}>•</span>
-            <span className={styles.infoItem}>{user?.phoneNumber || 'No phone provided'}</span>
+            <span className={styles.infoItem}>{phoneLabel}</span>
           </div>
         </div>
       </div>

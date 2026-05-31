@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import profileService from "../../services/profileService";
 import favoriteService from "@services/favoriteService";
-import { logout, updateUser } from "../auth/authSlice";
+import { logout, updateUser } from "@features/auth/customerAuthSlice";
 import { message } from "antd";
 
 export const updateUserProfile = createAsyncThunk(

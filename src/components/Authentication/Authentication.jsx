@@ -8,7 +8,7 @@ import useAuth from "@hooks/useAuth";
 
 function Authentication({ children }) {
     const { isAuthenticated } = useAuth();
-    const { isInitialized, isLoading } = useSelector((state) => state.auth);
+    const { isInitialized, isLoading } = useSelector((state) => state?.customerAuth || state?.auth || {});
 
     // ✅ Wait for initialization to complete before deciding to redirect
     if (!isInitialized || isLoading) {
