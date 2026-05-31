@@ -55,7 +55,7 @@ export const initializeAdminAuth = createAsyncThunk(
 
 const initialState = {
     isAuthenticated: false,
-    admin: null,
+    user: null,
     isInitialized: false,
     isLoading: false,
     error: null,
@@ -73,7 +73,7 @@ const adminAuthSlice = createSlice({
     }
 
     state.isAuthenticated = true;
-    state.admin = admin;
+    state.user = admin;
     state.isInitialized = true;
 
     sessionStorage.setItem(ADMIN_KEYS.token, action.payload.token)
@@ -82,7 +82,7 @@ sessionStorage.setItem(ADMIN_KEYS.info, JSON.stringify(admin))
 },
         logoutAdmin: (state) => {
     state.isAuthenticated = false;
-    state.admin = null;
+    state.user = null;
     state.isInitialized = true;
 
     sessionStorage.removeItem(ADMIN_KEYS.token)
@@ -93,15 +93,15 @@ sessionStorage.removeItem(ADMIN_KEYS.info)
             state.isInitialized = true;
         },
         updateAdmin: (state, action) => {
-    if (state.admin && action.payload) {
-        state.admin = {
-            ...state.admin,
+    if (state.user && action.payload) {
+        state.user = {
+            ...state.user,
             ...action.payload
         };
 
        sessionStorage.setItem(
     ADMIN_KEYS.info,
-    JSON.stringify(state.admin)
+    JSON.stringify(state.user)
 );
     }
 }
@@ -113,13 +113,13 @@ sessionStorage.removeItem(ADMIN_KEYS.info)
             })
             .addCase(initializeAdminAuth.fulfilled, (state, action) => {
                 state.isAuthenticated = true;
-                state.admin = action.payload?.admin || null;
+                state.user = action.payload?.admin || null;
                 state.isInitialized = true;
                 state.isLoading = false;
             })
             .addCase(initializeAdminAuth.rejected, (state) => {
                 state.isAuthenticated = false;
-                state.admin = null;
+                state.user = null;
                 state.isInitialized = true;
                 state.isLoading = false;
             });

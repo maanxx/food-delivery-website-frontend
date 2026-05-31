@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { login } from "@features/auth/adminAuthSlice";
+import { loginAdmin } from "@features/auth/adminAuthSlice";
 import axiosInstance from "@config/axiosInstance";
 import styles from "./AdminLogin.module.css";
 
@@ -93,7 +93,7 @@ function AdminLogin() {
                 }
 
                 // Log in admin
-                dispatch(login({ token: accessToken, refreshToken, user, rememberMe }));
+                dispatch(loginAdmin({ token: accessToken, refreshToken, user, rememberMe }));
                 navigate("/admin");
             } else {
                 setErrorMsg(res.data.message || "Tài khoản hoặc mật khẩu không chính xác.");

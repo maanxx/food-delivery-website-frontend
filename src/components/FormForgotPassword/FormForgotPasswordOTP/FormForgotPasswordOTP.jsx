@@ -307,7 +307,7 @@ const FormForgotPasswordOTP = () => {
                 ref={resendOTPBtn}
                 type="button"
             >
-                Gửi lại OTP sau 00:30 giây
+                Gửi lại OTP sau 00:60 giây
             </button>
         </Box>
     );
