@@ -5,7 +5,7 @@ import { CopyrightRounded } from "@mui/icons-material";
 import { Container } from "@mui/material";
 
 import styles from "./Login.module.css";
-import axiosInstance from "@config/axiosInstance";
+import { useSelector } from "react-redux";
 import useAuth from "@hooks/useAuth";
 const cx = classNames.bind(styles);
 
@@ -20,7 +20,6 @@ function Login() {
 
         loginChannel.addEventListener("message", (e) => {
             if (e.data.success) {
-                // Pass data from event if available, otherwise login reducer will handle safely
                 login(e.data);
                 navigate("/");
             } else {
@@ -33,26 +32,13 @@ function Login() {
         };
     }, [login, logout, navigate]);
 
-    useEffect(() => {
-        const authenticate = async () => {
-            try {
-                const token = sessionStorage.getItem("customer_token") || localStorage.getItem("customer_token");
-                if (token) {
-                    const res = await axiosInstance({
-                        url: "/api/auth",
-                        method: "get",
-                    });
-                    if (res.data.success && isAuthenticated) {
-                        navigate("/");
-                    }
-                }
-            } catch (error) {
-                console.log(error);
-            }
-        };
+    const { isInitialized, isLoading } = useSelector((state) => state.auth);
 
-        authenticate();
-    }, [isAuthenticated, navigate]);
+    useEffect(() => {
+        if (isInitialized && !isLoading && isAuthenticated) {
+            navigate("/");
+        }
+    }, [isInitialized, isLoading, isAuthenticated, navigate]);
 
     return (
         <>

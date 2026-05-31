@@ -22,7 +22,7 @@ const persistConfig = {
 };
 
 const rootReducer = combineReducers({
-    customerAuth: customerAuthReducer,
+    auth: customerAuthReducer,
     adminAuth: adminAuthReducer,
     chat: chatReducer,
     order: orderReducer,
