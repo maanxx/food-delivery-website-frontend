@@ -15,7 +15,7 @@ import {
   DollarOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import { getFirstLetterOfEachWord } from "@helpers/stringHelper";
 import styles from "./AdminLayout.module.css";
 

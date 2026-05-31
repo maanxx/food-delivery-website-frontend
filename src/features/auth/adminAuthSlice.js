@@ -53,6 +53,11 @@ export const initializeAdminAuth = createAsyncThunk(
 );
 
 const initialState = {
+    isAuthenticated: false,
+    user: null,
+    isInitialized: false,
+    isLoading: false,
+    error: null,
   isAuthenticated: false,
   user: null,
   admin: null,
@@ -72,6 +77,9 @@ const adminAuthSlice = createSlice({
         return;
       }
 
+    state.isAuthenticated = true;
+    state.user = admin;
+    state.isInitialized = true;
       state.isAuthenticated = true;
       state.user = admin;
       state.admin = admin;
