@@ -13,6 +13,7 @@ import {
   BgColorsOutlined,
   WechatOutlined,
   DollarOutlined,
+  CommentOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
@@ -38,6 +39,12 @@ const AdminLayout = ({ children }) => {
       icon: <WechatOutlined />,
       label: "Chat",
       onClick: () => navigate("/admin/chat"),
+    },
+    {
+      key: "/admin/support",
+      icon: <CommentOutlined />,
+      label: "Support Chat",
+      onClick: () => navigate("/admin/support"),
     },
     {
       key: "/admin/orders",

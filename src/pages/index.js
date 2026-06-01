@@ -17,6 +17,7 @@ import DishDetail from "./DishDetail/DishDetail";
 import Admin from "./Admin/Admin";
 import AdminLogin from "./Admin/AdminLogin";
 import OrderSuccess from "./OrderSuccess/OrderSuccess";
+import SupportChat from "./Admin/SupportChat";
 
 export {
     Home,
@@ -38,4 +39,5 @@ export {
     Admin,
     AdminLogin,
     OrderSuccess,
+    SupportChat,
 };
