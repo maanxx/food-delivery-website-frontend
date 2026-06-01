@@ -2,9 +2,9 @@ import axiosInstance from '@config/axiosInstance';
 
 const profileService = {
   // Profile APIs
-  getProfile: () => axiosInstance.get('/api/user/profile'),
-  updateProfile: (formData) => axiosInstance.put('/api/user/profile', formData),
-  changePassword: (data) => axiosInstance.put('/api/user/password', data),
+  getProfile: (config = {}) => axiosInstance.get('/api/user/profile', config),
+  updateProfile: (formData, config = {}) => axiosInstance.put('/api/user/profile', formData, config),
+  changePassword: (data, config = {}) => axiosInstance.put('/api/user/password', data, config),
 
   // Address APIs
   getAddresses: () => axiosInstance.get('/api/user/addresses'),

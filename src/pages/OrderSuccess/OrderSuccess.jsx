@@ -9,7 +9,8 @@ import { fetchOrderDetails, selectCurrentOrder, selectOrderLoading } from "@feat
 
 const SUCCESS_TEXT = {
   TITLE: "Đặt hàng thành công!",
-  SUBTITLE: "Cảm ơn bạn đã tin tưởng Eatsy. Đơn hàng của bạn đang được xử lý.",
+  SUBTITLE: "Đơn hàng của bạn đã được xác nhận thành công! Vui lòng kiểm tra Email của bạn để xem chi tiết hóa đơn.",
+  EMAIL_NOTICE: "(Hệ thống có thể mất 1-2 phút để gửi email)",
   ORDER_ID: "Mã đơn hàng",
   TOTAL: "Tổng thanh toán",
   STATUS: "Trạng thái",
@@ -72,6 +73,7 @@ function OrderSuccess() {
         
         <h1 className={styles.title}>{SUCCESS_TEXT.TITLE}</h1>
         <p className={styles.description}>{SUCCESS_TEXT.SUBTITLE}</p>
+        <p className={styles.description} style={{ fontSize: "0.85rem", color: "#999", marginTop: "4px" }}>{SUCCESS_TEXT.EMAIL_NOTICE}</p>
 
         <div className={styles.orderDetailGrid}>
           <div className={styles.detailRow}>

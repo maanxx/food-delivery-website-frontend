@@ -6,7 +6,10 @@ export const loadConversations = createAsyncThunk(
     async ({ limit = 20, cursor } = {}, { getState, rejectWithValue }) => {
         try {
             const state = getState();
-            const user = state.auth.user;
+            const isAdmin = typeof window !== "undefined" && window.location.pathname.startsWith("/admin");
+            const user = isAdmin
+                ? state?.adminAuth?.user || null
+                : state?.customerAuth?.user || state?.auth?.user || null;
             const userId = user?.sub || user?.user_id || user?.userId || user?.id;
 
             if (!userId) {

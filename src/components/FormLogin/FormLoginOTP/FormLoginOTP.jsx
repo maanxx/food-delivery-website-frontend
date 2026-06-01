@@ -317,7 +317,7 @@ function FormLoginOTP() {
             <div className={cx("title")} style={{ marginBottom: "10px" }}>
                 <h1>Xác minh OTP</h1>
                 <h6 style={{ lineHeight: "20px" }}>
-                    Nhập mã gồm 6 chữ số mà chúng tôi đã gửi đến +84 {formData.phone}. Hết hạn sau 10 phút.
+                    Nhập mã gồm 6 chữ số mà chúng tôi đã gửi đến +84 {formData.phone}. Hết hạn sau 30 giây.
                 </h6>
             </div>
             <OTP

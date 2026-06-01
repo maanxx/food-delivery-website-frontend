@@ -19,10 +19,13 @@ function Header() {
     const [activeKey, setActiveKey] = useState("1");
     const [darkMode, setDarkmode] = useState(false);
     const [bannerBackgroundColor, setBannerBackgroundColor] = useState("var(--whiteColor)");
+    const isAdmin = window.location.pathname.startsWith("/admin");
     const { isAuthenticated, logout } = useAuth();
     const { disconnect } = useWebSocket();
     const [showProfileNav, setShowProfileNav] = useState(false);
-    const user = useSelector((state) => state.auth.user);
+    const customerUser = useSelector((state) => state?.customerAuth?.user || state?.auth?.user || null);
+    const adminUser = useSelector((state) => state?.adminAuth?.user || null);
+    const user = isAdmin ? adminUser : customerUser;
     const cartTotalQuantity = useSelector((state) => state.cart.totalQuantity);
     const [isCartBumped, setIsCartBumped] = useState(false);
 

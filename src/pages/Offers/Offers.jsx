@@ -19,7 +19,9 @@ import { getVouchers } from "../../services/voucherService";
 
 const Offers = () => {
   const dispatch = useDispatch();
-  const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
+  const isAuthenticated = useSelector(
+    (state) => state?.customerAuth?.isAuthenticated ?? state?.auth?.isAuthenticated ?? false,
+  );
   const favoritesLoaded = useSelector(selectFavoritesLoaded);
   const [dishes, setDishes] = useState([]);
   const [vouchers, setVouchers] = useState([]);

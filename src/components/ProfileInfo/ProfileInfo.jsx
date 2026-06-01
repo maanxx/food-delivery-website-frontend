@@ -5,27 +5,34 @@ import { UserOutlined, PhoneOutlined, MailOutlined, SaveOutlined } from '@ant-de
 import { updateUserProfile } from '@features/user/userSlice';
 import styles from './ProfileInfo.module.css';
 
-const ProfileInfo = () => {
+const ProfileInfo = ({ profile, onSuccess }) => {
   const [form] = Form.useForm();
   const dispatch = useDispatch();
   
-  const { user } = useSelector((state) => state.auth);
+  const { user } = useSelector((state) => state?.customerAuth || state?.auth || {});
   const { loading } = useSelector((state) => state.user);
+  const profileData = profile || user;
 
   useEffect(() => {
-    if (user) {
-      const formattedUser = { ...user };
+    if (profileData) {
+      const formattedUser = { ...profileData };
       if (formattedUser.dateOfBirth) {
         formattedUser.dateOfBirth = new Date(formattedUser.dateOfBirth).toISOString().split('T')[0];
       }
+      if (formattedUser.phoneNumber && /[a-zA-Z]/.test(formattedUser.phoneNumber)) {
+        formattedUser.phoneNumber = 'Chưa cập nhật';
+      }
       form.setFieldsValue(formattedUser);
     }
-  }, [user, form]);
+  }, [profileData, form]);
 
   const handleUpdateProfile = async (values) => {
     try {
       const result = await dispatch(updateUserProfile(values));
       if (result.meta?.requestStatus === 'fulfilled') {
+        if (typeof onSuccess === 'function' && result.payload) {
+          onSuccess(result.payload);
+        }
         message.success('Cập nhật hồ sơ thành công!');
       }
     } catch (error) {

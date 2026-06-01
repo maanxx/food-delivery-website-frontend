@@ -46,11 +46,19 @@ function FormPassword() {
 
             if (res.data.success) {
                 const { accessToken, refreshToken, user, rememberMe } = res.data;
+                
+                // Reject admin accounts on the customer login portal
+                if (user?.role && user.role.toLowerCase() === "admin") {
+                    setIsValidPassword(false);
+                    setPasswordAlertMessage("Tài khoản admin không thể đăng nhập tại trang dành cho khách hàng.");
+                    setLoading(false);
+                    return;
+                }
+
                 // Tokens are now managed by the authSlice based on rememberMe
                 login({ token: accessToken, refreshToken, user, rememberMe });
                 setIsValidPassword(true);
-                navigate(res.data.redirect);
-                // Removed window.location.reload() to maintain SPA experience
+                navigate("/"); // Standard customer redirect
             } else {
                 setIsValidPassword(false);
                 setPasswordAlertMessage("Mật khẩu chưa đúng.");

@@ -29,6 +29,7 @@ import {
     getRateLimitRemainingMs,
     RATE_LIMIT_DEFAULTS,
 } from '@utils/requestRateLimiter';
+import { getDishImageUrl, handleDishImageError } from '@utils/dishImage';
 
 const CHECKOUT_TEXT = {
     TITLE: 'Thanh toán',
@@ -331,8 +332,9 @@ function Checkout() {
                     // Support both formats from cart
                     const itemPrice =
                         item.priceSnapshot || item.price_snapshot || 0;
-                    const itemImage =
-                        item.dish?.thumbnail_path || item.thumbnail_path || '';
+                    const itemImage = getDishImageUrl(
+                        item.dish?.thumbnail_path || item.thumbnail_path,
+                    );
                     const itemName = item.dish?.name || item.name || 'Món ăn';
 
                     return (
@@ -344,6 +346,7 @@ function Checkout() {
                                 src={itemImage}
                                 alt={itemName}
                                 className={styles.itemImage}
+                                onError={handleDishImageError}
                             />
                             <div className={styles.itemInfo}>
                                 <span className={styles.itemName}>

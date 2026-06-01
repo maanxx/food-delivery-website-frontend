@@ -13,7 +13,7 @@ import { useSelector } from "react-redux";
 import styles from "./ReviewItem.module.css";
 
 const ReviewItem = ({ review, onEdit, onDelete }) => {
-    const { user } = useSelector((state) => state.auth);
+    const { user } = useSelector((state) => state?.customerAuth || state?.auth || {});
     const [anchorEl, setAnchorEl] = useState(null);
 
     const isOwner = user?.userId === review.user?.user_id;
