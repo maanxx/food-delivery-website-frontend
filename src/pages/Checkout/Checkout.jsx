@@ -1,4 +1,10 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, {
+    useEffect,
+    useState,
+    useCallback,
+    useMemo,
+    useRef,
+} from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Container } from '@mui/material';
 import {
@@ -16,6 +22,7 @@ import { resetCartState } from '@features/cart/cartSlice';
 
 import styles from './Checkout.module.css';
 import profileService from '@services/profileService';
+import { getPaymentStatus } from '@services/orderService';
 import {
     beginRateLimitedAction,
     finishRateLimitedAction,
@@ -31,7 +38,7 @@ const CHECKOUT_TEXT = {
     SUMMARY_SECTION: 'Tóm tắt đơn hàng',
     PLACE_ORDER: 'Đặt hàng',
     COD: 'Thanh toán khi nhận hàng (COD)',
-    BANK_TRANSFER: 'Chuyển khoản qua VietQR (MB)',
+    BANK_TRANSFER: 'Chuyển khoản qua VietQR',
     BANK_TRANSFER_HINT:
         'Quét mã QR để chuyển khoản. Nội dung chuyển khoản sẽ được tự động điền.',
     QR_TITLE: 'Quét mã để thanh toán',
@@ -39,9 +46,18 @@ const CHECKOUT_TEXT = {
     QR_NOTE: 'Nội dung',
     QR_DONE: 'Đã chuyển khoản',
     QR_WAITING: 'Đơn hàng sẽ được tạo sau khi hệ thống xác nhận thanh toán.',
+    QR_EXPIRES_IN: 'Hết hạn sau',
+    QR_EXPIRED: 'Mã thanh toán đã hết hạn. Vui lòng tạo lại mã QR mới.',
     EMPTY_ADDRESS:
         'Bạn chưa có địa chỉ nào. Vui lòng thêm địa chỉ trong trang Cá nhân.',
     GO_TO_PROFILE: 'Đi đến Cá nhân',
+};
+
+const formatDuration = (ms) => {
+    const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
 };
 
 function Checkout() {
@@ -59,6 +75,10 @@ function Checkout() {
     const [qrModalOpen, setQrModalOpen] = useState(false);
     const [qrInfo, setQrInfo] = useState(null);
     const [paymentId, setPaymentId] = useState(null);
+    const [qrExpiresAt, setQrExpiresAt] = useState(null);
+    const [qrRemainingMs, setQrRemainingMs] = useState(0);
+    const paymentPollingRef = useRef(null);
+    const paymentPollingInFlight = useRef(false);
     const [cooldownRemainingMs, setCooldownRemainingMs] = useState(0);
     const [isSubmittingCheckout, setIsSubmittingCheckout] = useState(false);
 
@@ -115,6 +135,22 @@ function Checkout() {
         };
     }, [cooldownRemainingMs, checkoutRateLimitKey]);
 
+    useEffect(() => {
+        if (!qrExpiresAt) {
+            setQrRemainingMs(0);
+            return undefined;
+        }
+
+        const updateRemaining = () => {
+            const remaining = Math.max(0, qrExpiresAt.getTime() - Date.now());
+            setQrRemainingMs(remaining);
+        };
+
+        updateRemaining();
+        const timer = setInterval(updateRemaining, 1000);
+        return () => clearInterval(timer);
+    }, [qrExpiresAt]);
+
     const handlePlaceOrder = useCallback(async () => {
         if (!selectedAddressId) {
             message.warning('Vui lòng chọn địa chỉ giao hàng');
@@ -163,15 +199,18 @@ function Checkout() {
                 if (createPaymentSession.fulfilled.match(resultAction)) {
                     const { paymentSession, idempotentReplay } =
                         resultAction.payload;
-                    message[
-                        idempotentReplay ? 'info' : 'success'
-                    ](
+                    message[idempotentReplay ? 'info' : 'success'](
                         idempotentReplay
                             ? 'Đã dùng lại phiên thanh toán trước đó. Vui lòng tiếp tục chuyển khoản.'
                             : 'Đã tạo phiên thanh toán. Vui lòng chuyển khoản để hoàn tất.',
                     );
                     setQrInfo(paymentSession.qr_info);
                     setPaymentId(paymentSession.payment_id);
+                    setQrExpiresAt(
+                        paymentSession.expires_at
+                            ? new Date(paymentSession.expires_at)
+                            : null,
+                    );
                     setQrModalOpen(true);
                     return;
                 }
@@ -222,6 +261,68 @@ function Checkout() {
         setQrModalOpen(false);
         message.info('Đơn hàng sẽ được tạo sau khi xác nhận thanh toán.');
     }, []);
+
+    useEffect(() => {
+        if (!qrModalOpen || !paymentId) {
+            if (paymentPollingRef.current) {
+                clearInterval(paymentPollingRef.current);
+                paymentPollingRef.current = null;
+            }
+            return undefined;
+        }
+
+        const pollStatus = async () => {
+            if (paymentPollingInFlight.current) {
+                return;
+            }
+
+            paymentPollingInFlight.current = true;
+            try {
+                const response = await getPaymentStatus(paymentId);
+                if (!response?.success) {
+                    return;
+                }
+
+                const { payment_status, order_id, expires_at } =
+                    response.data || {};
+
+                if (expires_at) {
+                    setQrExpiresAt(new Date(expires_at));
+                }
+
+                if (payment_status === 'paid' && order_id) {
+                    message.success('Thanh toán thành công!');
+                    setQrModalOpen(false);
+                    setQrInfo(null);
+                    setPaymentId(null);
+                    setQrExpiresAt(null);
+                    dispatch(resetCartState());
+                    navigate(`/checkout/success?orderId=${order_id}`);
+                }
+
+                if (payment_status === 'expired') {
+                    message.error(CHECKOUT_TEXT.QR_EXPIRED);
+                    setQrModalOpen(false);
+                    setQrInfo(null);
+                    setPaymentId(null);
+                    setQrExpiresAt(null);
+                }
+            } catch (error) {
+                // Ignore polling errors; will retry on next tick.
+            } finally {
+                paymentPollingInFlight.current = false;
+            }
+        };
+
+        pollStatus();
+        paymentPollingRef.current = setInterval(pollStatus, 3000);
+        return () => {
+            if (paymentPollingRef.current) {
+                clearInterval(paymentPollingRef.current);
+                paymentPollingRef.current = null;
+            }
+        };
+    }, [dispatch, navigate, paymentId, qrModalOpen]);
 
     const orderSummaryList = useMemo(
         () => (
@@ -279,6 +380,8 @@ function Checkout() {
 
         return CHECKOUT_TEXT.PLACE_ORDER;
     }, [cooldownRemainingMs, isSubmittingCheckout, orderLoading]);
+
+    const isQrExpired = Boolean(qrExpiresAt && qrRemainingMs <= 0);
 
     if (!checkoutData) return null;
 
@@ -496,6 +599,7 @@ function Checkout() {
                 cancelText="Đóng"
                 title={CHECKOUT_TEXT.QR_TITLE}
                 centered
+                okButtonProps={{ disabled: isQrExpired }}
             >
                 {qrInfo && (
                     <div className={styles.qrModalContent}>
@@ -516,6 +620,24 @@ function Checkout() {
                                 <strong>{CHECKOUT_TEXT.QR_NOTE}:</strong>{' '}
                                 {qrInfo.add_info}
                             </div>
+                            {qrExpiresAt && !isQrExpired && (
+                                <div>
+                                    <strong>
+                                        {CHECKOUT_TEXT.QR_EXPIRES_IN}:
+                                    </strong>{' '}
+                                    {formatDuration(qrRemainingMs)}
+                                </div>
+                            )}
+                            {isQrExpired && (
+                                <div
+                                    style={{
+                                        color: '#cf1322',
+                                        fontWeight: 600,
+                                    }}
+                                >
+                                    {CHECKOUT_TEXT.QR_EXPIRED}
+                                </div>
+                            )}
                             <div>{CHECKOUT_TEXT.QR_WAITING}</div>
                             {paymentId && (
                                 <div>

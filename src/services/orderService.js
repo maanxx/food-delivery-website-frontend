@@ -47,6 +47,23 @@ export const createPaymentSession = async (paymentData) => {
         throw error;
     }
 };
+
+/**
+ * Check pending payment status.
+ */
+export const getPaymentStatus = async (paymentId) => {
+    try {
+        const response = await axiosInstance.get(
+            `/api/payments/${paymentId}/status`,
+            {
+                params: { t: Date.now() },
+            },
+        );
+        return response.data;
+    } catch (error) {
+        throw error;
+    }
+};
 /**
  * Reorder items from a past order.
  */

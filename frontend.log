@@ -1,0 +1,18 @@
+
+> eatsy_food_delivery_frontend@1.0.0 start
+> react-app-rewired start
+
+[32m✔[0m [33mConsole Ninja[0m extension is connected to [33mWebpack[0m, see [36mhttps://tinyurl.com/2vt8jxzw[0m
+Starting the development server...
+
+Compiled successfully!
+
+You can now view eatsy_food_delivery_frontend in the browser.
+
+  Local:            http://localhost:1234
+  On Your Network:  http://192.168.110.223:1234
+
+Note that the development build is not optimized.
+To create a production build, use npm run build.
+
+webpack compiled [1m[32msuccessfully[39m[22m
