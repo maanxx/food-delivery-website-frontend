@@ -1,20 +1,5 @@
 import axiosInstance from "@config/axiosInstance";
 
-/**
- * ============================================================
- *  SUPPORT SERVICE — supportService.js (Frontend / React)
- * ============================================================
- * Handles customer support live chat API requests.
- * Supports both Customer and Admin endpoints.
- * ============================================================
- */
-
-// ── CUSTOMER ENDPOINTS ──────────────────────────────────────
-
-/**
- * Get current logged in customer's active support conversation.
- * GET /api/support/conversations/mine
- */
 export const getMyConversation = async () => {
     try {
         const response = await axiosInstance.get("/api/support/conversations/mine");
@@ -28,10 +13,6 @@ export const getMyConversation = async () => {
     }
 };
 
-/**
- * Create a new support conversation for the customer.
- * POST /api/support/conversations
- */
 export const createConversation = async (subject = "Hỗ trợ khách hàng") => {
     try {
         const response = await axiosInstance.post("/api/support/conversations", { subject });
@@ -45,10 +26,6 @@ export const createConversation = async (subject = "Hỗ trợ khách hàng") =>
     }
 };
 
-/**
- * Get messages history for a conversation.
- * GET /api/support/conversations/:id/messages
- */
 export const getMessages = async (conversationId, page = 1, limit = 50) => {
     try {
         const response = await axiosInstance.get(
@@ -65,10 +42,6 @@ export const getMessages = async (conversationId, page = 1, limit = 50) => {
     }
 };
 
-/**
- * Send a support message.
- * POST /api/support/conversations/:id/messages
- */
 export const sendMessage = async (conversationId, content) => {
     try {
         const response = await axiosInstance.post(
@@ -85,13 +58,6 @@ export const sendMessage = async (conversationId, content) => {
     }
 };
 
-// ── ADMIN ENDPOINTS ─────────────────────────────────────────
-
-/**
- * Get all support conversations.
- * GET /api/support/conversations
- * Admin credentials requested explicitly via header 'x-auth-type'
- */
 export const getAllConversations = async (status = "all", page = 1, limit = 50) => {
     try {
         const response = await axiosInstance.get("/api/support/conversations", {
@@ -108,10 +74,6 @@ export const getAllConversations = async (status = "all", page = 1, limit = 50) 
     }
 };
 
-/**
- * Close a support conversation.
- * PUT /api/support/conversations/:id/close
- */
 export const closeConversation = async (conversationId) => {
     try {
         const response = await axiosInstance.put(
@@ -126,10 +88,6 @@ export const closeConversation = async (conversationId) => {
     }
 };
 
-/**
- * Reopen a support conversation.
- * PUT /api/support/conversations/:id/reopen
- */
 export const reopenConversation = async (conversationId) => {
     try {
         const response = await axiosInstance.put(

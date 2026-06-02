@@ -1,6 +1,5 @@
 import axiosInstance from "@config/axiosInstance";
 
-// GET all dishes
 const getAllDishes = async () => {
     try {
         const res = await axiosInstance({
@@ -13,7 +12,6 @@ const getAllDishes = async () => {
     }
 };
 
-// GET dish by id
 const getDishById = async (id) => {
     try {
         const res = await axiosInstance({
@@ -26,7 +24,6 @@ const getDishById = async (id) => {
     }
 };
 
-// POST create dish (multipart/form-data for image upload)
 const createDish = async (formData) => {
     try {
         const res = await axiosInstance({
@@ -44,7 +41,6 @@ const createDish = async (formData) => {
     }
 };
 
-// PUT update dish (multipart/form-data for image upload)
 const updateDish = async (id, formData) => {
     try {
         const res = await axiosInstance({
@@ -62,7 +58,6 @@ const updateDish = async (id, formData) => {
     }
 };
 
-// DELETE dish
 const deleteDish = async (id) => {
     try {
         const res = await axiosInstance({
