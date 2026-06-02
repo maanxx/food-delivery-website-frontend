@@ -1,4 +1,3 @@
-// Load polyfills FIRST before anything else
 import "./polyfills.js";
 
 import React from "react";
@@ -13,13 +12,11 @@ import { LoadingProvider } from "@contexts/loading.js";
 import { CallProvider } from "@contexts/CallContext.js";
 import { persistor, store } from "@store/store";
 
-// Polyfill for Node.js modules used by simple-peer and other libraries
 if (typeof window !== "undefined") {
     if (!window.process) {
         window.process = {
             env: {},
             nextTick: (callback) => {
-                // Use queueMicrotask if available, otherwise use setTimeout
                 if (typeof window.queueMicrotask === "function") {
                     window.queueMicrotask(callback);
                 } else {
@@ -28,7 +25,6 @@ if (typeof window !== "undefined") {
             },
         };
     } else if (!window.process.nextTick) {
-        // If process exists but nextTick doesn't, add it
         window.process.nextTick = (callback) => {
             if (typeof window.queueMicrotask === "function") {
                 window.queueMicrotask(callback);
@@ -38,7 +34,6 @@ if (typeof window !== "undefined") {
         };
     }
 
-    // Add global object for stream polyfill
     if (!window.global) {
         window.global = window;
     }

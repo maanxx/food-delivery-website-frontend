@@ -776,10 +776,9 @@ const useCall = (socket) => {
                 });
 
                 if (track.kind === "audio") {
-                    console.log(`   🔊 [CRITICAL] Audio track ${idx} - Forcing ENABLED`);
-                    track.enabled = true; // Force enable
+                    track.enabled = true; 
                     if (track.enabled) {
-                        console.log(`   ✅ Audio track ${idx} is now ENABLED and ready to transmit`);
+                        console.log(`  Audio track ${idx} is now ENABLED and ready to transmit`);
                     } else {
                         console.error(`   ❌ Audio track ${idx} STILL DISABLED after forcing enable!`);
                     }
@@ -787,13 +786,11 @@ const useCall = (socket) => {
                 }
             });
 
-            // Verify audio tracks are actually enabled
             if (audioTracksToEnable.length > 0) {
                 console.log(`✅ Processed ${audioTracksToEnable.length} audio tracks`);
                 audioTracksToEnable.forEach((track) => {
                     if (!track.enabled) {
                         console.error(`❌ CRITICAL: Audio track is NOT enabled! This will cause audio failure!`);
-                        // Last resort: try again
                         track.enabled = true;
                         console.log(`   Retry: track.enabled = ${track.enabled}`);
                     } else {

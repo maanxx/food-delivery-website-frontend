@@ -10,7 +10,6 @@ import useLoading from "@hooks/useLoading";
 import { initializeAuth } from "@features/auth/customerAuthSlice";
 import { initializeAdminAuth } from "@features/auth/adminAuthSlice";
 
-//hello
 function App() {
   const { loading } = useLoading();
   const dispatch = useDispatch();

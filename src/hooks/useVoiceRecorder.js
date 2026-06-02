@@ -18,11 +18,9 @@ const useVoiceRecorder = () => {
             setRecordedBlob(null);
             chunksRef.current = [];
 
-            // Request microphone access
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             streamRef.current = stream;
 
-            // Create MediaRecorder
             const mediaRecorder = new MediaRecorder(stream, {
                 mimeType: "audio/webm;codecs=opus",
                 audioBitsPerSecond: 128000,
@@ -30,14 +28,12 @@ const useVoiceRecorder = () => {
 
             mediaRecorderRef.current = mediaRecorder;
 
-            // Handle data available
             mediaRecorder.ondataavailable = (event) => {
                 if (event.data.size > 0) {
                     chunksRef.current.push(event.data);
                 }
             };
 
-            // Handle recording stop
             mediaRecorder.onstop = () => {
                 const blob = new Blob(chunksRef.current, { type: "audio/webm" });
                 setRecordedBlob(blob);
@@ -47,12 +43,10 @@ const useVoiceRecorder = () => {
             mediaRecorder.start();
             setIsRecording(true);
 
-            // Start timer
             timerRef.current = setInterval(() => {
                 setRecordingTime((prev) => prev + 1);
             }, 1000);
         } catch (err) {
-            console.error("Failed to start recording:", err);
             setError(err.message || "Failed to access microphone");
             setIsRecording(false);
         }
@@ -63,7 +57,6 @@ const useVoiceRecorder = () => {
             mediaRecorderRef.current.stop();
             setIsRecording(false);
 
-            // Stop all tracks - safe check for native MediaStream API
             if (streamRef.current) {
                 try {
                     if (typeof streamRef.current.getTracks === "function") {
@@ -91,7 +84,6 @@ const useVoiceRecorder = () => {
             setRecordedBlob(null);
             setRecordingTime(0);
 
-            // Stop all tracks - safe check for native MediaStream API
             if (streamRef.current) {
                 try {
                     if (typeof streamRef.current.getTracks === "function") {
