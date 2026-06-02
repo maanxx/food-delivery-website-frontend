@@ -18,6 +18,7 @@ import Admin from "./Admin/Admin";
 import AdminLogin from "./Admin/AdminLogin";
 import OrderSuccess from "./OrderSuccess/OrderSuccess";
 import SupportChat from "./Admin/SupportChat";
+import AIChat from "./Admin/AIChat";
 
 export {
     Home,
@@ -40,4 +41,5 @@ export {
     AdminLogin,
     OrderSuccess,
     SupportChat,
+    AIChat,
 };
