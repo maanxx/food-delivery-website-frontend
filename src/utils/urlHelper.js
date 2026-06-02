@@ -8,7 +8,6 @@ export const getAvatarUrl = (path) => {
     'http://localhost:8000/api'
   ).replace(/\/+$/, '').replace(/\/api$/, '');
   
-  // Normalize path (ensure leading slash)
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   
   return `${baseUrl}${normalizedPath}`;
