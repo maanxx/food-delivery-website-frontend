@@ -63,7 +63,6 @@ function Checkout() {
     const [cooldownRemainingMs, setCooldownRemainingMs] = useState(0);
     const [isSubmittingCheckout, setIsSubmittingCheckout] = useState(false);
 
-    // Redirect if no data from cart
     useEffect(() => {
         if (
             !checkoutData ||
@@ -81,7 +80,6 @@ function Checkout() {
             const data = res.data.data || [];
             setAddresses(data);
 
-            // Auto select default address (camelCase from backend)
             const defaultAddr = data.find((addr) => addr.isDefault);
             if (defaultAddr) {
                 setSelectedAddressId(defaultAddr.addressId);
@@ -228,7 +226,6 @@ function Checkout() {
         () => (
             <div className={styles.summaryList}>
                 {checkoutData.items.map((item) => {
-                    // Support both formats from cart
                     const itemPrice =
                         item.priceSnapshot || item.price_snapshot || 0;
                     const itemImage = getDishImageUrl(
@@ -291,7 +288,6 @@ function Checkout() {
             <Container maxWidth="lg">
                 <div className={styles.checkoutGrid}>
                     <div className={styles.mainContent}>
-                        {/* Address Section */}
                         <div className={styles.section}>
                             <h2 className={styles.sectionTitle}>
                                 <LocationOnOutlined color="primary" />
@@ -363,7 +359,6 @@ function Checkout() {
                             )}
                         </div>
 
-                        {/* Payment Section */}
                         <div className={styles.section}>
                             <h2 className={styles.sectionTitle}>
                                 <PaymentsOutlined color="primary" />
@@ -398,7 +393,6 @@ function Checkout() {
                             </div>
                         </div>
 
-                        {/* Note Section */}
                         <div className={styles.section}>
                             <h2 className={styles.sectionTitle}>
                                 <DescriptionOutlined color="primary" />
