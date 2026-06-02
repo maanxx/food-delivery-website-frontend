@@ -641,15 +641,15 @@ const useCall = (socket) => {
                     processPendingSignals();
                 }
             } else if (isCleaningUpRef.current) {
-                console.warn("⚠️ Ignoring ICE candidate: cleanup in progress");
+                console.warn(" Ignoring ICE candidate: cleanup in progress");
             } else {
-                console.warn("⚠️ [socket.on.ice_candidate] No candidate data!");
+                console.warn(" [socket.on.ice_candidate] No candidate data!");
             }
         });
 
         socket.on("offer", (data) => {
-            console.log("� [socket.on.offer] *** OFFER EVENT TRIGGERED *** ");
-            console.log("�📞 [socket.on.offer] RECEIVED OFFER from backend");
+            console.log(" [socket.on.offer] *** OFFER EVENT TRIGGERED *** ");
+            console.log(" [socket.on.offer] RECEIVED OFFER from backend");
             console.log("   Offer data:", data);
 
             if (!isCleaningUpRef.current && data.offer) {
