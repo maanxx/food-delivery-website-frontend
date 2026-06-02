@@ -112,9 +112,9 @@ function Contact() {
   const handleInputChange = (e) => {
     let { name, value } = e.target;
     if (name === "phone") {
-      value = value.replace(/\D/g, ""); // Only digits
-      if (value.startsWith("0")) value = value.substring(1); // No leading 0
-      value = value.substring(0, 9); // Limit to 9
+      value = value.replace(/\D/g, "");
+      if (value.startsWith("0")) value = value.substring(1);
+      value = value.substring(0, 9);
     }
     setFormData((prev) => ({
       ...prev,
@@ -126,14 +126,12 @@ function Contact() {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Validate form
     if (!formData.name || !formData.email || !formData.message) {
       toast.error("Vui lòng điền đầy đủ thông tin bắt buộc");
       setIsSubmitting(false);
       return;
     }
 
-    // Simulate API call
     try {
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
@@ -156,7 +154,6 @@ function Contact() {
 
   return (
     <div className={cx("contact")}>
-      {/* Hero Section */}
       <div className={cx("hero-section")}>
         <Container maxWidth="lg">
           <div className={cx("hero-content")}>
@@ -170,7 +167,6 @@ function Contact() {
       </div>
 
       <Container maxWidth="lg">
-        {/* Contact Info Cards */}
         <div className={cx("contact-info-section")}>
           <Grid container spacing={3}>
             {contactInfo.map((info, index) => (
@@ -204,10 +200,8 @@ function Contact() {
           </Grid>
         </div>
 
-        {/* Main Contact Section */}
         <div className={cx("main-contact-section")}>
           <Grid container spacing={4}>
-            {/* Contact Form */}
             <Grid item xs={12} md={8}>
               <Card className={cx("contact-form-card")}>
                 <CardContent className={cx("form-content")}>
@@ -299,9 +293,7 @@ function Contact() {
               </Card>
             </Grid>
 
-            {/* Map & Social */}
             <Grid item xs={12} md={4}>
-              {/* Map */}
               <Card className={cx("map-card")}>
                 <CardContent className={cx("map-content")}>
                   <Typography variant="h5" className={cx("map-title")}>
@@ -329,7 +321,6 @@ function Contact() {
                 </CardContent>
               </Card>
 
-              {/* Social Media */}
               <Card className={cx("social-card")}>
                 <CardContent className={cx("social-content")}>
                   <Typography variant="h5" className={cx("social-title")}>
@@ -364,7 +355,6 @@ function Contact() {
           </Grid>
         </div>
 
-        {/* FAQ Section */}
         <div className={cx("faq-section")}>
           <div className={cx("section-header")}>
             <Typography variant="h3" className={cx("section-title")}>
@@ -394,7 +384,6 @@ function Contact() {
           </Grid>
         </div>
 
-        {/* Call to Action */}
         <div className={cx("cta-section")}>
           <Card className={cx("cta-card")}>
             <CardContent className={cx("cta-content")}>
