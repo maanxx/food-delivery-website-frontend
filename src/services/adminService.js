@@ -43,7 +43,6 @@ const adminService = {
         return response.data;
     },
 
-    // Món bán chạy
     getTopDishes: async (limit = 10) => {
         const response = await axiosInstance.get(
             `/api/admin/top-dishes?limit=${limit}`,
@@ -51,7 +50,6 @@ const adminService = {
         return response.data;
     },
 
-    // Đơn hàng mới
     getRecentOrders: async (limit = 10) => {
         const response = await axiosInstance.get(
             `/api/admin/recent-orders?limit=${limit}`,
@@ -59,7 +57,6 @@ const adminService = {
         return response.data;
     },
 
-    // Dữ liệu cho biểu đồ theo ngày
     getDailyChartData: async (days = 7) => {
         const response = await axiosInstance.get(
             `/api/admin/chart-data/daily?days=${days}`,
@@ -67,7 +64,6 @@ const adminService = {
         return response.data;
     },
 
-    // Dữ liệu cho biểu đồ danh mục
     getCategoryChartData: async () => {
         const response = await axiosInstance.get(
             '/api/admin/chart-data/category',
@@ -75,7 +71,6 @@ const adminService = {
         return response.data;
     },
 
-    // Employee management
     getEmployees: async ({
         search = '',
         position = '',
@@ -115,7 +110,6 @@ const adminService = {
         return response.data;
     },
 
-    // Product management
     getProducts: async ({
         search = '',
         category_id = '',
@@ -165,7 +159,6 @@ const adminService = {
         return response.data;
     },
 
-    // Pending payments (VietQR)
     getPendingPayments: async ({
         status = 'pending',
         page = 1,

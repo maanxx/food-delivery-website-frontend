@@ -1,21 +1,15 @@
 import axiosInstance from "@config/axiosInstance";
 
-/**
- * Fetch full cart data with totals and enriched items.
- */
 const fetchCart = async () => {
     try {
         const res = await axiosInstance.get("/api/cart");
-        return res.data; // Expected { success: true, data: { items, totalQuantity, totalAmount } }
+        return res.data;
     } catch (error) {
         console.error("Failed to fetch cart:", error);
         throw error;
     }
 };
 
-/**
- * Add a new dish to the cart.
- */
 const addToCart = async (dishId, quantity = 1) => {
     try {
         const payload = { dishId, quantity };
@@ -28,9 +22,6 @@ const addToCart = async (dishId, quantity = 1) => {
     }
 };
 
-/**
- * Update quantity of a specific cart item.
- */
 const updateItemQuantity = async (cartItemId, quantity) => {
     try {
         const res = await axiosInstance.put(`/api/cart/items/${cartItemId}`, { quantity });
@@ -41,9 +32,6 @@ const updateItemQuantity = async (cartItemId, quantity) => {
     }
 };
 
-/**
- * Remove a single item from the cart.
- */
 const removeItem = async (cartItemId) => {
     try {
         const res = await axiosInstance.delete(`/api/cart/items/${cartItemId}`);
@@ -54,9 +42,6 @@ const removeItem = async (cartItemId) => {
     }
 };
 
-/**
- * Clear all items in the current user's cart.
- */
 const clearCart = async () => {
     try {
         const res = await axiosInstance.delete("/api/cart/items/clear");
