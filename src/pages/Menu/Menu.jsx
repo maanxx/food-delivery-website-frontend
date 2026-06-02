@@ -32,9 +32,8 @@ function Menu() {
   const [openCategory, setOpenCategory] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   
-  // Sort & Filter states
-  const [sortBy, setSortBy] = useState("default"); // default, price-asc, price-desc, rating
-  const [priceRange, setPriceRange] = useState([0, 500000]); // [min, max]
+  const [sortBy, setSortBy] = useState("default");
+  const [priceRange, setPriceRange] = useState([0, 500000]);
   const [openSort, setOpenSort] = useState(false);
   const [openPriceFilter, setOpenPriceFilter] = useState(false);
 
@@ -84,14 +83,12 @@ function Menu() {
       (dish.description &&
         dish.description.toLowerCase().includes(searchTerm.toLowerCase()));
     
-    // Filter by price range
     const dishPrice = Number(dish.price) || 0;
     const matchesPriceRange = dishPrice >= priceRange[0] && dishPrice <= priceRange[1];
     
     return matchesCategory && matchesSearch && matchesPriceRange;
   });
 
-  // Sort dishes
   const sortedDishes = [...filteredDishes].sort((a, b) => {
     switch (sortBy) {
       case "price-asc":
@@ -101,7 +98,7 @@ function Menu() {
       case "rating":
         return (Number(b.rating) || 0) - (Number(a.rating) || 0);
       default:
-        return 0; // Keep original order
+        return 0;
     }
   }); 
 
@@ -115,7 +112,6 @@ function Menu() {
 
   return (
     <div className={cx("menu")}>
-      {/* Header Section */}
       <div className={cx("menu-header")}>
         <Container maxWidth="lg">
           <div className={cx("header-content")}>
@@ -126,7 +122,6 @@ function Menu() {
       </div>
 
       <Container maxWidth="lg">
-        {/* Search and Filter Section */}
         <div className={cx("search-container")}>
           <div className={cx("search-layout")}>
             <div className={cx("category-dropdown")}>
@@ -203,7 +198,6 @@ function Menu() {
           </div>
         </div>
 
-        {/* Sort & Filter Bar */}
         <div className={cx("filter-bar")}>
           <div className={cx("filter-left")}>
             <Typography variant="body2" color="text.secondary">
@@ -212,7 +206,6 @@ function Menu() {
           </div>
           
           <div className={cx("filter-right")}>
-            {/* Sort Dropdown */}
             <div className={cx("filter-dropdown")}>
               <div
                 className={cx("filter-select-box")}
@@ -250,7 +243,6 @@ function Menu() {
               )}
             </div>
 
-            {/* Price Range Filter */}
             <div className={cx("filter-dropdown")}>
               <div
                 className={cx("filter-select-box")}
@@ -295,7 +287,6 @@ function Menu() {
           </div>
         </div>
 
-        {/* Products Grid */}
         <div className={cx("dishs-section")}>
           {sortedDishes.length === 0 ? (
             <div className={cx("no-dishs")}>
