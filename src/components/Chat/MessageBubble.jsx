@@ -734,24 +734,28 @@ const MessageBubble = ({ message, isOwn, showAvatar, showTimestamp, onDelete, on
             onMouseLeave={() => setIsHovering(false)}
             style={{ position: "relative", display: "flex", alignItems: "flex-start", gap: "6px" }}
         >
-            {showAvatar && !isOwn && (
-                <Avatar
-                    size={32}
-                    src={message?.senderAvatar || null}
-                    style={{
-                        backgroundColor: "#1890ff",
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        fontWeight: "bold",
-                        fontSize: "12px",
-                        flexShrink: 0,
-                    }}
-                >
-                    {!message?.senderAvatar && message?.senderName
-                        ? getFirstLetterOfEachWord(message.senderName).children
-                        : "U"}
-                </Avatar>
+            {!isOwn && (
+                showAvatar ? (
+                    <Avatar
+                        size={32}
+                        src={message?.senderAvatar || null}
+                        style={{
+                            backgroundColor: "#1890ff",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontWeight: "bold",
+                            fontSize: "12px",
+                            flexShrink: 0,
+                        }}
+                    >
+                        {!message?.senderAvatar && message?.senderName
+                            ? getFirstLetterOfEachWord(message.senderName).children
+                            : "U"}
+                    </Avatar>
+                ) : (
+                    <div style={{ width: "32px", flexShrink: 0 }} />
+                )
             )}
 
             <div className={styles.bubbleContent}>
