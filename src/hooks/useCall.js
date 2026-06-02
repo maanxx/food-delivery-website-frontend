@@ -620,20 +620,23 @@ const useCall = (socket) => {
             console.log("   Candidate data:", data);
 
             if (!isCleaningUpRef.current && data.candidate) {
-                // Queue ICE candidate for processing when peer is ready
-                pendingSignalsRef.current.push({
-                    data: {
+                const candidateObj = typeof data.candidate === 'object' && data.candidate !== null
+                    ? data.candidate
+                    : {
                         candidate: data.candidate,
                         sdpMLineIndex: data.sdpMLineIndex !== undefined ? data.sdpMLineIndex : 0,
                         sdpMid: data.sdpMid || "0",
-                    },
+                    };
+
+                // Queue ICE candidate for processing when peer is ready
+                pendingSignalsRef.current.push({
+                    data: { candidate: candidateObj },
                     fromUserId: data.fromUserId || data.userId || data.senderId,
                     type: "ice",
                     receivedAt: Date.now(),
                 });
                 console.log(`   📋 ICE candidate queued (pending: ${pendingSignalsRef.current.length})`);
 
-                // Try to process if peer is ready
                 if (peerReadyRef.current && peerRef.current) {
                     processPendingSignals();
                 }
@@ -650,7 +653,6 @@ const useCall = (socket) => {
             console.log("   Offer data:", data);
 
             if (!isCleaningUpRef.current && data.offer) {
-                // Queue offer for processing when peer is ready
                 pendingSignalsRef.current.push({
                     data: data.offer,
                     fromUserId: data.fromUserId || data.userId || data.callerId || data.initiatorId,
@@ -659,7 +661,6 @@ const useCall = (socket) => {
                 });
                 console.log(`   📋 Offer queued (pending: ${pendingSignalsRef.current.length})`);
 
-                // Try to process if peer is ready
                 if (peerReadyRef.current && peerRef.current) {
                     processPendingSignals();
                 }

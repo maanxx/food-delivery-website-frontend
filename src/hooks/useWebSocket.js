@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { io } from "socket.io-client";
 import {
@@ -18,13 +18,12 @@ const useWebSocket = () => {
   const dispatch = useDispatch();
   const socketRef = useRef(null);
   const conversationsRef = useRef(null);
+  const [isConnected, setIsConnected] = useState(socketInstance?.connected || false);
 
-  // Get conversations data to look up user names
   const conversations = useSelector(
     (state) => state?.chat?.conversations?.byId || {},
   );
 
-  // Dynamically select customer vs admin auth state based on path
   const isAdmin = window.location.pathname.startsWith("/admin");
   const customerUser = useSelector(
     (state) => state?.customerAuth?.user || state?.auth?.user || null,
@@ -38,25 +37,23 @@ const useWebSocket = () => {
     currentUser?.id ||
     null;
 
-  // Update ref whenever conversations change (without triggering re-mount)
   useEffect(() => {
     conversationsRef.current = conversations;
   }, [conversations]);
 
-  // Get token dynamically from localStorage or sessionStorage
   const customerToken =
     sessionStorage.getItem("customer_token") ||
     localStorage.getItem("customer_token");
   const adminToken = sessionStorage.getItem("admin_token");
   const authToken = isAdmin ? adminToken : customerToken;
 
-  // Initialize WebSocket connection
   useEffect(() => {
     if (!authToken) return;
 
     // Reuse existing connection
     if (socketInstance && socketInstance.connected) {
       socketRef.current = socketInstance;
+      setIsConnected(true);
       return;
     }
 
@@ -79,6 +76,7 @@ const useWebSocket = () => {
     // Connection events
     socket.on("connect", () => {
       console.log("WebSocket connected", { socketId: socket.id });
+      setIsConnected(true);
 
       // Join personal room for user so they receive conversation updates even when Sidebar is open
       if (currentUserId) {
@@ -89,6 +87,7 @@ const useWebSocket = () => {
 
     socket.on("disconnect", () => {
       console.log("WebSocket disconnected");
+      setIsConnected(false);
     });
 
     socket.on("connect_error", (error) => {
@@ -357,7 +356,7 @@ const useWebSocket = () => {
 
   return {
     socket: socketRef.current,
-    isConnected: socketRef.current?.connected || false,
+    isConnected,
     joinConversation,
     leaveConversation,
     sendMessage,
