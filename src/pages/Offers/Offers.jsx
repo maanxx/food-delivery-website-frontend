@@ -61,7 +61,6 @@ const Offers = () => {
     fetchVouchers();
   }, []);
 
-  // Load saved vouchers from localStorage
   useEffect(() => {
     const saved = JSON.parse(localStorage.getItem('savedVouchers') || '[]');
     setSavedVouchers(saved);
@@ -70,13 +69,11 @@ const Offers = () => {
   const handleSaveVoucher = (voucherCode) => {
     const saved = JSON.parse(localStorage.getItem('savedVouchers') || '[]');
     if (saved.includes(voucherCode)) {
-      // Unsave
       const updated = saved.filter(code => code !== voucherCode);
       localStorage.setItem('savedVouchers', JSON.stringify(updated));
       setSavedVouchers(updated);
       toast.info("Đã bỏ lưu voucher");
     } else {
-      // Save
       const updated = [...saved, voucherCode];
       localStorage.setItem('savedVouchers', JSON.stringify(updated));
       setSavedVouchers(updated);
@@ -84,12 +81,10 @@ const Offers = () => {
     }
   };
 
-  // lọc món giảm giá
   const discountedDishes = dishes.filter(
     (dish) => Number(dish.discount_amount) > 0
   );
 
-  // Filter dishes by category
   const filteredDishes = React.useMemo(() => {
     if (filter === "all") {
       return discountedDishes;
@@ -99,10 +94,8 @@ const Offers = () => {
       const categoryName = dish.category?.name?.toLowerCase() || '';
       
       if (filter === "food") {
-        // Exclude drinks category
         return categoryName !== 'nước uống' && categoryName !== 'drinks';
       } else if (filter === "drink") {
-        // Only drinks category
         return categoryName === 'nước uống' || categoryName === 'drinks';
       }
       
@@ -113,7 +106,6 @@ const Offers = () => {
   return (
     <Container maxWidth="lg" className={styles.page}>
       
-      {/* 🔥 HERO BANNER */}
       <Box className={styles.banner}>
         <Carousel indicators={false}>
           <div className={styles.bannerItem}>
@@ -130,7 +122,6 @@ const Offers = () => {
         </Carousel>
       </Box>
 
-      {/* 🎟️ VOUCHER */}
       <Box className={styles.section}>
         <Typography className={styles.title}>
           🎟️ Mã giảm giá
@@ -166,7 +157,6 @@ const Offers = () => {
         </Box>
       </Box>
 
-      {/* 🔥 FILTER */}
       <Box className={styles.filter}>
         {[
           { value: "all", label: "Tất cả" },
@@ -183,7 +173,6 @@ const Offers = () => {
         ))}
       </Box>
 
-      {/* 🍔 HOT DEALS */}
       <Box className={styles.section}>
         <Typography className={styles.title}>
           🔥 Ưu đãi hot
@@ -198,7 +187,6 @@ const Offers = () => {
         </Grid>
       </Box>
 
-      {/* 🍱 COMBO */}
       <Box className={styles.section}>
         <Typography className={styles.title}>
           🍱 Combo tiết kiệm
