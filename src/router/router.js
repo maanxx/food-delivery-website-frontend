@@ -21,6 +21,8 @@ import {
     Admin,
     AdminLogin,
     OrderSuccess,
+    SupportChat,
+    AIChat,
 } from '@pages/index';
 import Orders from '@pages/Admin/Orders';
 import PendingPayments from '@pages/Admin/PendingPayments';
@@ -186,6 +188,14 @@ const adminRoutes = [
             {
                 path: 'chat/:conversationId',
                 element: <ChatPage />,
+            },
+            {
+                path: 'support',
+                element: <SupportChat />,
+            },
+            {
+                path: 'ai-chat',
+                element: <AIChat />,
             },
             {
                 path: 'employees',

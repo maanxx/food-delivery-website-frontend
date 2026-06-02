@@ -13,8 +13,10 @@ import {
   BgColorsOutlined,
   WechatOutlined,
   DollarOutlined,
+  CommentOutlined,
+  RobotOutlined,
 } from "@ant-design/icons";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { getFirstLetterOfEachWord } from "@helpers/stringHelper";
 import styles from "./AdminLayout.module.css";
@@ -24,7 +26,14 @@ const { Header, Sider, Content } = Layout;
 const AdminLayout = ({ children }) => {
   const [collapsed, setCollapsed] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const user = useSelector((state) => state.adminAuth.user);
+
+  const isFullBleedPage = [
+    "/admin/ai-chat",
+    "/admin/support",
+    "/admin/chat"
+  ].some(path => location.pathname.startsWith(path));
 
   const menuItems = [
     {
@@ -38,6 +47,18 @@ const AdminLayout = ({ children }) => {
       icon: <WechatOutlined />,
       label: "Chat",
       onClick: () => navigate("/admin/chat"),
+    },
+    {
+      key: "/admin/support",
+      icon: <CommentOutlined />,
+      label: "Support Chat",
+      onClick: () => navigate("/admin/support"),
+    },
+    {
+      key: "/admin/ai-chat",
+      icon: <RobotOutlined />,
+      label: "AI Assistant",
+      onClick: () => navigate("/admin/ai-chat"),
     },
     {
       key: "/admin/orders",
@@ -122,7 +143,7 @@ const AdminLayout = ({ children }) => {
           mode="inline"
           items={menuItems}
           className={styles.menu}
-          defaultSelectedKeys={["/admin"]}
+          selectedKeys={[window.location.pathname]}
         />
       </Sider>
 
@@ -162,7 +183,7 @@ const AdminLayout = ({ children }) => {
         </Header>
 
         {/* Content Area */}
-        <Content className={styles.content}>{children || <Outlet />}</Content>
+        <Content className={isFullBleedPage ? styles.contentFullBleed : styles.content}>{children || <Outlet />}</Content>
       </Layout>
     </Layout>
   );
