@@ -641,16 +641,13 @@ const useCall = (socket) => {
                     processPendingSignals();
                 }
             } else if (isCleaningUpRef.current) {
-                console.warn(" Ignoring ICE candidate: cleanup in progress");
+                console.warn("Ignoring ICE candidate: cleanup in progress");
             } else {
                 console.warn(" [socket.on.ice_candidate] No candidate data!");
             }
         });
 
         socket.on("offer", (data) => {
-            console.log(" [socket.on.offer] *** OFFER EVENT TRIGGERED *** ");
-            console.log(" [socket.on.offer] RECEIVED OFFER from backend");
-            console.log("   Offer data:", data);
 
             if (!isCleaningUpRef.current && data.offer) {
                 pendingSignalsRef.current.push({
@@ -659,7 +656,6 @@ const useCall = (socket) => {
                     type: "offer",
                     receivedAt: Date.now(),
                 });
-                console.log(`   📋 Offer queued (pending: ${pendingSignalsRef.current.length})`);
 
                 if (peerReadyRef.current && peerRef.current) {
                     processPendingSignals();
@@ -682,7 +678,6 @@ const useCall = (socket) => {
             });
             console.log("   📊 Signal counts before processing:", signalsProcessedRef.current);
 
-            // Queue the signal instead of signaling immediately
             if (!isCleaningUpRef.current) {
                 if (data.answer) {
                     pendingSignalsRef.current.push({
@@ -699,7 +694,6 @@ const useCall = (socket) => {
                     console.error("   ❌ Answer payload is missing! data.answer is:", data.answer);
                 }
 
-                // Try to process pending signals
                 if (peerReadyRef.current && peerRef.current) {
                     console.log("   🔄 Peer already ready - processing answer immediately...");
                     processPendingSignals();
@@ -711,7 +705,6 @@ const useCall = (socket) => {
             }
         });
 
-        // Debug: Log all unhandled socket events for diagnosis
         const originalOn = socket.on.bind(socket);
         const handledEvents = new Set([
             "incoming_call",
@@ -755,10 +748,8 @@ const useCall = (socket) => {
 
     console.log("📊 [useCall] Hook initialized - socket:", !!socket, "endCall:", !!endCall);
 
-    // Get user media (audio/video)
     const getMediaStream = useCallback(async (type = "voice") => {
         try {
-            // Check for browser support
             if (!navigator.mediaDevices?.getUserMedia) {
                 throw new Error("Your browser does not support voice/video calls");
             }
@@ -775,7 +766,6 @@ const useCall = (socket) => {
             console.log(`   Stream ID: ${stream.id}`);
             console.log(`   Total tracks: ${stream.getTracks().length}`);
 
-            // Log each track and ENSURE all audio tracks are enabled
             const audioTracksToEnable = [];
             stream.getTracks().forEach((track, idx) => {
                 console.log(`   Track ${idx}:`, {
@@ -785,7 +775,6 @@ const useCall = (socket) => {
                     label: track.label,
                 });
 
-                // CRITICAL: Force enable ALL audio tracks immediately
                 if (track.kind === "audio") {
                     console.log(`   🔊 [CRITICAL] Audio track ${idx} - Forcing ENABLED`);
                     track.enabled = true; // Force enable
