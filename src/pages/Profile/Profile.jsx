@@ -7,7 +7,6 @@ import profileService from "@services/profileService";
 import useLoading from "@hooks/useLoading";
 import { fetchUserFavorites } from "@features/user/userSlice";
 
-// New Components
 import ProfileLayout from "@components/ProfileLayout/ProfileLayout";
 import ProfileInfo from "@components/ProfileInfo/ProfileInfo";
 import ProfileSkeleton from "@components/ProfileSkeleton/ProfileSkeleton";
@@ -24,7 +23,6 @@ const Profile = () => {
   const tabFromUrl = searchParams.get("tab") || "info";
   const [activeTab, setActiveTab] = useState(tabFromUrl);
 
-  // Update activeTab when URL changes
   useEffect(() => {
     setActiveTab(tabFromUrl);
   }, [tabFromUrl]);

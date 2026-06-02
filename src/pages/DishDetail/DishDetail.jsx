@@ -54,7 +54,6 @@ const DishDetail = () => {
   const { user } = useSelector((state) => state?.customerAuth || state?.auth || {});
   const favoritesLoaded = useSelector(selectFavoritesLoaded);
   const { isFavorite, isMutating, toggleFavorite } = useFavorites(id);
-  // nay la lay mon an
   useEffect(() => {
     const fetchDish = async () => {
       const data = await getDishById(id);
@@ -64,7 +63,6 @@ const DishDetail = () => {
     fetchDish();
   }, [id]);
 
-  // lay goi y mon an
   useEffect(() => {
     const fetchSimilar = async () => {
       const res = await axiosInstance.get(`/api/dish/similar/${id}`);
@@ -96,7 +94,6 @@ const DishDetail = () => {
   };
 
   const handleAddToCart = async () => {
-    // Check if user is authenticated
     if (!user) {
       toast.warning("Vui lòng đăng nhập để thêm vào giỏ hàng");
       navigate("/login");
@@ -104,7 +101,6 @@ const DishDetail = () => {
     }
 
     try {
-      // Dispatch addToCart action with dishId and quantity
       await dispatch(addToCart({ 
         dishId: id, 
         quantity 
@@ -112,7 +108,6 @@ const DishDetail = () => {
       
       toast.success("Đã thêm món vào giỏ hàng!");
       
-      // Optional: Reset quantity after adding
       setQuantity(1);
     } catch (error) {
       console.error("Add to cart error:", error);
@@ -143,7 +138,6 @@ const DishDetail = () => {
       </Box>
 
       <Grid container spacing={4} alignItems="flex-start">
-        {/* IMAGE */}
         <Grid item xs={12} md={6}>
           <div className={styles.imageWrapper}>
             <img
@@ -155,7 +149,6 @@ const DishDetail = () => {
           </div>
         </Grid>
 
-        {/* INFO */}
         <Grid item xs={12} md={6}>
           <div className={styles.infoCard}>
             <Box className={styles.rowBetween}>
@@ -196,7 +189,6 @@ const DishDetail = () => {
 
             <Divider sx={{ my: 1 }} />
 
-            {/* VARIANTS */}
             <Typography variant="subtitle1" fontWeight="bold">Kích cỡ</Typography>
             <RadioGroup 
                 value={selectedVariant} 
@@ -211,7 +203,6 @@ const DishDetail = () => {
                 ))}
             </RadioGroup>
 
-            {/* ADDONS */}
             <Typography variant="subtitle1" fontWeight="bold" sx={{ mt: 1 }}>Món thêm</Typography>
             <FormGroup>
                 {mockAddons.map(addon => (
@@ -235,7 +226,6 @@ const DishDetail = () => {
           </div>
         </Grid>
       </Grid>
-      {/* REVIEWS SECTION */}
       <ReviewList dishId={id} />
 
       <Box mt={6}>
