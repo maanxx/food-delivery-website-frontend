@@ -1,7 +1,6 @@
 import axiosInstance from "@config/axiosInstance";
 
 const reviewService = {
-    // Lấy tất cả reviews của món ăn
     getReviewsByDish: async (dishId) => {
         try {
             const response = await axiosInstance.get(`/api/dish/${dishId}/reviews`);
@@ -12,7 +11,6 @@ const reviewService = {
         }
     },
 
-    // Tạo review mới
     createReview: async (dishId, reviewData) => {
         try {
             const response = await axiosInstance.post(
@@ -26,7 +24,6 @@ const reviewService = {
         }
     },
 
-    // Cập nhật review
     updateReview: async (reviewId, reviewData) => {
         try {
             const response = await axiosInstance.put(
@@ -40,7 +37,6 @@ const reviewService = {
         }
     },
 
-    // Xóa review
     deleteReview: async (reviewId) => {
         try {
             const response = await axiosInstance.delete(`/api/reviews/${reviewId}`);
@@ -51,7 +47,6 @@ const reviewService = {
         }
     },
 
-    // Lấy tất cả reviews của user
     getUserReviews: async () => {
         try {
             const response = await axiosInstance.get("/api/user/reviews");
