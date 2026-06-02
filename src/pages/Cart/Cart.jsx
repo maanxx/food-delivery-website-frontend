@@ -44,14 +44,11 @@ function Cart() {
     dispatch(fetchCartItems());
   }, [dispatch]);
 
-  // Load saved vouchers and fetch all vouchers
   useEffect(() => {
     const fetchData = async () => {
-      // Get saved voucher codes from localStorage
       const saved = JSON.parse(localStorage.getItem('savedVouchers') || '[]');
       setSavedVouchers(saved);
 
-      // Fetch all vouchers to get details
       try {
         const res = await getVouchers();
         if (res.data.success) {
@@ -64,14 +61,12 @@ function Cart() {
     fetchData();
   }, []);
 
-  // Handle auto-selection of all items by default
   useEffect(() => {
     if (cartItems.length > 0 && selectedItemIds.length === 0) {
       setSelectedItemIds(cartItems.map(i => i.cart_item_id));
     }
   }, [cartItems, selectedItemIds.length]);
 
-  // Sync selected items if they are removed from cart
   useEffect(() => {
     const existingIds = cartItems.map(i => i.cart_item_id);
     setSelectedItemIds(prev => prev.filter(id => existingIds.includes(id)));
@@ -88,7 +83,6 @@ function Cart() {
     }, 0),
   [selectedItems]);
 
-  // Filter vouchers that user has saved and check if they're applicable
   const savedVoucherOptions = useMemo(() => {
     return allVouchers
       .filter(v => savedVouchers.includes(v.code))
@@ -112,10 +106,8 @@ function Cart() {
   const discountAmount = useMemo(() => {
     if (!discountInfo || selectedTotal === 0) return 0;
     
-    // Re-check min_purchase when selectedTotal changes
     const minPurchase = Number(discountInfo.min_purchase) || 0;
     if (selectedTotal < minPurchase) {
-      // Auto-remove voucher if total drops below min_purchase
       setDiscountInfo(null);
       message.warning(`Đơn hàng không đủ ${minPurchase.toLocaleString('vi-VN')}₫ để áp dụng voucher`);
       return 0;
@@ -151,7 +143,6 @@ function Cart() {
   const handleBulkDelete = useCallback(async () => {
     if (selectedItemIds.length === 0) return;
     
-    // Always remove items one by one to ensure they are deleted from backend
     await Promise.all(selectedItemIds.map(id => dispatch(removeItemFromCart(id))));
     setSelectedItemIds([]);
   }, [selectedItemIds, dispatch]);
@@ -167,7 +158,6 @@ function Cart() {
       console.log("🎟️ Voucher response:", res);
       
       if (res.success && res.status === "APPLIED") {
-        // Check min_purchase requirement
         const minPurchase = Number(res.voucher.min_purchase) || 0;
         if (selectedTotal < minPurchase) {
           setDiscountInfo(null);
